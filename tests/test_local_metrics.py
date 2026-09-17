@@ -400,6 +400,7 @@ class LocalMetricsTests(unittest.TestCase):
         )
         if initialized.returncode != 0:
             self.skipTest("git unavailable")
+        shutil.rmtree(self.project, ignore_errors=True)
         self.project = enclosing / "child"
         self.project.mkdir()
         self.write_config(True)
@@ -423,6 +424,7 @@ class LocalMetricsTests(unittest.TestCase):
         )
         if initialized.returncode != 0:
             self.skipTest("git unavailable")
+        shutil.rmtree(self.project, ignore_errors=True)
         self.project = enclosing / "child"
         self.project.mkdir()
         self.write_config(True)
