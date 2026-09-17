@@ -42,12 +42,12 @@
   "properties": {
     "schemaVersion": {"const": 1},
     "kind": {"const": "sdlc-qualification-summary"},
-    "release": {"const": "3.7.0"},
+    "release": {"const": "3.7.1"},
     "resultType": {"enum": ["deterministic-installation", "live-host"]},
     "profile": {"enum": ["copilot-vscode", "claude-code", "generic-agent-skills"]},
     "clientVersion": {"type": "string", "minLength": 1, "maxLength": 64},
     "modelClass": {"enum": ["not-applicable", "general", "reasoning", "lightweight"]},
-    "skillVersion": {"const": "3.7.0"},
+    "skillVersion": {"const": "3.7.1"},
     "bundleSha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "installation": {
       "type": "object",

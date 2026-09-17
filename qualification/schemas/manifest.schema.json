@@ -106,14 +106,14 @@
   "properties": {
     "schemaVersion": {"const": 1},
     "kind": {"const": "sdlc-qualification-manifest"},
-    "release": {"const": "3.7.0"},
+    "release": {"const": "3.7.1"},
     "skill": {
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "version", "source", "discoverableSkillCount", "moduleCount", "configTemplate", "helperScripts", "files", "bundleSha256"],
       "properties": {
         "id": {"const": "sdlc"},
-        "version": {"const": "3.7.0"},
+        "version": {"const": "3.7.1"},
         "source": {"$ref": "#/$defs/path"},
         "discoverableSkillCount": {"const": 1},
         "moduleCount": {"const": 20},

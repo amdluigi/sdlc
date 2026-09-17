@@ -446,6 +446,7 @@ class LocalMetricsTests(unittest.TestCase):
 
     def test_nested_project_honors_enclosing_worktree_ignore_rules(self):
         module = self.load_module()
+        shutil.rmtree(self.project, ignore_errors=True)
         enclosing = self.project.parent / f"{self.project.name}-enclosing"
         shutil.rmtree(enclosing, ignore_errors=True)
         enclosing.mkdir()

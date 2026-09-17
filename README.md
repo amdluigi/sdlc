@@ -941,12 +941,12 @@ Before release:
    roots. Copy and link installs must match the canonical bytes exactly.
 5. Run the nineteen dedicated live cases five times for every required profile,
    sanitize the reviewed verdicts, and delete raw material.
-6. Run `python scripts/qualify.py gate --release 3.7.0`. Missing host evidence,
+6. Run `python scripts/qualify.py gate --release 3.7.1`. Missing host evidence,
    incomplete repetitions, and any critical failure block release.
 
 The deterministic/live split prevents static installation checks from being
 reported as model behavior. Retained summaries under
-`qualification/results/3.7.0/` contain only schema-bounded IDs, versions,
+`qualification/results/3.7.1/` contain only schema-bounded IDs, versions,
 model classes, statuses, booleans, and counters.
 
 ## License

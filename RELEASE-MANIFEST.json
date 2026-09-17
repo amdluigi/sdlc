@@ -3,12 +3,12 @@
     {
       "mode": "100644",
       "path": ".claude-plugin/marketplace.json",
-      "sha256": "6bc9fc924d75c5efcb6214f312544fc6ba583ed961d52c7807f68add9b6e4cce"
+      "sha256": "291619280560f08095666744c226df0bda38d70f53d2ff04384fd296660781c4"
     },
     {
       "mode": "100644",
       "path": ".claude-plugin/plugin.json",
-      "sha256": "036a43052a90737cdc59600f2628801c51794317c330ac485f60267fcfd8d689"
+      "sha256": "f64ce7a6e77e98b234a7a56910c3b371a3d4b51e0d292e8a693f2ddd6bfb72db"
     },
     {
       "mode": "100644",
@@ -53,7 +53,7 @@
     {
       "mode": "100644",
       "path": "README.md",
-      "sha256": "d1de79c64a471ebc134f1a37c4468220d8ded2c3fdafb6743717a06e716a7cd0"
+      "sha256": "00395583737f3a3ae0b4bc7d3180357c15e411fb7ba64791d9ab220552c94050"
     },
     {
       "mode": "100644",
@@ -108,7 +108,7 @@
     {
       "mode": "100644",
       "path": "qualification/manifest.json",
-      "sha256": "21cd1544b800184df9cb1e1699c69cd405dcac9d418ab5a0649bde818dbda671"
+      "sha256": "27c6b2c6d585cf376c7d80a9f2b542b2875945ee964159f7b20d5ecfd870ae0b"
     },
     {
       "mode": "100644",
@@ -157,13 +157,18 @@
     },
     {
       "mode": "100644",
+      "path": "qualification/results/3.7.1/README.md",
+      "sha256": "9f92ac54824e118e332d1bfd4d565217efe5a2302d79e5045aeb8e933e0d07d8"
+    },
+    {
+      "mode": "100644",
       "path": "qualification/schemas/manifest.schema.json",
-      "sha256": "a1dcf6a7d467036e334b12967a6968b8bda3e01f25bc81f2ca4ec428ea0b9614"
+      "sha256": "b599a8ee50d15df1424d70acab2565d5a8e3192fc59497c420a9f9b1bf97e503"
     },
     {
       "mode": "100644",
       "path": "qualification/schemas/result.schema.json",
-      "sha256": "441da25a6ec3c9aedb9d8614e6bd0cc37144d12f9f27ead3aaec2bb80b780646"
+      "sha256": "83d154321cf7c4781fb8e4e7ee245b40ded74076f8b8e153c68d9efb0b0aa489"
     },
     {
       "mode": "100644",
@@ -178,7 +183,7 @@
     {
       "mode": "100644",
       "path": "scripts/qualify.py",
-      "sha256": "e1aa614f847f396420b068f49eb70b27d707c98071f3ef511f86731ac1ad7ffe"
+      "sha256": "5edbdd59fc5be226d47e8142a4cbe9f6d254ee942f97f165c326e09ed0a2bc6d"
     },
     {
       "mode": "100644",
@@ -193,7 +198,7 @@
     {
       "mode": "100644",
       "path": "skills/sdlc/SKILL.md",
-      "sha256": "22f4c4ea8210eee36185a6fa8c4e40f310dd1715d5ad42acce89c5a9ac8f8782"
+      "sha256": "cd172c8d9018a0a912c3dd6e3ca5f9e0a99c24c2e94ee6bcb0133a7b068a4faa"
     },
     {
       "mode": "100644",
@@ -528,7 +533,7 @@
     {
       "mode": "100644",
       "path": "tests/test_local_metrics.py",
-      "sha256": "645a454ddd3bfce34fbdb3148b911dace34149208658edbde923ade3ad2f1dce"
+      "sha256": "89e2dc6632249402c5f9f3b714ceef0415ad772eaa2d8f36fd13506b853174da"
     },
     {
       "mode": "100644",
@@ -558,5 +563,5 @@
   ],
   "releaseVersion": 1,
   "schemaVersion": 1,
-  "treeDigest": "9babf4a2d93c58b636c497386528a2488c19d4df36347e1a310d8d086f78aec6"
+  "treeDigest": "d55ff52d96163bc9510e4d5412215e62583bc3dbb46c8df266717bf623898817"
 }

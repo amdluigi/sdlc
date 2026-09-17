@@ -321,8 +321,8 @@ def validate_manifest(value: object, root: Path) -> dict[str, object]:
     if manifest["schemaVersion"] != 1 or manifest["kind"] != "sdlc-qualification-manifest":
         fail("Unsupported qualification manifest identity")
     release = _text(manifest["release"], "manifest release", 32)
-    if release != "3.7.0":
-        fail("Release 3.7 manifest must identify version 3.7.0")
+    if release != "3.7.1":
+        fail("Release 3.7 manifest must identify version 3.7.1")
     skill = _fields(
         manifest["skill"],
         {"id", "version", "source", "discoverableSkillCount", "moduleCount",
