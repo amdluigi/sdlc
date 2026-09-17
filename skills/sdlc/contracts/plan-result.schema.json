@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:plan-result:1",
+  "title": "SDLC plan validation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractValid", "semanticApproval", "notice", "path", "prd", "tasks", "taskDetails", "requirementCoverage"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "contractValid": {"const": true},
+    "semanticApproval": {"const": "not-assessed"},
+    "notice": {"type": "string", "minLength": 1},
+    "path": {"type": "string", "minLength": 1},
+    "prd": {"$ref": "#/$defs/prd"},
+    "tasks": {"$ref": "#/$defs/ids"},
+    "taskDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z0-9]+(?:-[a-z0-9]+)*$": {"$ref": "#/$defs/task"}
+      }
+    },
+    "requirementCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["functionalRequirements", "acceptanceCriteria"],
+      "properties": {
+        "functionalRequirements": {"$ref": "#/$defs/refs"},
+        "acceptanceCriteria": {"$ref": "#/$defs/refs"}
+      }
+    }
+  },
+  "$defs": {
+    "ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    },
+    "refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^(?:FR|AC)-[1-9][0-9]*$"}
+    },
+    "prd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "oneOf": [
+        {"required": ["path"], "not": {"anyOf": [{"required": ["artifact"]}, {"required": ["reconciliation"]}]}},
+        {"required": ["artifact", "reconciliation"], "not": {"required": ["path"]}}
+      ],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "artifact": {"type": "string", "minLength": 1},
+        "reconciliation": {"type": "string", "minLength": 1},
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "version": {"type": "integer", "minimum": 1}
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prdRefs", "prerequisites", "consumes", "produces", "execution", "verification"],
+      "properties": {
+        "prdRefs": {"$ref": "#/$defs/refs"},
+        "prerequisites": {"$ref": "#/$defs/ids"},
+        "consumes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "produces": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "group"],
+          "properties": {
+            "mode": {"enum": ["sequential", "parallel"]},
+            "group": {"type": ["string", "null"], "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+          }
+        },
+        "verification": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

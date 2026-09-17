@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 3,
+  "modules": {
+    "project-memory": true,
+    "project-standards": true,
+    "change-contract": true,
+    "prd": true,
+    "debugging": true,
+    "planning": true,
+    "accessibility-browser": true,
+    "performance-concurrency": true,
+    "observability": true,
+    "api-compatibility": true,
+    "data-migration": true,
+    "dependency-supply-chain": true,
+    "tdd": true,
+    "implementation": true,
+    "testing": true,
+    "security-auth": true,
+    "operational-readiness": true,
+    "review": true,
+    "pr-handoff": true,
+    "continuous-improvement": true
+  },
+  "extensions": {
+    "project": {},
+    "global": {}
+  },
+  "measurement": {
+    "enabled": false
+  }
+}

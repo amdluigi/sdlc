@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:handoff:1",
+  "title": "SDLC normalized handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "title", "outcome", "prd", "requirements", "scope", "acceptanceEvidence", "review", "compatibility", "rollout", "rollback", "risks", "limitations", "deferredWork", "repositoryState", "configuredDisabledModules", "blockers"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "title": {"type": "string", "minLength": 1, "maxLength": 120},
+    "outcome": {"type": "string", "minLength": 1},
+    "prd": {
+      "oneOf": [
+        {"$ref": "#/$defs/applicablePrd"},
+        {"$ref": "#/$defs/nonApplicablePrd"}
+      ]
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["functional", "acceptance", "delivered"],
+      "properties": {
+        "functional": {"$ref": "#/$defs/refs"},
+        "acceptance": {"$ref": "#/$defs/refs"},
+        "delivered": {"$ref": "#/$defs/refs"}
+      }
+    },
+    "scope": {"$ref": "#/$defs/texts"},
+    "acceptanceEvidence": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/evidence"}
+    },
+    "review": {"$ref": "#/$defs/review"},
+    "compatibility": {"$ref": "#/$defs/applicability"},
+    "rollout": {"$ref": "#/$defs/applicability"},
+    "rollback": {"$ref": "#/$defs/applicability"},
+    "risks": {"$ref": "#/$defs/texts"},
+    "limitations": {"$ref": "#/$defs/texts"},
+    "deferredWork": {"$ref": "#/$defs/texts"},
+    "repositoryState": {"$ref": "#/$defs/repositoryState"},
+    "configuredDisabledModules": {"$ref": "#/$defs/ids"},
+    "blockers": {"$ref": "#/$defs/texts"}
+  },
+  "$defs": {
+    "ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    },
+    "refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^(?:FR|AC)-[1-9][0-9]*$"}
+    },
+    "texts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "applicablePrd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicability", "id", "version", "declaredStatus"],
+      "oneOf": [
+        {"required": ["path"], "not": {"anyOf": [{"required": ["artifact"]}, {"required": ["reconciliation"]}]}},
+        {"required": ["artifact", "reconciliation"], "not": {"required": ["path"]}}
+      ],
+      "properties": {
+        "applicability": {"const": "applicable"},
+        "path": {"type": "string", "pattern": "^[^\\\\/](?:[^\\\\]*[^\\\\/])?$"},
+        "artifact": {"type": "string", "pattern": "^[^\\\\/](?:[^\\\\]*[^\\\\/])?$"},
+        "reconciliation": {"type": "string", "pattern": "^[^\\\\/](?:[^\\\\]*[^\\\\/])?$"},
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "version": {"type": "integer", "minimum": 1},
+        "declaredStatus": {"enum": ["draft", "approved", "superseded"]}
+      }
+    },
+    "nonApplicablePrd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicability", "reason"],
+      "properties": {
+        "applicability": {"const": "not-applicable"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptanceCriterion", "kind", "command", "result", "revision", "summary"],
+      "properties": {
+        "acceptanceCriterion": {"type": "string", "pattern": "^AC-[1-9][0-9]*$"},
+        "kind": {"type": "string", "minLength": 1},
+        "command": {"type": "string", "minLength": 1},
+        "result": {"enum": ["passed", "failed", "not-run", "unavailable"]},
+        "revision": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["perspectives", "findingsResolved", "unavailable"],
+      "properties": {
+        "perspectives": {"$ref": "#/$defs/texts"},
+        "findingsResolved": {"$ref": "#/$defs/texts"},
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["perspective", "reason"],
+            "properties": {
+              "perspective": {"type": "string", "minLength": 1},
+              "reason": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicability", "details", "reason"],
+      "properties": {
+        "applicability": {"enum": ["applicable", "not-applicable"]},
+        "details": {"$ref": "#/$defs/texts"},
+        "reason": {"type": ["string", "null"]}
+      }
+    },
+    "repositoryState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statusInspected", "completeDiffInspected", "revision", "unrelatedChanges"],
+      "properties": {
+        "statusInspected": {"const": true},
+        "completeDiffInspected": {"const": true},
+        "revision": {"type": "string", "minLength": 1},
+        "unrelatedChanges": {"$ref": "#/$defs/texts"}
+      }
+    }
+  }
+}

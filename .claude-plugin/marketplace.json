@@ -1,0 +1,25 @@
+{
+  "name": "amdluigi",
+  "owner": {
+    "name": "amdluigi",
+    "url": "https://github.com/amdluigi"
+  },
+  "description": "amdluigi's modular SDLC skill bundle as an installable Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "amdluigi-skills",
+      "version": "3.7.0",
+      "source": "./",
+      "description": "Orchestrates modular delivery, reuses verified lifecycle evidence from any workflow, and fills only missing SDLC work.",
+      "category": "engineering",
+      "keywords": [
+        "sdlc",
+        "project-memory",
+        "process",
+        "testing",
+        "security",
+        "code-review"
+      ]
+    }
+  ]
+}

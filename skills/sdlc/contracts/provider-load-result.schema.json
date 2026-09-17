@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:provider-load-result:1",
+  "title": "Digest-bound replacement provider load result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "module", "provider", "contentDigest",
+    "action", "instructions", "context"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "module": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"const": "replacement"},
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+      }
+    },
+    "contentDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "instructions": {"type": "string", "minLength": 1},
+    "action": {
+      "const": "loaded replacement; core evidence requires reclassification"
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coreTrigger", "coreExitSignal", "coreEvidence",
+        "recognizedEvidence", "gaps", "readinessAuthority",
+        "changeContract", "projectStandards", "projectMemory"
+      ],
+      "properties": {
+        "coreTrigger": {"type": "string", "minLength": 1},
+        "coreExitSignal": {"type": "string", "minLength": 1},
+        "coreEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "recognizedEvidence": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "gaps": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "readinessAuthority": {"const": "orchestrator"}
+        ,
+        "changeContract": {},
+        "projectStandards": {},
+        "projectMemory": {}
+      }
+    }
+  }
+}

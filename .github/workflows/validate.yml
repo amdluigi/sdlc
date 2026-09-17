@@ -1,0 +1,63 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unit tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python -m unittest discover -v
+          if [ -d internal/publication/tests ]; then
+            python -m unittest discover -s internal/publication/tests -v
+          fi
+      - name: Repository validation
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python scripts/validate.py
+      - name: Qualification manifest
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python scripts/qualify.py verify-manifest
+      - name: Verify exported release
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          if [ -f PUBLIC-REPOSITORY.json ]; then
+            python scripts/verify_public_release.py
+          elif [ ! -f internal/publication/manifest.json ]; then
+            echo "repository identity contract missing" >&2
+            exit 1
+          fi
+      - name: Shell syntax
+        shell: bash
+        run: |
+          bash -n scripts/install.sh
+          pwsh -NoProfile -Command '$errors = $null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/install.ps1), [ref]$null, [ref]$errors); if ($errors) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }'
+      - name: Diff, cache, and trailer checks
+        shell: bash
+        run: |
+          git diff --check
+          if find . -path ./.git -prune -o \( -name __pycache__ -o -name '*.py[co]' -o -name .pytest_cache \) -print | grep -q .; then
+            echo "cache or bytecode artifact found" >&2
+            exit 1
+          fi
+          if git log -1 --format=%B | grep -qi '^Co-authored-by:'; then
+            echo "prohibited commit trailer found" >&2
+            exit 1
+          fi

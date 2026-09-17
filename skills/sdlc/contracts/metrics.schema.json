@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:local-metrics:1",
+  "title": "Private project-local SDLC aggregate measurement",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "counters", "phaseDurations"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "generation": {"type": "integer", "minimum": 1, "maximum": 9223372036854775807},
+    "counters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module.enabled", "module.triggered", "module.loaded", "module.reused",
+        "module.disabled", "evidence.reused", "evidence.refreshed",
+        "clarification.asked", "clarification.avoidedByEvidence",
+        "extension.observed", "extension.accepted", "extension.rejected",
+        "extension.promoted", "extension.superseded", "report.concise",
+        "report.normal", "report.detailed"
+      ],
+      "properties": {
+        "module.enabled": {"$ref": "#/$defs/counter"},
+        "module.triggered": {"$ref": "#/$defs/counter"},
+        "module.loaded": {"$ref": "#/$defs/counter"},
+        "module.reused": {"$ref": "#/$defs/counter"},
+        "module.disabled": {"$ref": "#/$defs/counter"},
+        "evidence.reused": {"$ref": "#/$defs/counter"},
+        "evidence.refreshed": {"$ref": "#/$defs/counter"},
+        "clarification.asked": {"$ref": "#/$defs/counter"},
+        "clarification.avoidedByEvidence": {"$ref": "#/$defs/counter"},
+        "extension.observed": {"$ref": "#/$defs/counter"},
+        "extension.accepted": {"$ref": "#/$defs/counter"},
+        "extension.rejected": {"$ref": "#/$defs/counter"},
+        "extension.promoted": {"$ref": "#/$defs/counter"},
+        "extension.superseded": {"$ref": "#/$defs/counter"},
+        "report.concise": {"$ref": "#/$defs/counter"},
+        "report.normal": {"$ref": "#/$defs/counter"},
+        "report.detailed": {"$ref": "#/$defs/counter"}
+      }
+    },
+    "phaseDurations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["configuration", "evidence-assessment", "module-execution", "verification", "handoff"],
+      "properties": {
+        "configuration": {"$ref": "#/$defs/duration"},
+        "evidence-assessment": {"$ref": "#/$defs/duration"},
+        "module-execution": {"$ref": "#/$defs/duration"},
+        "verification": {"$ref": "#/$defs/duration"},
+        "handoff": {"$ref": "#/$defs/duration"}
+      }
+    }
+  },
+  "$defs": {
+    "counter": {"type": "integer", "minimum": 0, "maximum": 9223372036854775807},
+    "duration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "bucketsMs"],
+      "properties": {
+        "count": {"$ref": "#/$defs/counter"},
+        "bucketsMs": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {"$ref": "#/$defs/counter"}
+        }
+      }
+    }
+  }
+}

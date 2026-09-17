@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:prd-result:1",
+  "title": "SDLC PRD validation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractValid", "semanticApproval", "notice", "path", "id", "status", "declaredStatus", "version", "functionalRequirements", "acceptanceCriteria", "mappings", "approvalEvidencePresent", "approvalBlockingDecisions"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "contractValid": {"const": true},
+    "semanticApproval": {"const": "not-assessed"},
+    "notice": {"type": "string", "minLength": 1},
+    "path": {"type": "string", "minLength": 1},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "status": {"enum": ["draft", "approved", "superseded"], "deprecated": true},
+    "declaredStatus": {"enum": ["draft", "approved", "superseded"]},
+    "version": {"type": "integer", "minimum": 1},
+    "functionalRequirements": {"$ref": "#/$defs/refs"},
+    "acceptanceCriteria": {"$ref": "#/$defs/refs"},
+    "mappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^AC-[1-9][0-9]*$": {"$ref": "#/$defs/refs"}
+      }
+    },
+    "approvalEvidencePresent": {"type": "boolean"},
+    "approvalBlockingDecisions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^(?:FR|AC)-[1-9][0-9]*$"}
+    }
+  }
+}
