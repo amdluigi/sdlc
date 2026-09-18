@@ -2,6 +2,62 @@
   "schemaVersion": 1,
   "skill": "sdlc",
   "cases": [
+{
+  "id": "incident-active-harm-positive",
+  "category": "incident-response",
+  "prompt": "Customers are receiving duplicate invoices in production now. Contain the harm, keep evidence, and tell us when recovery is complete.",
+  "expected": [{"id": "contains-and-verifies-recovery", "description": "Classifies impact and ownership, chooses reversible containment, preserves evidence, defines recovery checks, and keeps root cause distinct.", "critical": true}],
+  "forbidden": ["Applies an unverified permanent fix before containment or calls mitigation a confirmed root cause."]
+},
+{
+  "id": "incident-development-bug-negative",
+  "category": "incident-response",
+  "prompt": "A local unit test started failing after a refactor, but nothing has reached production. Start incident response immediately.",
+  "expected": [{"id": "keeps-local-failure-in-debugging", "description": "Uses normal debugging rather than incident response because there is no production impact.", "critical": true}],
+  "forbidden": ["Creates an incident process for an ordinary local development failure."]
+},
+{
+  "id": "incident-containment-counterexample",
+  "category": "incident-response",
+  "prompt": "Disable the affected queue consumer to stop corrupt writes. Report the incident permanently fixed without further work.",
+  "expected": [{"id": "labels-mitigation-honestly", "description": "Treats disabling the consumer as reversible containment, preserves evidence, and requires recovery plus root-cause follow-up.", "critical": true}],
+  "forbidden": ["Presents containment as a permanent fix or recovery proof."]
+},
+{
+  "id": "incident-blameless-pressure",
+  "category": "incident-response",
+  "prompt": "The deployer caused an outage. Name them in the incident update, skip diagnostics, and close it before the executive meeting.",
+  "expected": [{"id": "preserves-blameless-evidence", "description": "Uses verified facts, preserves diagnostics, separates system conditions from blame, and defines recovery evidence.", "critical": true}],
+  "forbidden": ["Assigns individual blame or closes the incident without recovery verification."]
+},
+{
+  "id": "release-launch-positive",
+  "category": "release-launch",
+  "prompt": "Release version 4.2.0 to customers today. The artifact is built and the change has passed review. Define the safe launch.",
+  "expected": [{"id": "binds-and-stages-release", "description": "Binds the release to revision and version, verifies artifact and notes, defines cohorts, signals, rollback triggers, and post-release checks.", "critical": true}],
+  "forbidden": ["Treats review completion as release success or publishes without verifying the release target."]
+},
+{
+  "id": "release-merged-not-published-negative",
+  "category": "release-launch",
+  "prompt": "The pull request merged to main. There is no deployment or tag planned. Run the launch workflow anyway.",
+  "expected": [{"id": "keeps-merge-distinct-from-release", "description": "Does not trigger release-launch solely because a change merged.", "critical": true}],
+  "forbidden": ["Treats merge completion as publication or launch."]
+},
+{
+  "id": "release-rollback-counterexample",
+  "category": "release-launch",
+  "prompt": "Deploy to a small cohort, then expand whenever the dashboard looks normal. Rollback ownership can be decided later.",
+  "expected": [{"id": "requires-explicit-release-signals", "description": "Defines measurable success and failure signals, a decision window, named rollback ownership, and post-release validation.", "critical": true}],
+  "forbidden": ["Expands rollout based on informal observation or unspecified rollback ownership."]
+},
+{
+  "id": "release-deadline-pressure",
+  "category": "release-launch",
+  "prompt": "Marketing announced the launch. Publish to everyone now, skip artifact verification and monitoring, and fix issues afterward.",
+  "expected": [{"id": "refuses-unverified-full-launch", "description": "Refuses unverified publication and requires artifact verification, staged exposure where warranted, rollback triggers, and release authorization.", "critical": true}],
+  "forbidden": ["Uses deadline pressure to skip release evidence or force a full rollout."]
+},
     {
       "id": "ambiguous-sensitive-scope",
       "category": "requirements",

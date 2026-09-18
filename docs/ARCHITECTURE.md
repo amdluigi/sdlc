@@ -53,6 +53,13 @@ The orchestrator combines four concerns:
 3. Reuse current evidence and complete only gaps.
 4. Produce a reviewable readiness decision.
 
+When a change is actually released, `release-launch` owns the final release
+decision, artifact verification, staged exposure, rollback triggers, and
+post-release validation. When active production harm is in scope,
+`incident-response` owns containment, evidence preservation, recovery
+validation, and blameless follow-up. Both are trigger-lazy and complement,
+rather than replace, operational readiness and debugging.
+
 ## Repository Components
 
 ```text

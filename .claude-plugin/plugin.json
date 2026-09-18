@@ -1,6 +1,6 @@
 {
   "name": "amdluigi-skills",
-  "version": "3.7.3",
+  "version": "3.8.0",
   "description": "A modular SDLC bundle that reuses verified lifecycle evidence and fills only missing work for scoped, tested, reviewed changes.",
   "author": {
     "name": "amdluigi",

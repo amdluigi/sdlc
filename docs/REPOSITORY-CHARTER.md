@@ -148,6 +148,7 @@ The repository ships:
 - a product requirements document module and template;
 - a test-driven development module;
 - six default-enabled, trigger-lazy domain modules;
+- trigger-lazy release and incident lifecycle modules;
 - project-memory templates;
 - deterministic artifact validation, execution continuity, and
   adaptive-extension helpers;

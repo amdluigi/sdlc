@@ -16,9 +16,23 @@ The repository ships one discoverable skill: [`sdlc`](skills/sdlc).
 
 ## Use SDLC
 
-Choose a supported option under [Installing](#installing), then give your
-agent a normal project task and ask it to use SDLC. On the first non-trivial
-task, review and commit the resources described in [Project setup](#project-setup).
+### Quick start
+
+Install the bundle, then give your agent a normal project task. You do not
+need to invoke individual lifecycle modules.
+
+```bash
+npx skills add amdluigi/skills --skill sdlc
+```
+
+For a first task, use a direct request such as: "Use SDLC to add a validated
+settings endpoint." The agent evaluates the task and loads only the lifecycle
+guidance whose triggers apply. Review and commit the project resources
+described in [Project setup](#project-setup) when the first non-trivial task
+creates them.
+
+Choose a supported installation option under [Installing](#installing) when
+you need a host-specific setup or a local development install.
 
 ## Configure or extend SDLC
 
@@ -82,6 +96,8 @@ capability, SDLC recognizes it and performs only the missing work.
 | `change-contract` | Define one coherent outcome, acceptance criteria, non-goals, impact, and PR boundary |
 | `prd` | Require an identifiable, approved product requirements document before new project and feature planning |
 | `debugging` | Reproduce, localize, and fix root causes |
+| `incident-response` | Contain production harm, preserve evidence, verify recovery, and track corrective actions |
+| `release-launch` | Make an evidence-backed release decision, stage rollout, and verify post-release state |
 | `planning` | Plan the minimum complete change |
 | `accessibility-browser` | Qualify changed rendered flows, assistive input, focus, responsive states, and browser or app runtime behavior |
 | `performance-concurrency` | Establish budgets and measured performance, contention, resource, and correctness-under-load evidence |
@@ -579,6 +595,19 @@ Every non-trivial final response includes a compact module coverage report
 showing recognized evidence, remaining gaps, and actions taken. The report is
 not persisted, because stored coverage state becomes stale easily.
 
+### What SDLC shows during a task
+
+SDLC does not run every module for every request. It first evaluates module
+triggers and existing evidence, then loads only unresolved applicable
+guidance. A small behavior-preserving change should therefore stay light:
+modules whose triggers do not match are recorded as not applicable rather
+than becoming extra work.
+
+For non-trivial work, the final coverage report summarizes applicable,
+reused, skipped, and explicitly disabled safeguards. It preserves blockers
+and disabled-module disclosure without narrating every module during routine
+work.
+
 ## Incremental implementation
 
 For multi-file and significant changes, the implementation module avoids one
@@ -738,6 +767,25 @@ content, or open a pull request.
   upload adaptive data.
 
 ## Installing
+
+### Support levels
+
+The following levels describe repository-owned installation evidence, not a
+claim about every agent that can read Markdown skills.
+
+| Host or profile | Support level | Installation path | Evidence |
+|---|---|---|---|
+| VS Code Copilot | Qualified | Repository installer profile `copilot-vscode` | Project and synthetic-global copy/link installs |
+| Claude Code | Qualified | Plugin, Skills CLI, or installer profile `claude-code` | Project and synthetic-global copy/link installs |
+| Agent Skills-compatible host | Qualified | Generic installer profile | Project copy/link installs |
+| Codex | Experimental | Skills CLI or manual copy | Candidate host, no manifest qualification cell yet |
+| Other hosts | Compatible by convention | Skills CLI or manual copy when the host supports Agent Skills | No repository-owned qualification cell yet |
+
+Qualified profiles are defined in
+[`qualification/manifest.json`](qualification/manifest.json) and exercised
+with synthetic roots. "Compatible by convention" means the host must support
+the standard skill folder layout, but this repository does not yet claim a
+host-specific test result.
 
 ### Claude Code plugin
 
@@ -912,6 +960,8 @@ project memory.
             ├── change-contract/
             ├── prd/
             ├── debugging/
+            ├── incident-response/
+            ├── release-launch/
             ├── planning/
             ├── accessibility-browser/
             ├── performance-concurrency/
@@ -948,9 +998,33 @@ Behavior changes use the host-neutral pressure cases in
 [`evals/sdlc`](evals/sdlc). Compare control and skilled runs using its blind
 scoring contract.
 
+Use the [behavioral scorecard](evals/sdlc/SCORECARD.md) to record sanitized
+control-versus-skilled results for meaningful behavior changes. A changed
+workflow is not accepted solely because an aggregate score rises: the record
+must show that the candidate bundle caused the required behavior and that no
+critical or forbidden behavior failed.
+
+The [host qualification policy](qualification/HOST-QUALIFICATION.md) defines
+the evidence required to promote a host from Experimental or Compatible by
+convention to Qualified. Do not describe a host as qualified without the
+manifest-defined deterministic and live evidence.
+
 Before release:
 
-1. Run `python -m unittest -q` and require all deterministic tests to run.
+1. Run `python -m unittest -q` with bytecode generation disabled and require
+   all deterministic tests to run:
+
+   ```powershell
+   python -B -m unittest -q
+   ```
+
+   ```bash
+   python -B -m unittest -q
+   ```
+
+   Qualification intentionally rejects generated caches inside the bundle, so
+   do not run release checks after creating `__pycache__`, `.pyc`, or `.pyo`
+   files under the repository.
 2. Run `python scripts/validate.py` for release-neutral structural validation.
 3. Run `python scripts/qualify.py verify-manifest` to verify the canonical
    bundle inventory and digest.

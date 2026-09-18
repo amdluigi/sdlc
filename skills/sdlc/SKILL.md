@@ -5,7 +5,7 @@ license: MIT
 metadata:
   category: process
   architecture: modular
-  version: "3.7.3"
+  version: "3.8.0"
 ---
 
 # SDLC

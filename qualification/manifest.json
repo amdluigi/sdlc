@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "kind": "sdlc-qualification-manifest",
-  "release": "3.7.3",
+  "release": "3.8.0",
   "skill": {
     "id": "sdlc",
-    "version": "3.7.3",
+    "version": "3.8.0",
     "source": "skills/sdlc",
     "discoverableSkillCount": 1,
-    "moduleCount": 20,
+    "moduleCount": 22,
     "configTemplate": "assets/sdlc-config.template.json",
     "helperScripts": [
       "scripts/adaptive_extensions.py",
@@ -24,11 +24,11 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "fcfeb80e73a7b83b9b5db228f12c8aa3b49b291d8bf11abd70316037ea452a5a"
+        "sha256": "ccb6b5a547e653f79b6f4b0285a0f0c3942c28feb4e0d56655389eb8750038fa"
       },
       {
         "path": "assets/sdlc-config.template.json",
-        "sha256": "abe408aeb068cf42d58e8dbfb27c20c2d5fc9028415ef124547d01a183d76eee"
+        "sha256": "25588e3fa5e8845ad5971567f8084840934149a41596893dd330b23bddf528af"
       },
       {
         "path": "contracts/handoff-result.schema.json",
@@ -123,6 +123,10 @@
         "sha256": "c5ab1fbf886a12f7cb165d3586e28477056107296f8cc8062b10dc323e1bb21e"
       },
       {
+        "path": "modules/incident-response/MODULE.md",
+        "sha256": "e2283d0e6c66b2e17db69c10f6cfc8d6ae81d6966cc2910c49ceb96c7d5adecb"
+      },
+      {
         "path": "modules/observability/MODULE.md",
         "sha256": "1f3bc91c3bd2bce4c3cb5d83516df6d5153f895322e47407c98db09dab4a6a32"
       },
@@ -196,7 +200,11 @@
       },
       {
         "path": "modules/registry.json",
-        "sha256": "a7a24f1f5894d14a02f08e66f8f6c60f1b3c7b59569a461bee118f1b3b88e1fb"
+        "sha256": "432c1da6c885e16812c5e8165af9f4834443fc3e41a0437b2cd33bf29248e95f"
+      },
+      {
+        "path": "modules/release-launch/MODULE.md",
+        "sha256": "1c0b87994f87d7daaaef36a805730bb97d512299f3e0a7342fcc1d107580d0df"
       },
       {
         "path": "modules/review/MODULE.md",
@@ -255,7 +263,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "a1f3b7ffd560b3fbf78e43ba49fc51b9b9ff1622bad76ae7f533ea8b68a0828f"
+    "bundleSha256": "437fc375636ea896ef5540921f14858733ecee3ea32cca760e9f29e17889cf89"
   },
   "profiles": [
     {

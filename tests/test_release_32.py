@@ -67,9 +67,9 @@ class Release32ContractTests(unittest.TestCase):
         )
         names = [entry["name"] for entry in registry["modules"]]
 
-        self.assertEqual(list(DOMAIN_MODULES), names[6:12])
-        self.assertEqual("tdd", names[12])
-        self.assertEqual(list(range(20)), [entry["order"] for entry in registry["modules"]])
+        self.assertEqual(list(DOMAIN_MODULES), names[8:14])
+        self.assertEqual("tdd", names[14])
+        self.assertEqual(list(range(22)), [entry["order"] for entry in registry["modules"]])
 
     def test_evaluation_suite_contains_four_contract_types_per_domain_module(self):
         evaluations = json.loads(

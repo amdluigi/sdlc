@@ -6,6 +6,8 @@
     "change-contract": true,
     "prd": true,
     "debugging": true,
+    "incident-response": true,
+    "release-launch": true,
     "planning": true,
     "accessibility-browser": true,
     "performance-concurrency": true,

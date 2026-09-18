@@ -207,7 +207,7 @@ fail for the expected reason before the fix when technically safe.
 Run:
 
 ```powershell
-python -m unittest -q
+python -B -m unittest -q
 python scripts\validate.py
 & "C:\Program Files\Git\bin\bash.exe" -n scripts/install.sh
 git --no-pager diff --check
@@ -224,6 +224,8 @@ Before release, also:
 
 2. Run every required installation cell in repository-local synthetic project
    and home roots. Never use the operator's actual home for qualification.
+   Follow [host qualification policy](qualification/HOST-QUALIFICATION.md)
+   before adding or promoting a host profile.
 3. Run the manifest-selected live cases five times on a project-copy baseline
    for each required profile, plus at least one manifest-supported link cell.
 4. Keep raw verdicts under ignored `qualification/raw/`, sanitize them, then
@@ -234,7 +236,7 @@ Before release, also:
    ```
 
 5. Have a maintainer review every generated hash change and each sanitized
-   summary. The summary contains no prompts, responses, logs, project code,
+   summary and behavioral scorecard. The summary contains no prompts, responses, logs, project code,
    paths, user or machine identifiers, timestamps, secrets, or model IDs.
 6. Run the complete release gate and final checks:
 

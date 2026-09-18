@@ -321,8 +321,8 @@ def validate_manifest(value: object, root: Path) -> dict[str, object]:
     if manifest["schemaVersion"] != 1 or manifest["kind"] != "sdlc-qualification-manifest":
         fail("Unsupported qualification manifest identity")
     release = _text(manifest["release"], "manifest release", 32)
-    if release != "3.7.3":
-        fail("Release 3.7 manifest must identify version 3.7.3")
+    if release != "3.8.0":
+        fail("Release 3.8 manifest must identify version 3.8.0")
     skill = _fields(
         manifest["skill"],
         {"id", "version", "source", "discoverableSkillCount", "moduleCount",
@@ -334,8 +334,8 @@ def validate_manifest(value: object, root: Path) -> dict[str, object]:
     source = _safe_relative(skill["source"], "skill source")
     if type(skill["discoverableSkillCount"]) is not int or skill["discoverableSkillCount"] != 1:
         fail("discoverableSkillCount must be 1")
-    if type(skill["moduleCount"]) is not int or skill["moduleCount"] != 20:
-        fail("moduleCount must be 20")
+    if type(skill["moduleCount"]) is not int or skill["moduleCount"] != 22:
+        fail("moduleCount must be 22")
     _safe_relative(skill["configTemplate"], "config template")
     if (
         not isinstance(skill["helperScripts"], list)
@@ -347,8 +347,8 @@ def validate_manifest(value: object, root: Path) -> dict[str, object]:
     for helper in skill["helperScripts"]:
         _safe_relative(helper, "helper script")
     files = skill["files"]
-    if not isinstance(files, list) or len(files) != 58:
-        fail("Release 3.7 manifest must contain exactly 58 bundle files")
+    if not isinstance(files, list) or len(files) != 60:
+        fail("Release 3.8 manifest must contain exactly 60 bundle files")
     seen: set[str] = set()
     previous = ""
     for index, row in enumerate(files):
@@ -690,11 +690,11 @@ def _deterministic_evidence(case_id: str) -> list[dict[str, object]]:
     mapping = {
         "manifest-contract": [{"code": "manifest-valid", "value": True}],
         "bundle-inventory": [
-            {"code": "file-count", "value": 58},
+            {"code": "file-count", "value": 60},
             {"code": "hashes-match", "value": True},
         ],
         "discoverable-skill-count": [{"code": "skill-count", "value": 1}],
-        "module-count": [{"code": "module-count", "value": 20}],
+        "module-count": [{"code": "module-count", "value": 22}],
         "config-template": [{"code": "config-valid", "value": True}],
         "helper-scripts": [{"code": "helpers-match", "value": True}],
         "trigger-discovery-metadata": [{"code": "metadata-valid", "value": True}],
