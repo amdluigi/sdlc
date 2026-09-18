@@ -6,6 +6,21 @@ prompting them for requirements, tests, security, review, or project context.
 
 The repository ships one discoverable skill: [`sdlc`](skills/sdlc).
 
+[![Development managed by the SDLC skill: understand, plan, build, verify, and handoff.](docs/images/sdlc-development-flow/01-development-lifecycle.svg)](docs/SDLC-DEVELOPMENT-FLOW.md)
+
+SDLC advances one coherent change through current, inspectable evidence.
+
+### Evidence-driven, not checklist-driven
+
+[![Each module is skipped, disclosed, reused, or completed according to its applicability, configuration, and current evidence.](docs/images/sdlc-development-flow/02-evidence-gate.svg)](docs/SDLC-DEVELOPMENT-FLOW.md)
+
+### Proportional to the risk
+
+[![Trivial, standard, and significant changes receive progressively stronger planning, verification, and review.](docs/images/sdlc-development-flow/03-risk-scaling.svg)](docs/SDLC-DEVELOPMENT-FLOW.md)
+
+[Explore the SDLC development flow](docs/SDLC-DEVELOPMENT-FLOW.md) for the
+full explanation.
+
 ## Choose your path
 
 | Goal | Start here |
