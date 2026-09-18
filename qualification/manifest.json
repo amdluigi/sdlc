@@ -124,7 +124,7 @@
       },
       {
         "path": "modules/incident-response/MODULE.md",
-        "sha256": "e2283d0e6c66b2e17db69c10f6cfc8d6ae81d6966cc2910c49ceb96c7d5adecb"
+        "sha256": "c5058645e3724028e3aeb39e0a9e5f6dee082d629ca4350720f2a9b7aa77a671"
       },
       {
         "path": "modules/observability/MODULE.md",
@@ -204,7 +204,7 @@
       },
       {
         "path": "modules/release-launch/MODULE.md",
-        "sha256": "1c0b87994f87d7daaaef36a805730bb97d512299f3e0a7342fcc1d107580d0df"
+        "sha256": "9b4e9a51042466d711ba2c50e1a6a4d3b0663f377cad463d5ebac2ad56758eb9"
       },
       {
         "path": "modules/review/MODULE.md",
@@ -263,7 +263,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "437fc375636ea896ef5540921f14858733ecee3ea32cca760e9f29e17889cf89"
+    "bundleSha256": "c527b8b07035d3b8a9547cf2ad067b31ff07e56d383a1bb4dbcd0dc04da07188"
   },
   "profiles": [
     {
