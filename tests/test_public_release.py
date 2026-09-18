@@ -39,7 +39,8 @@ class PublicRepositoryAuthorityTest(unittest.TestCase):
             )
         )
 
-        self.assertNotIn(r"C:\dev\skills-internal", text)
+        private_path = "\\".join(("C:", "dev", "skills-" + "internal"))
+        self.assertNotIn(private_path, text)
         self.assertNotIn("internal/publication", text)
         self.assertNotIn("later public export", text.lower())
 
