@@ -34,38 +34,23 @@ and [private local aggregate measurement](#private-local-aggregate-measurement).
 
 Read [Contributing](CONTRIBUTING.md) before changing the bundle, then use
 [Evaluating changes](#evaluating-changes) for validation and qualification.
-The private source repository alone provides `verify.bat` for routine checks,
-`publish.bat --dry-run` for a complete release rehearsal, and `publish.bat`
-for an approved publication.
+Create a branch, run the repository checks, and open a pull request. Public
+CI and review are the merge gate.
 
-## Source and distribution
+## Public code authority
 
-Development is maintained in the private authoritative `skills-internal`
-repository. The public `skills` repository is a deterministic, one-way
-distribution of the installable product, tests, sanitized evaluations, stable
-documentation, and contribution guidance. These names preserve the existing
-public project identity while moving full source history behind the private
-boundary.
+This public `skills` repository is authoritative for SDLC product code,
+tests, public documentation, CI, versions, tags, releases, issues, forks, and
+pull requests.
 
-Public releases are prepared locally from an exact clean Git ref, verified,
-and reviewed as a complete snapshot. The exported public verifier and snapshot
-tooling do not authenticate, commit, push, or call GitHub. Private maintainers
-use a separate one-command release wrapper whose final publication requires an
-exact interactive confirmation or explicit non-interactive authorization.
+Contributors can fork this repository and propose ordinary pull requests
+without access to any private maintainer material. Once a pull request is
+reviewed, passes CI, and merges to `main`, its code is authoritative and
+available to users.
 
-Public contributions remain welcome. Maintainers review accepted changes into
-the private source and include them in a later public export. The public
-repository is never merged back as an authority. When present,
-`RELEASE-MANIFEST.json` can be checked without private tooling:
-
-```powershell
-python scripts\verify_public_release.py
-```
-
-`PUBLIC-REPOSITORY.json` marks the public distribution. In a public tree its
-presence makes `RELEASE-MANIFEST.json` mandatory, and repository validation
-always invokes the standalone verifier. Removing both files does not bypass
-verification because the marker itself is required.
+Maintainers may keep private roadmap or research material elsewhere, but
+public implementation and review happen here. This repository does not depend
+on a private exporter, private path, or private Git history.
 
 SDLC coordinates by evidence rather than by tool identity. If another skill,
 agent, human, or CI workflow already produced current proof for a lifecycle

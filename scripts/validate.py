@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import importlib.util
 import re
 import sys
 import tempfile
@@ -21,56 +20,6 @@ if str(SKILL_SCRIPTS) not in sys.path:
 
 import adaptive_extensions
 import qualify
-
-
-PUBLIC_MARKER_NAME = "PUBLIC-REPOSITORY.json"
-
-
-def validate_publication_contracts(root: Path = ROOT) -> None:
-    verifier_path = root / "scripts" / "verify_public_release.py"
-    if not verifier_path.is_file():
-        fail("Public release verifier is missing")
-    spec = importlib.util.spec_from_file_location("verify_public_release", verifier_path)
-    verifier = importlib.util.module_from_spec(spec)
-    if spec.loader is None:
-        fail("Public release verifier cannot be loaded")
-    spec.loader.exec_module(verifier)
-    marker = root / PUBLIC_MARKER_NAME
-    publication_manifest = root / "internal" / "publication" / "manifest.json"
-    if marker.is_file():
-        if not (root / "RELEASE-MANIFEST.json").is_file():
-            fail("Public repository marker requires RELEASE-MANIFEST.json")
-        verifier.verify(root)
-    elif publication_manifest.is_file():
-        value = load_json_strict_path(publication_manifest)
-        required = {
-            "schemaVersion",
-            "publicationVersion",
-            "sourceRepository",
-            "publicRepository",
-            "sourceVisibility",
-            "publicVisibility",
-            "public",
-            "private",
-            "textExtensions",
-        }
-        if (
-            set(value) != required
-            or value["schemaVersion"] != 1
-            or value["publicationVersion"] != 7
-            or value["sourceRepository"] != "skills-internal"
-            or value["publicRepository"] != "skills"
-            or value["sourceVisibility"] != "private"
-            or value["publicVisibility"] != "public"
-            or ".sdlc/**" not in value["private"]
-            or "internal/**" not in value["private"]
-        ):
-            fail("Private publication manifest contract is invalid")
-    else:
-        fail(
-            "Repository must contain either the strict public marker or "
-            "the private publication manifest"
-        )
 
 
 ADAPTIVE_CASE_IDS = {
@@ -1104,7 +1053,6 @@ def main() -> int:
         validate_evals()
         validate_markdown()
         validate_public_naming()
-        validate_publication_contracts()
     except (OSError, ValueError, json.JSONDecodeError) as error:
         print(f"VALIDATION FAILED: {error}", file=sys.stderr)
         return 1

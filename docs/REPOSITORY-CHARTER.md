@@ -1,16 +1,18 @@
 # Repository Charter
 
-## Authority and distribution boundary
+## Public code authority
 
-The private `skills-internal` source repository is authoritative for product,
-governance, and release preparation. The public `skills` repository is a
-deterministic one-way export containing the usable product and the material
-required to understand, test, verify, and contribute to it.
+The public `skills` repository is authoritative for the usable product,
+tests, public documentation, CI, versions, releases, and contribution
+history.
 
-Private research, raw evaluation evidence, project memory, and release notes
-do not cross the boundary. Public contributions are reviewed into private
-source before a subsequent export. No tool in this repository may
-automatically create, commit, push, or publish a public release.
+The repository must remain independently understandable, testable, and
+installable. Contributors can fork it and submit ordinary pull requests
+without access to private maintainer context.
+
+Private roadmap, research, and maintainer decisions may exist separately, but
+they do not define or duplicate public product code. Public implementation
+becomes authoritative only through review and merge in this repository.
 
 ## Mission
 

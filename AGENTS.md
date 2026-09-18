@@ -4,13 +4,11 @@ This file guides AI coding agents (Claude Code, Cursor, Copilot, etc.) and
 human contributors working on this repository itself (i.e. adding or editing
 skills here - not using the skills in some other project).
 
-The authoritative development repository is private and named
-`skills-internal`. The public repository is named `skills` and is a deterministic
-one-way export. Never copy private working material into a public path or edit
-the public distribution as an authority. Publication automation must retain
-the exact final authorization, safe ordering, and fail-closed recovery
-contract. Public contributions must be ingested into `skills-internal` before
-they can appear in a later export.
+This public repository is authoritative for product code, tests, public
+documentation, CI, versions, releases, and contributions. Make implementation
+changes here through focused branches and pull requests. The repository must
+remain independently understandable, testable, and installable without
+private maintainer context.
 
 ## Repository overview
 
@@ -51,8 +49,6 @@ scripts/
   install.ps1 / install.sh  manual install helper (copy/symlink into a target project)
 evals/
   {skill-name}/             host-neutral behavioral cases and scoring protocol
-internal/
-  publication/              private allowlist and local release tooling
 .claude-plugin/
   plugin.json               Claude Code plugin manifest - lists every skill folder
   marketplace.json          makes this repo its own single-plugin marketplace
@@ -118,23 +114,11 @@ internal/
 16. Public examples and documentation use repository-owned or generic names.
     Provider examples use placeholders such as `custom-prd-provider`. A named
     provider integration requires its own explicitly approved adapter.
-17. Every tracked path must match exactly one rule in
-    `internal/publication/manifest.json`. The `.sdlc/` and `internal/` trees
-    are always private.
-18. Snapshot and audit functions may read only exact Git objects through
-    bounded local Git commands and must not use network, authentication,
-    commits, or pushes. The private release orchestrator may fetch, commit,
-    tag, and push only after all local gates pass and exact final authorization
-    is supplied. It must not use forge APIs, force operations, or history
-    rewriting.
-19. Export and update require exactly one reviewed commit-message range:
-    `--base-ref REF` for a nonempty ancestor range, or `--initial-root` for
-    all commits reachable from the publication ref. Never omit the range.
-20. `PUBLIC-REPOSITORY.json` is the fail-closed public marker. Public
-    validation requires the release manifest and always runs its verifier.
-21. Failed export retains private staging and returns `E_STAGING_RETAINED`.
-    Production code must not recursively clean staging or destination paths.
-    Manual removal requires explicit operator inspection.
+17. Public contributions must not depend on private repository paths,
+    documents, commits, credentials, or unpublished context.
+18. Versions and release tags are owned by this public repository.
+19. Changes use ordinary public branches and pull requests with required CI
+    and review.
 
 ## Testing a change
 
