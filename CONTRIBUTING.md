@@ -1,32 +1,21 @@
 # Contributing
 
-## Maintainer commands
-
-| Intent | Command |
-|--------|---------|
-| Routine private check | `verify.bat` |
-| Full release rehearsal | `publish.bat --dry-run` |
-| Publish after approval | `publish.bat` |
-
-Only the private authoritative repository contains these launchers. Public
-contributors use the validation and qualification commands documented below.
-
 ## Public contribution flow
 
-The public `skills` repository is a read-only distribution boundary, not the
-authoritative development history. Open issues and pull requests against
-`skills` as usual. Maintainers review accepted work into the private
-`skills-internal` authoritative source, run the complete test and privacy gates
-there, and include it in a later one-way export.
+The public `skills` repository is the authoritative code repository.
+
+1. Fork `amdluigi/skills`.
+2. Create one focused branch.
+3. Implement one coherent outcome.
+4. Run the validation commands documented below.
+5. Open a pull request against public `main`.
+6. Address public CI and review findings.
+7. Merge after the required checks pass.
 
 Do not include private correspondence, raw transcripts, local machine paths,
 credentials, or proprietary evaluation data. There is no automatic
-publication path. A maintainer reviews the generated public diff and makes a
-separate human publication decision.
-
-Do not remove or modify `PUBLIC-REPOSITORY.json` or
-`RELEASE-MANIFEST.json` in the public repository. Both are enforced release
-integrity contracts.
+dependency on private maintainer material, and contributors never need access
+to a separate repository.
 
 Contributions should improve one coherent SDLC capability without making the
 bundle project-specific or harder to trust.

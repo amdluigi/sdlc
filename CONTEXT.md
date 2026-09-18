@@ -6,35 +6,20 @@ belong in the charter, architecture, registry, modules, and specifications.
 
 ## Language
 
-**Authoritative source**:
-The private `skills-internal` repository where accepted product, governance,
-and release changes originate.
-_Avoid_: upstream public repository
+**Public code authority**:
+The public `skills` repository where product code, tests, public
+documentation, CI, versions, releases, and contributions are maintained.
+_Avoid_: distribution mirror, generated repository
 
-**Public distribution**:
-The public `skills` deterministic one-way repository export used by users and
-public contributors. It is not merged back as authority.
-_Avoid_: source mirror, second source of truth
+**Public contribution**:
+A branch and pull request proposed directly against public `skills`, reviewed
+and merged through public CI.
+_Avoid_: contribution ingestion, reverse synchronization
 
-**Publication manifest**:
-The private versioned allowlist that classifies every tracked source path
-exactly once.
-_Avoid_: copy list
-
-**Release manifest**:
-The public deterministic inventory of exported file modes, hashes, and tree
-digest.
-_Avoid_: provenance record
-
-**Contribution ingestion**:
-Review and acceptance of a public contribution into private source before a
-later export.
-_Avoid_: reverse synchronization
-
-**Publication**:
-The separate human-controlled act after local export and diff review. Release
-tools do not perform it.
-_Avoid_: automatic export
+**Private management context**:
+Optional private roadmap, research, decisions, and maintainer notes that do
+not define or duplicate public product code.
+_Avoid_: private source of truth, hidden code authority
 
 **SDLC bundle**:
 The complete installable package containing the orchestrator, core modules,

@@ -1,8 +1,11 @@
 # Verification and onboarding simplicity
 
-## Status
+## Status: Superseded
 
-Approved for implementation.
+Superseded by
+[`2026-09-18-public-code-authority.md`](2026-09-18-public-code-authority.md).
+The private export workflow described below is retained only as historical
+design context.
 
 ## Problem
 

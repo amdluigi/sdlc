@@ -23,9 +23,6 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           python -m unittest discover -v
-          if [ -d internal/publication/tests ]; then
-            python -m unittest discover -s internal/publication/tests -v
-          fi
       - name: Repository validation
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -34,16 +31,6 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: python scripts/qualify.py verify-manifest
-      - name: Verify exported release
-        env:
-          PYTHONDONTWRITEBYTECODE: "1"
-        run: |
-          if [ -f PUBLIC-REPOSITORY.json ]; then
-            python scripts/verify_public_release.py
-          elif [ ! -f internal/publication/manifest.json ]; then
-            echo "repository identity contract missing" >&2
-            exit 1
-          fi
       - name: Shell syntax
         shell: bash
         run: |

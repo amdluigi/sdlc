@@ -1,63 +1,44 @@
 # Architecture
 
-## Repository publication boundary
+## Repository authority and collaboration
 
-The source repository's target GitHub name is `skills-internal` and its
-visibility is private. The exported repository's target GitHub name is `skills`
-and its visibility is public. Local tooling prepares this relationship but
-does not change repository names, visibility, remotes, or forge state.
+The public `skills` repository is the code authority. Product code, tests,
+public documentation, CI, versions, releases, and contribution history are
+maintained directly in this Git repository.
 
-The source tree has two publication classes. Public paths contain the
-installable bundle, tests, sanitized evaluations, stable documentation,
-plugin metadata, public CI, and supporting scripts. Private paths contain
-project-local SDLC state and the complete `internal/` maintenance area.
+Changes follow an ordinary public lifecycle:
 
-`internal/publication/manifest.json` is the strict versioned allowlist.
-`publish.py` reads exact blobs and modes from a requested clean Git ref,
-validates every tracked path, scans public bytes, and builds a complete
-snapshot. The generated `RELEASE-MANIFEST.json` records only versioned file
-hashes, modes, and a tree digest. It records no source commit, local path, or
-time.
+```text
+Issue or proposal
+  |
+  v
+Focused public branch
+  |
+  v
+Tests and repository validation
+  |
+  v
+Public pull request and review
+  |
+  v
+Merge to public main
+  |
+  v
+Optional public release tag
+```
 
-Tracked text uses canonical LF line endings through `.gitattributes`. This
-keeps qualification hashes identical between Windows worktrees, Git blobs,
-and exported public snapshots.
+The repository has no private export dependency or generated-snapshot
+authority. External contributors can fork, test, and propose changes using
+only public content.
 
-Export builds a complete sibling snapshot and promotes its directory with an
-OS-level atomic no-replace rename. Update accepts only a clean Git repository
-whose prior snapshot verifies exactly, preserves only `.git`, and leaves a
-reviewable uncommitted change. The standalone public verifier has no
-dependency on private tooling. Publication and forge interaction remain
-outside this architecture.
+Maintainers may use a separate private repository for roadmap, research, and
+decision context. That private material does not define, duplicate, or
+override public product code. A multi-root editor workspace can expose both
+repositories to an authorized maintainer while each remains an independent
+Git and authorization boundary.
 
-Every export and update receives exactly one commit-message boundary.
-`--base-ref` must resolve to a strict ancestor of the publication ref.
-`--initial-root` deterministically scans every commit reachable from the
-publication ref for a clean first release. Missing, empty, and non-ancestor
-ranges fail closed.
-
-The exporter stages the full snapshot in a private, randomly named sibling
-directory. Promotion uses `MoveFileExW` without replacement on Windows,
-`renameat2(RENAME_NOREPLACE)` on Linux, or an exclusive `renamex_np` variant
-on macOS. If the platform lacks a guaranteed primitive, export fails with
-`E_PROMOTE_UNSUPPORTED`. It rejects locations inside the source or its Git
-metadata and never replaces a concurrently created destination.
-
-Successful atomic promotion consumes the staging directory. Any failed build
-or promotion retains the uniquely named private staging directory and returns
-`E_STAGING_RETAINED` with its path and a non-content cause code. Production
-logic performs no recursive staging cleanup on failure, so substitution cannot
-cause foreign content deletion.
-
-An operator may inspect the reported sibling path and remove it manually only
-after confirming its ownership and contents. This manual action is outside the
-publication tool and must never target the destination.
-
-`PUBLIC-REPOSITORY.json` is a public, provenance-free marker. In the public
-tree it requires `RELEASE-MANIFEST.json`; validation and CI always invoke the
-standalone verifier. The exporter generates the marker as part of the release
-snapshot. The private source must not contain it and remains valid without a
-release manifest because its private publication contract is present.
+Tracked text uses canonical LF line endings through `.gitattributes` so
+qualification hashes remain stable across supported platforms.
 
 ## Overview
 
