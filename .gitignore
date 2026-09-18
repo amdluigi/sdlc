@@ -3,3 +3,4 @@ __pycache__/
 .test-tmp/
 qualification/.work/
 qualification/raw/
+.worktrees/

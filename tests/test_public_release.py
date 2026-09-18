@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -84,6 +85,37 @@ class PublicReleaseVerifierTest(unittest.TestCase):
             "if: ${{ github.event.repository.private == false }}",
             workflow,
         )
+
+    def test_readme_exposes_three_entry_paths(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        entry_paths = {
+            "## Use SDLC": "use-sdlc",
+            "## Configure or extend SDLC": "configure-or-extend-sdlc",
+            "## Maintain and release SDLC": "maintain-and-release-sdlc",
+        }
+
+        self.assertIn("## Choose your path", readme)
+        chooser = readme.split("## Choose your path", 1)[1].split("\n## ", 1)[0]
+        anchors = {
+            "#" + re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-")
+            for heading in re.findall(r"^#{1,6} (.+)$", readme, re.MULTILINE)
+        }
+        for heading, anchor in entry_paths.items():
+            self.assertIn(heading, readme)
+            self.assertIn(f"](#{anchor})", chooser)
+
+            section = readme.split(heading, 1)[1].split("\n## ", 1)[0]
+            local_targets = [
+                target
+                for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", section)
+                if target and "://" not in target
+            ]
+            self.assertTrue(local_targets, f"{heading} must link to detailed docs")
+            for target in local_targets:
+                if target.startswith("#"):
+                    self.assertIn(target, anchors)
+                else:
+                    self.assertTrue((ROOT / target.split("#", 1)[0]).exists(), target)
 
     def test_public_repository_marker_requires_canonical_bytes(self) -> None:
         (self.root / "PUBLIC-REPOSITORY.json").write_text(

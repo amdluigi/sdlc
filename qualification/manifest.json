@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "kind": "sdlc-qualification-manifest",
-  "release": "3.7.2",
+  "release": "3.7.3",
   "skill": {
     "id": "sdlc",
-    "version": "3.7.2",
+    "version": "3.7.3",
     "source": "skills/sdlc",
     "discoverableSkillCount": 1,
     "moduleCount": 20,
@@ -24,7 +24,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "d433896289f827299c791b084b667fe5b68288c7ab779f0a2fdf478310655b69"
+        "sha256": "fcfeb80e73a7b83b9b5db228f12c8aa3b49b291d8bf11abd70316037ea452a5a"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -255,7 +255,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "76b3ee0f39d4ba604aec8ee1ba910527957fbf8a91764dbf886f9736a100bd8e"
+    "bundleSha256": "a1f3b7ffd560b3fbf78e43ba49fc51b9b9ff1622bad76ae7f533ea8b68a0828f"
   },
   "profiles": [
     {

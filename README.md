@@ -6,6 +6,38 @@ prompting them for requirements, tests, security, review, or project context.
 
 The repository ships one discoverable skill: [`sdlc`](skills/sdlc).
 
+## Choose your path
+
+| Goal | Start here |
+|------|------------|
+| Use SDLC in a project | [Use SDLC](#use-sdlc) |
+| Configure modules or add organization behavior | [Configure or extend SDLC](#configure-or-extend-sdlc) |
+| Contribute, qualify, or release the bundle | [Maintain and release SDLC](#maintain-and-release-sdlc) |
+
+## Use SDLC
+
+Choose a supported option under [Installing](#installing), then give your
+agent a normal project task and ask it to use SDLC. On the first non-trivial
+task, review and commit the resources described in [Project setup](#project-setup).
+
+## Configure or extend SDLC
+
+Start with [Configuring modules](#configuring-modules). Use
+[replaceable module providers](#replaceable-module-providers) for approved
+specialized instruction providers and [adaptive extensions](#adaptive-extensions)
+for optional organization behavior. The detailed guides also cover
+[project memory](#upgrading-the-memory-layout-in-26),
+[external specification reconciliation](#external-specification-reconciliation),
+and [private local aggregate measurement](#private-local-aggregate-measurement).
+
+## Maintain and release SDLC
+
+Read [Contributing](CONTRIBUTING.md) before changing the bundle, then use
+[Evaluating changes](#evaluating-changes) for validation and qualification.
+The private source repository alone provides `verify.bat` for routine checks,
+`publish.bat --dry-run` for a complete release rehearsal, and `publish.bat`
+for an approved publication.
+
 ## Source and distribution
 
 Development is maintained in the private authoritative `skills-internal`

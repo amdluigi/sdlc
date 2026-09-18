@@ -1,5 +1,16 @@
 # Contributing
 
+## Maintainer commands
+
+| Intent | Command |
+|--------|---------|
+| Routine private check | `verify.bat` |
+| Full release rehearsal | `publish.bat --dry-run` |
+| Publish after approval | `publish.bat` |
+
+Only the private authoritative repository contains these launchers. Public
+contributors use the validation and qualification commands documented below.
+
 ## Public contribution flow
 
 The public `skills` repository is a read-only distribution boundary, not the
