@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">SDLC process scaled by change risk</title>
+  <desc id="desc">Three columns compare trivial, standard, and significant changes. Each higher risk level adds more planning, verification, and review while preserving the same evidence-based completion gate.</desc>
+  <style>
+    .bg { fill: #f7f8fa; }
+    .heading { fill: #172033; font: 700 34px system-ui, sans-serif; text-anchor: middle; }
+    .subheading { fill: #596579; font: 400 18px system-ui, sans-serif; text-anchor: middle; }
+    .card { fill: #ffffff; stroke: #c7cfdb; stroke-width: 2; }
+    .trivial { fill: #dbeafe; }
+    .standard { fill: #cffafe; }
+    .significant { fill: #ede9fe; }
+    .level { fill: #172033; font: 700 26px system-ui, sans-serif; text-anchor: middle; }
+    .example { fill: #596579; font: 400 16px system-ui, sans-serif; text-anchor: middle; }
+    .item { fill: #273449; font: 500 18px system-ui, sans-serif; }
+    .check { fill: #059669; font: 700 20px system-ui, sans-serif; }
+    .footer { fill: #172033; font: 700 20px system-ui, sans-serif; text-anchor: middle; }
+  </style>
+
+  <rect class="bg" width="1200" height="620" rx="24"/>
+  <text class="heading" x="600" y="62">The process scales with risk</text>
+  <text class="subheading" x="600" y="96">More risk means stronger evidence, not unnecessary ceremony.</text>
+
+  <g>
+    <rect class="card" x="70" y="140" width="320" height="385" rx="20"/>
+    <path class="trivial" d="M90 140 H370 Q390 140 390 160 V230 H70 V160 Q70 140 90 140 Z"/>
+    <text class="level" x="230" y="185">Trivial</text>
+    <text class="example" x="230" y="215">Mechanical and low risk</text>
+    <text class="check" x="100" y="280">✓</text>
+    <text class="item" x="132" y="280">One-sentence contract</text>
+    <text class="check" x="100" y="330">✓</text>
+    <text class="item" x="132" y="330">Smallest useful check</text>
+    <text class="check" x="100" y="380">✓</text>
+    <text class="item" x="132" y="380">Concise diff review</text>
+    <text class="check" x="100" y="430">✓</text>
+    <text class="item" x="132" y="430">Simple handoff</text>
+  </g>
+
+  <g>
+    <rect class="card" x="440" y="140" width="320" height="385" rx="20"/>
+    <path class="standard" d="M460 140 H740 Q760 140 760 160 V230 H440 V160 Q440 140 460 140 Z"/>
+    <text class="level" x="600" y="185">Standard</text>
+    <text class="example" x="600" y="215">Bounded behavior change</text>
+    <text class="check" x="470" y="280">✓</text>
+    <text class="item" x="502" y="280">Short analysis and plan</text>
+    <text class="check" x="470" y="330">✓</text>
+    <text class="item" x="502" y="330">Focused automated tests</text>
+    <text class="check" x="470" y="380">✓</text>
+    <text class="item" x="502" y="380">Applicable risk checks</text>
+    <text class="check" x="470" y="430">✓</text>
+    <text class="item" x="502" y="430">Independent review</text>
+    <text class="check" x="470" y="480">✓</text>
+    <text class="item" x="502" y="480">Full handoff gate</text>
+  </g>
+
+  <g>
+    <rect class="card" x="810" y="140" width="320" height="385" rx="20"/>
+    <path class="significant" d="M830 140 H1110 Q1130 140 1130 160 V230 H810 V160 Q810 140 830 140 Z"/>
+    <text class="level" x="970" y="185">Significant</text>
+    <text class="example" x="970" y="215">Cross-cutting or high impact</text>
+    <text class="check" x="840" y="280">✓</text>
+    <text class="item" x="872" y="280">Full impact analysis</text>
+    <text class="check" x="840" y="330">✓</text>
+    <text class="item" x="872" y="330">Explicit risky decisions</text>
+    <text class="check" x="840" y="380">✓</text>
+    <text class="item" x="872" y="380">Dependency-aware plan</text>
+    <text class="check" x="840" y="430">✓</text>
+    <text class="item" x="872" y="430">Integration evidence</text>
+    <text class="check" x="840" y="480">✓</text>
+    <text class="item" x="872" y="480">Multiple review views</text>
+  </g>
+
+  <text class="footer" x="600" y="575">All three levels finish at the same gate: applicable modules must be satisfied.</text>
+</svg>

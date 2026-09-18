@@ -76,6 +76,8 @@ capability, SDLC recognizes it and performs only the missing work.
   what belongs in it, and the stability and acceptance promises.
 - [Architecture](docs/ARCHITECTURE.md): how the orchestrator, modules,
   configuration, evidence, memory, and extensions work together.
+- [SDLC development flow](docs/SDLC-DEVELOPMENT-FLOW.md): visual overview of
+  the lifecycle, evidence gate, and risk-based scaling.
 - [Canonical language](CONTEXT.md): precise meanings for repository-specific
   terms.
 - [Contributing](CONTRIBUTING.md): how to change modules, propose extensions,
