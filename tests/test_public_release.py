@@ -43,6 +43,30 @@ class PublicRepositoryAuthorityTest(unittest.TestCase):
         self.assertNotIn("internal/publication", text)
         self.assertNotIn("later public export", text.lower())
 
+    def test_active_public_specs_do_not_require_retired_export_workflow(self) -> None:
+        retired = (
+            "publish.bat",
+            "internal/publication",
+            "release-manifest.json",
+            "public-repository.json",
+            "private-first push",
+        )
+        for path in sorted((ROOT / "docs" / "specs").glob("*.md")):
+            text = path.read_text(encoding="utf-8")
+            if "Status: Superseded" in text:
+                continue
+            for phrase in retired:
+                self.assertNotIn(phrase, text.lower(), f"{path.name}: {phrase}")
+
+        authority = (
+            ROOT / "docs" / "specs" / "2026-09-18-public-code-authority.md"
+        )
+        self.assertTrue(authority.is_file())
+        self.assertIn(
+            "Status: Approved",
+            authority.read_text(encoding="utf-8"),
+        )
+
     def test_readme_exposes_three_entry_paths(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         entry_paths = {
