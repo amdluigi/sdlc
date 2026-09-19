@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import unittest
 from pathlib import Path
 
@@ -94,6 +95,149 @@ class DeliveryPhaseRegistryTest(unittest.TestCase):
         for name, entry in registry()["categories"].items():
             if entry["deliveryPhase"] in GATELESS_PHASES:
                 self.assertIsNone(entry["gate"], name)
+
+
+SCRIPTS = ROOT / "skills" / "sdlc" / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+
+import delivery_profile  # noqa: E402
+
+
+def base_config() -> dict:
+    return {
+        "schemaVersion": 3,
+        "modules": {},
+        "extensions": {"project": {}, "global": {}},
+        "measurement": {"enabled": False},
+    }
+
+
+def find(profile: dict, name: str) -> dict:
+    for phase in profile["phases"]:
+        for capability in phase["capabilities"]:
+            if capability["name"] == name:
+                return capability
+    raise AssertionError(f"capability not found: {name}")
+
+
+class BuildProfileTest(unittest.TestCase):
+    def test_profile_lists_phases_in_registry_order(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+
+        self.assertEqual(
+            [phase["name"] for phase in profile["phases"]],
+            EXPECTED_PHASES,
+        )
+
+    def test_every_module_appears_exactly_once(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+
+        names = [
+            capability["name"]
+            for phase in profile["phases"]
+            for capability in phase["capabilities"]
+        ]
+
+        self.assertEqual(len(names), 22)
+        self.assertEqual(len(set(names)), 22)
+
+    def test_unconfigured_module_resolves_to_bundled_default(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+
+        capability = find(profile, "review")
+
+        self.assertEqual(capability["plugin"], "sdlc")
+        self.assertEqual(capability["source"], "bundled")
+        self.assertEqual(capability["role"], "default")
+
+    def test_replacement_is_reported_with_its_plugin(self) -> None:
+        config = base_config()
+        config["modules"]["testing"] = {"replaceWith": "acme-testing"}
+
+        profile = delivery_profile.build_profile(registry(), config)
+        capability = find(profile, "testing")
+
+        self.assertEqual(capability["plugin"], "acme-testing")
+        self.assertEqual(capability["source"], "host")
+        self.assertEqual(capability["role"], "replace")
+
+    def test_disabled_module_is_reported_but_not_hidden(self) -> None:
+        config = base_config()
+        config["modules"]["prd"] = False
+
+        profile = delivery_profile.build_profile(registry(), config)
+        capability = find(profile, "prd")
+
+        self.assertFalse(capability["enabled"])
+
+    def test_missing_config_is_treated_as_all_defaults(self) -> None:
+        profile = delivery_profile.build_profile(registry(), None)
+
+        self.assertTrue(
+            all(
+                capability["role"] == "default"
+                for phase in profile["phases"]
+                for capability in phase["capabilities"]
+            )
+        )
+
+    def test_phase_gate_matches_the_registry(self) -> None:
+        profile = delivery_profile.build_profile(registry(), None)
+        gates = {phase["name"]: phase["gate"] for phase in profile["phases"]}
+
+        self.assertIsNone(gates["inception"])
+        self.assertIsNone(gates["operate"])
+        self.assertEqual(gates["triage"], 1)
+        self.assertEqual(gates["design"], 2)
+        self.assertEqual(gates["implementation"], 3)
+        self.assertEqual(gates["verification"], 5)
+
+
+class RenderMarkdownTest(unittest.TestCase):
+    def test_render_is_deterministic(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+
+        self.assertEqual(
+            delivery_profile.render_markdown(profile),
+            delivery_profile.render_markdown(profile),
+        )
+
+    def test_render_names_every_phase_and_capability(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+        text = delivery_profile.render_markdown(profile)
+
+        for phase in EXPECTED_PHASES:
+            self.assertIn(phase, text)
+        self.assertIn("operational-readiness", text)
+        self.assertIn("release-launch", text)
+        self.assertIn("incident-response", text)
+
+    def test_render_marks_gateless_phases(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+        text = delivery_profile.render_markdown(profile)
+
+        self.assertIn("## inception (no gate)", text)
+        self.assertIn("## triage (gate 1)", text)
+
+    def test_render_contains_no_em_dash(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+
+        self.assertNotIn("\u2014", delivery_profile.render_markdown(profile))
+
+    def test_replacement_changes_the_rendered_output(self) -> None:
+        default_text = delivery_profile.render_markdown(
+            delivery_profile.build_profile(registry(), base_config())
+        )
+
+        config = base_config()
+        config["modules"]["testing"] = {"replaceWith": "acme-testing"}
+        replaced_text = delivery_profile.render_markdown(
+            delivery_profile.build_profile(registry(), config)
+        )
+
+        self.assertNotEqual(default_text, replaced_text)
+        self.assertIn("acme-testing", replaced_text)
 
 
 if __name__ == "__main__":

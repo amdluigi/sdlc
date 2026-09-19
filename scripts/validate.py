@@ -77,6 +77,7 @@ REQUIRED_HELPERS = {
     "adaptive_extensions.py",
     "artifact_contracts.py",
     "config_contract.py",
+    "delivery_profile.py",
     "handoff_renderers.py",
     "manage_extensions.py",
     "manage_metrics.py",
@@ -86,6 +87,7 @@ REQUIRED_HELPERS = {
     "validate_artifacts.py",
 }
 REQUIRED_CONTRACTS = {
+    "delivery-profile.schema.json",
     "handoff-result.schema.json",
     "handoff.schema.json",
     "metrics.schema.json",

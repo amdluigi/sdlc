@@ -119,6 +119,7 @@ HELPERS = {
     "scripts/adaptive_extensions.py",
     "scripts/artifact_contracts.py",
     "scripts/config_contract.py",
+    "scripts/delivery_profile.py",
     "scripts/handoff_renderers.py",
     "scripts/manage_extensions.py",
     "scripts/manage_metrics.py",
@@ -127,6 +128,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
+BUNDLE_FILE_COUNT = 62
 DETERMINISTIC_EVIDENCE = {
     "manifest-valid",
     "file-count",
@@ -347,8 +349,11 @@ def validate_manifest(value: object, root: Path) -> dict[str, object]:
     for helper in skill["helperScripts"]:
         _safe_relative(helper, "helper script")
     files = skill["files"]
-    if not isinstance(files, list) or len(files) != 60:
-        fail("Release 1.0 manifest must contain exactly 60 bundle files")
+    if not isinstance(files, list) or len(files) != BUNDLE_FILE_COUNT:
+        fail(
+            "Release 1.0 manifest must contain exactly "
+            f"{BUNDLE_FILE_COUNT} bundle files"
+        )
     seen: set[str] = set()
     previous = ""
     for index, row in enumerate(files):
@@ -690,7 +695,7 @@ def _deterministic_evidence(case_id: str) -> list[dict[str, object]]:
     mapping = {
         "manifest-contract": [{"code": "manifest-valid", "value": True}],
         "bundle-inventory": [
-            {"code": "file-count", "value": 60},
+            {"code": "file-count", "value": BUNDLE_FILE_COUNT},
             {"code": "hashes-match", "value": True},
         ],
         "discoverable-skill-count": [{"code": "skill-count", "value": 1}],

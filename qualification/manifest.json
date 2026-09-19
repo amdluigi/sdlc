@@ -13,6 +13,7 @@
       "scripts/adaptive_extensions.py",
       "scripts/artifact_contracts.py",
       "scripts/config_contract.py",
+      "scripts/delivery_profile.py",
       "scripts/handoff_renderers.py",
       "scripts/manage_extensions.py",
       "scripts/manage_metrics.py",
@@ -29,6 +30,10 @@
       {
         "path": "assets/sdlc-config.template.json",
         "sha256": "25588e3fa5e8845ad5971567f8084840934149a41596893dd330b23bddf528af"
+      },
+      {
+        "path": "contracts/delivery-profile.schema.json",
+        "sha256": "ae4d61033e37389e735a2d5fa94435312383aab7a8118d7efa2a8cb0ad850897"
       },
       {
         "path": "contracts/handoff-result.schema.json",
@@ -235,6 +240,10 @@
         "sha256": "a24c698eed5c523db2f7a50578f5f209f09b933ef62239c24febdd4dd6ba6d74"
       },
       {
+        "path": "scripts/delivery_profile.py",
+        "sha256": "479c8bb92bc22213e63139d8973d6ad1ba5c6edbd01935e5efb74d3be05944ef"
+      },
+      {
         "path": "scripts/handoff_renderers.py",
         "sha256": "f4d054e02784aa540ff6320bed4d620b278624ea02948885e134d4350db211f2"
       },
@@ -263,7 +272,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "cf912882f7a87f86f3740fbf5faafdf2c0e9dd77ea5d01f3b37d1edeec97586d"
+    "bundleSha256": "04ea3569015eefe951f4c6b45c4573a799aac0ac45eb38deca888c87a73f45ac"
   },
   "profiles": [
     {
