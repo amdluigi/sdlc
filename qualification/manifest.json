@@ -200,7 +200,7 @@
       },
       {
         "path": "modules/registry.json",
-        "sha256": "432c1da6c885e16812c5e8165af9f4834443fc3e41a0437b2cd33bf29248e95f"
+        "sha256": "641f76c89332fbe5969a3cb5bb87edaa641faaa1661edb0ad501605838707048"
       },
       {
         "path": "modules/release-launch/MODULE.md",
@@ -263,7 +263,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "1989109a9034cfb6e584d100e88526064aa765305ced5aa8ab559181c92cb0d0"
+    "bundleSha256": "cf912882f7a87f86f3740fbf5faafdf2c0e9dd77ea5d01f3b37d1edeec97586d"
   },
   "profiles": [
     {

@@ -111,6 +111,7 @@ SECRET_LIKE_ASSIGNMENT = re.compile(
     re.IGNORECASE,
 )
 URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
+SKILL_GATES = frozenset({1, 2, 3, 4, 5})
 PATH_TOKEN_SEPARATOR = re.compile(r"""[\s()\[\]{}<>,;"'`]+""")
 SLASH_COMMAND_PATTERN = re.compile(r"^/[A-Za-z][A-Za-z0-9-]*$")
 EXTENSION_BUNDLE_PATH = re.compile(
@@ -479,6 +480,44 @@ def validate_skill() -> None:
             "Configuration schema and registry disagree: "
             f"missing={sorted(registered - configurable)}, "
             f"unknown={sorted(configurable - registered)}"
+        )
+
+    phases = registry.get("deliveryPhases")
+    if not isinstance(phases, list) or not phases:
+        fail("Module registry must declare deliveryPhases")
+    if len(phases) != len(set(phases)):
+        fail("Delivery phase names must be unique")
+
+    categories = registry.get("categories")
+    if not isinstance(categories, dict) or not categories:
+        fail("Module registry must declare categories")
+
+    used_categories = {entry["category"] for entry in entries}
+    if set(categories) != used_categories:
+        fail(
+            "Category declarations and module categories disagree: "
+            f"missing={sorted(used_categories - set(categories))}, "
+            f"unknown={sorted(set(categories) - used_categories)}"
+        )
+
+    category_orders = [value.get("order") for value in categories.values()]
+    if sorted(category_orders) != list(range(len(categories))):
+        fail("Category order values must be contiguous from zero")
+
+    for name, value in categories.items():
+        if value.get("deliveryPhase") not in phases:
+            fail(f"Category declares an unknown deliveryPhase: {name}")
+        gate = value.get("gate", False)
+        if gate is not None and gate not in SKILL_GATES:
+            fail(f"Category declares an unknown gate: {name}")
+
+    covered = {
+        categories[entry["category"]]["deliveryPhase"] for entry in entries
+    }
+    if covered != set(phases):
+        fail(
+            "Every delivery phase must contain at least one module: "
+            f"empty={sorted(set(phases) - covered)}"
         )
     if "project-memory" in registered:
         memory_templates = (
