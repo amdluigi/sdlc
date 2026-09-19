@@ -5,7 +5,7 @@
   "description": "What the control plane reports for every capability: where it is invoked in the lifecycle, which provider serves it now, which installed providers could serve it instead, and whether the developer still has a decision to make. The survey reports; it never adopts a provider. Only project configuration adopts one.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "hostProfile", "capabilities", "choicesRequired", "skipped", "missing"],
+  "required": ["schemaVersion", "hostProfile", "capabilities", "choicesRequired", "skipped", "missing", "repair"],
   "properties": {
     "schemaVersion": {"const": 1},
     "hostProfile": {
@@ -39,6 +39,10 @@
           "install": {"type": "string"}
         }
       }
+    },
+    "repair": {
+      "description": "The single command that installs every missing implementation, or null when none are missing. The Agent Skills format has no dependency field and no host resolves one, so the control plane cannot have its requirements installed for it. It hands the developer the exact command instead, to be run only with their consent.",
+      "type": ["string", "null"]
     }
   },
   "$defs": {

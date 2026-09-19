@@ -6,6 +6,7 @@ metadata:
   category: process
   architecture: modular
   version: "1.0.0"
+  sdlc-requires: "project-memory,project-standards,change-contract,prd,debugging,incident-response,release-launch,planning,accessibility-browser,performance-concurrency,observability,api-compatibility,data-migration,dependency-supply-chain,tdd,implementation,testing,security-auth,operational-readiness,review,pr-handoff,continuous-improvement"
 ---
 
 # SDLC
@@ -128,9 +129,27 @@ Before reading any implementation `SKILL.md`, read
 [modules/registry.json](modules/registry.json). It is the single source for
 module placement: name, category, order, and whether the module may be
 replaced. Triggers, exit signals, and evidence contracts belong to each
-implementation's declaration. If a registered capability has no installed
-implementation, report the capability as missing, name the skill that would
-restore it, and continue without that phase.
+implementation's declaration.
+
+The dependency runs one way. This skill requires its implementations, listed
+in `sdlc-requires`; no implementation requires this skill. Each one runs
+alone as an ordinary skill, without phase ordering, gates, or evidence
+contracts.
+
+The Agent Skills format has no dependency field, so no host installs those
+requirements for you. When a registered capability has no installed
+implementation, do not fail and do not silently skip it:
+
+1. report the capability as missing and name the delivery phase it served;
+2. show the `repair` command from the survey, which installs every missing
+   implementation in one step;
+3. ask the developer whether to run it, and run it only on an explicit yes;
+4. if they decline, continue without that phase and state which gate is no
+   longer enforced.
+
+Never run the repair command without consent. Installing software is the
+developer's decision, and a skill that installs things unasked is not one a
+developer can safely trust with a repository.
 
 The registry is organized by lifecycle category. Future bundles may connect
 one module, multiple complementary modules, or an alternative module to a
