@@ -166,12 +166,11 @@ class QualificationTests(unittest.TestCase):
 
     def test_copy_install_is_exact_and_idempotent(self):
         destination = self.work / "skills" / "sdlc"
-        source = ROOT / "skills" / "sdlc"
-        qualify.install_bundle(source, destination, "copy")
+        qualify.install_suite(ROOT, self.manifest, destination, "copy")
         first = qualify.inspect_install(
             self.manifest, destination, "generic-agent-skills", "project", "copy"
         )
-        qualify.install_bundle(source, destination, "copy")
+        qualify.install_suite(ROOT, self.manifest, destination, "copy")
         second = qualify.inspect_install(
             self.manifest, destination, "generic-agent-skills", "project", "copy"
         )
@@ -182,7 +181,7 @@ class QualificationTests(unittest.TestCase):
     def test_link_install_targets_canonical_bundle(self):
         destination = self.work / "skills" / "sdlc"
         try:
-            qualify.install_bundle(ROOT / "skills" / "sdlc", destination, "link")
+            qualify.install_suite(ROOT, self.manifest, destination, "link")
         except OSError as error:
             self.skipTest(str(error))
         result = qualify.inspect_install(
@@ -196,7 +195,6 @@ class QualificationTests(unittest.TestCase):
         home = self.work / "home"
         project.mkdir()
         home.mkdir()
-        source = ROOT / "skills" / "sdlc"
         count = 0
         for profile in self.manifest["profiles"]:
             for cell in profile["cells"]:
@@ -205,7 +203,9 @@ class QualificationTests(unittest.TestCase):
                 destination = qualify.resolve_destination(
                     profile, cell["scope"], project, home
                 )
-                qualify.install_bundle(source, destination, cell["mode"])
+                qualify.install_suite(
+                    ROOT, self.manifest, destination, cell["mode"]
+                )
                 result = qualify.inspect_install(
                     self.manifest, destination, profile["id"],
                     cell["scope"], cell["mode"]
@@ -260,8 +260,8 @@ class QualificationTests(unittest.TestCase):
 
         with mock.patch.object(socket, "socket", side_effect=AssertionError("network used")):
             with mock.patch.object(qualify.subprocess, "run", side_effect=guarded_run):
-                qualify.install_bundle(
-                    ROOT / "skills" / "sdlc", destination, "link"
+                qualify.install_suite(
+                    ROOT, self.manifest, destination, "link"
                 )
                 qualify.inspect_install(
                     self.manifest, destination, "generic-agent-skills",
@@ -309,7 +309,7 @@ class QualificationTests(unittest.TestCase):
 
     def test_install_inspection_only_passes_checks_it_performed(self):
         destination = self.work / "skills" / "sdlc"
-        qualify.install_bundle(ROOT / "skills" / "sdlc", destination, "copy")
+        qualify.install_suite(ROOT, self.manifest, destination, "copy")
         result = qualify.inspect_install(
             self.manifest, destination, "generic-agent-skills", "project", "copy"
         )

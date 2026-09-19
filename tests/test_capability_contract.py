@@ -18,7 +18,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "sdlc" / "SKILL.md"
-MODULES = ROOT / "skills" / "sdlc" / "modules"
+SKILLS = ROOT / "skills"
+MODULES = SKILLS / "sdlc" / "modules"
 REGISTRY = MODULES / "registry.json"
 SCHEMA = (
     ROOT / "skills" / "sdlc" / "contracts" / "capability-provider.schema.json"
@@ -78,7 +79,7 @@ class BundledDeclarationTest(unittest.TestCase):
         for entry in data["modules"]:
             with self.subTest(module=entry["name"]):
                 declaration = capability_contract.load_bundled_declaration(
-                    MODULES, entry, capabilities
+                    SKILLS, entry, capabilities
                 )
                 self.assertEqual(
                     declaration["id"],
@@ -93,7 +94,7 @@ class BundledDeclarationTest(unittest.TestCase):
     def test_assembly_exposes_every_evidence_clause(self):
         for entry in registry()["modules"]:
             declaration = json.loads(
-                (MODULES / ("sdlc-" + entry["name"]) / "sdlc-capability.json").read_text(
+                (SKILLS / ("sdlc-" + entry["name"]) / "sdlc-capability.json").read_text(
                     encoding="utf-8"
                 )
             )
@@ -107,7 +108,7 @@ class BundledDeclarationTest(unittest.TestCase):
         version = sdlc_version()
         for entry in placement_registry()["modules"]:
             declaration = capability_contract.load_bundled_declaration(
-                MODULES, entry
+                SKILLS, entry
             )
             self.assertTrue(
                 adaptive_extensions.version_satisfies(
@@ -119,7 +120,7 @@ class BundledDeclarationTest(unittest.TestCase):
     def test_a_registry_entry_without_a_declaration_is_rejected(self):
         with self.assertRaises(capability_contract.ContractError):
             capability_contract.load_bundled_declaration(
-                MODULES, {"name": "no-such-capability"}
+                SKILLS, {"name": "no-such-capability"}
             )
 
 

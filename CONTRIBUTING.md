@@ -69,18 +69,20 @@ rule, architecture decision, correction, or domain term.
 
 ## Adding a Core Module
 
-Create:
+A module is an interface. Serving it means adding an implementation skill
+beside the control plane:
 
 ```text
-skills/sdlc/modules/MODULE_ID/
-└── MODULE.md
+skills/sdlc-MODULE_ID/
+└── SKILL.md
 ```
 
 Optional detail belongs beside it:
 
 ```text
-skills/sdlc/modules/MODULE_ID/
-├── MODULE.md
+skills/sdlc-MODULE_ID/
+├── SKILL.md
+├── sdlc-capability.json
 ├── REFERENCE.md
 └── assets/
 ```
@@ -89,6 +91,8 @@ Then update:
 
 - `skills/sdlc/modules/registry.json`;
 - `skills/sdlc/assets/sdlc-config.template.json`;
+- `.claude-plugin/plugin.json`;
+- `qualification/manifest.json` via `python scripts/qualify.py refresh-manifest --bundle skills/sdlc`;
 - `scripts/validate.py`;
 - `skills/sdlc/scripts/validate_artifacts.py`;
 - `README.md`;

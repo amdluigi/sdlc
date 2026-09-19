@@ -12,7 +12,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "sdlc" / "scripts"
-MODULES = ROOT / "skills" / "sdlc" / "modules"
+SKILLS = ROOT / "skills"
+MODULES = SKILLS / "sdlc" / "modules"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -26,6 +27,12 @@ DECLARED_FIELDS = (
 
 
 def write_registry(directory, modules):
+    """Write a registry where the real one lives, relative to the root.
+
+    Implementations are siblings of the control plane, so the fixture
+    reproduces that shape rather than asserting it separately.
+    """
+
     payload = {
         "schemaVersion": 1,
         "deliveryPhases": ["inception", "verification"],
@@ -37,10 +44,10 @@ def write_registry(directory, modules):
         },
         "modules": modules,
     }
-    (directory / "registry.json").write_text(
-        json.dumps(payload), encoding="utf-8"
-    )
-    return directory / "registry.json"
+    registry_path = directory / "sdlc" / "modules" / "registry.json"
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text(json.dumps(payload), encoding="utf-8")
+    return registry_path
 
 
 def write_declaration(directory, name, **overrides):
@@ -80,7 +87,7 @@ class ShippedBundleTest(unittest.TestCase):
 
     def test_every_capability_ships_a_declaration(self):
         for entry in self.registry["modules"]:
-            path = MODULES / ("sdlc-" + entry["name"]) / "sdlc-capability.json"
+            path = SKILLS / ("sdlc-" + entry["name"]) / "sdlc-capability.json"
             self.assertTrue(
                 path.is_file(),
                 f"{entry['name']} ships no sdlc-capability.json",
@@ -100,7 +107,7 @@ class ShippedBundleTest(unittest.TestCase):
         names = {entry["name"] for entry in self.registry["modules"]}
         for name in names:
             declaration = json.loads(
-                (MODULES / ("sdlc-" + name) / "sdlc-capability.json").read_text(
+                (SKILLS / ("sdlc-" + name) / "sdlc-capability.json").read_text(
                     encoding="utf-8"
                 )
             )
@@ -119,7 +126,7 @@ class ShippedBundleTest(unittest.TestCase):
         for entry in self.registry["modules"]:
             name = entry["name"]
             declaration = json.loads(
-                (MODULES / ("sdlc-" + name) / "sdlc-capability.json").read_text(
+                (SKILLS / ("sdlc-" + name) / "sdlc-capability.json").read_text(
                     encoding="utf-8"
                 )
             )
@@ -129,7 +136,7 @@ class ShippedBundleTest(unittest.TestCase):
         for identity in ("sdlc", "sdlc-testing", "sdlc-anything"):
             with self.subTest(identity=identity):
                 declaration = json.loads(
-                    (MODULES / "sdlc-testing" / "sdlc-capability.json").read_text(
+                    (SKILLS / "sdlc-testing" / "sdlc-capability.json").read_text(
                         encoding="utf-8"
                     )
                 )
@@ -144,7 +151,7 @@ class ShippedBundleTest(unittest.TestCase):
     def test_a_shipped_declaration_is_a_usable_example(self):
         """A contributor copies this file and changes three fields."""
         declaration = json.loads(
-            (MODULES / "sdlc-testing" / "sdlc-capability.json").read_text(
+            (SKILLS / "sdlc-testing" / "sdlc-capability.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -207,6 +214,38 @@ class LoadRegistryTest(unittest.TestCase):
         with self.assertRaises(capability_contract.ContractError) as caught:
             capability_contract.load_registry(path)
         self.assertIn("testing", str(caught.exception))
+
+    def test_a_missing_implementation_is_reported_with_its_remedy(self):
+        """A partial install degrades honestly instead of failing."""
+
+        path = write_registry(self.dir, [
+            {"name": "testing", "category": "verification", "order": 0,
+             "replaceable": True},
+            {"name": "review", "category": "verification", "order": 1,
+             "replaceable": True},
+        ])
+        write_declaration(self.dir, "review")
+        registry = capability_contract.load_registry(
+            path, on_missing="report"
+        )
+        self.assertEqual(
+            [entry["name"] for entry in registry["modules"]], ["review"]
+        )
+        self.assertEqual(
+            registry["missing"],
+            [{"capability": "testing", "install": "sdlc-testing"}],
+        )
+
+    def test_a_complete_install_reports_nothing_missing(self):
+        path = write_registry(self.dir, [
+            {"name": "testing", "category": "verification", "order": 0,
+             "replaceable": True},
+        ])
+        write_declaration(self.dir, "testing")
+        registry = capability_contract.load_registry(
+            path, on_missing="report"
+        )
+        self.assertEqual(registry["missing"], [])
 
     def test_a_declaration_may_not_serve_another_capability(self):
         path = write_registry(self.dir, [

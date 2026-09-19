@@ -5,7 +5,7 @@
   "description": "What the control plane reports for every capability: where it is invoked in the lifecycle, which provider serves it now, which installed providers could serve it instead, and whether the developer still has a decision to make. The survey reports; it never adopts a provider. Only project configuration adopts one.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "hostProfile", "capabilities", "choicesRequired", "skipped"],
+  "required": ["schemaVersion", "hostProfile", "capabilities", "choicesRequired", "skipped", "missing"],
   "properties": {
     "schemaVersion": {"const": 1},
     "hostProfile": {
@@ -26,6 +26,19 @@
       "description": "Candidate provider directories that could not be read as declarations. Reported rather than hidden, so a malformed provider is visible instead of silently absent.",
       "type": "array",
       "items": {"type": "object"}
+    },
+    "missing": {
+      "description": "Registered capabilities whose implementation skill is not installed. The control plane continues without them and names the skill that would restore each one, because a developer who installed part of the suite needs a remedy rather than a failure.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["capability", "install"],
+        "properties": {
+          "capability": {"type": "string"},
+          "install": {"type": "string"}
+        }
+      }
     }
   },
   "$defs": {

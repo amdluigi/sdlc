@@ -13,7 +13,9 @@ sys.dont_write_bytecode = True
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 SKILL = ROOT / "skills" / "sdlc" / "SKILL.md"
+SKILLS = ROOT / "skills"
 MODULES = ROOT / "skills" / "sdlc" / "modules"
+REGISTRY = MODULES / "registry.json"
 SKILL_SCRIPTS = SKILL.parent / "scripts"
 if str(SKILL_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SKILL_SCRIPTS))
@@ -435,22 +437,30 @@ def validate_implementation_skills(paths) -> None:
             path.parent / "sdlc-capability.json"
         )
         for key, expected in (
-            ("sdlc-provider-schema", "1"),
-            ("sdlc-compatible", declaration["compatibleSdlc"]),
-            ("sdlc-modules", capability),
+            ("category", None),
+            ("version", '"1.0.0"'),
+            ("sdlc-provider-schema", '"1"'),
+            ("sdlc-compatible", f'"{declaration["compatibleSdlc"]}"'),
+            ("sdlc-modules", f'"{capability}"'),
         ):
-            if not re.search(
-                rf'^  {re.escape(key)}:\s+"{re.escape(str(expected))}"$',
-                frontmatter,
-                re.MULTILINE,
-            ):
-                fail(f"{directory} must declare {key} as {expected}")
+            pattern = (
+                rf"^  {re.escape(key)}:\s+\S"
+                if expected is None
+                else rf"^  {re.escape(key)}:\s+{re.escape(expected)}$"
+            )
+            if not re.search(pattern, frontmatter, re.MULTILINE):
+                fail(
+                    f"{directory} must declare {key}"
+                    + ("" if expected is None else f" as {expected}")
+                )
+        if not re.search(r"^license:\s+MIT$", frontmatter, re.MULTILINE):
+            fail(f"{directory} must declare license MIT")
 
 
 def validate_skill() -> None:
-    skill_files = list((ROOT / "skills").glob("**/SKILL.md"))
+    skill_files = list(SKILLS.glob("**/SKILL.md"))
     implementations = sorted(
-        path for path in MODULES.glob("sdlc-*/SKILL.md")
+        path for path in SKILLS.glob("sdlc-*/SKILL.md")
     )
     if sorted(skill_files) != sorted([SKILL, *implementations]):
         fail(f"Unexpected skill documents: {skill_files}")
@@ -534,7 +544,7 @@ def validate_skill() -> None:
         path = PurePosixPath(entry["path"].replace("\\", "/"))
         if len(path.parts) != 2:
             fail(f"Unsafe module path: {entry['path']}")
-        resolved = MODULES.joinpath(*path.parts)
+        resolved = SKILLS.joinpath(*path.parts)
         if not resolved.is_file() or resolved.name != "SKILL.md":
             fail(f"Registered module file not found: {entry['path']}")
         if resolved.parent.name != "sdlc-" + entry["name"]:
@@ -548,7 +558,7 @@ def validate_skill() -> None:
 
     available = {
         path.parent.name.removeprefix("sdlc-")
-        for path in MODULES.glob("sdlc-*/SKILL.md")
+        for path in SKILLS.glob("sdlc-*/SKILL.md")
     }
     if registered != available:
         fail(
@@ -645,7 +655,7 @@ def validate_skill() -> None:
     for entry in placement_entries:
         try:
             capability_contract.load_bundled_declaration(
-                MODULES, entry, registered
+                SKILLS, entry, registered
             )
         except capability_contract.ContractError as error:
             fail(
@@ -668,7 +678,7 @@ def validate_skill() -> None:
         )
     if "project-memory" in registered:
         memory_templates = (
-            MODULES
+            SKILLS
             / "sdlc-project-memory"
             / "assets"
             / "project-memory-templates"
@@ -685,7 +695,7 @@ def validate_skill() -> None:
         if available_templates != required_templates:
             fail("Project-memory template set is incomplete")
     if "prd" in registered:
-        prd_template = MODULES / "sdlc-prd" / "assets" / "PRD.template.md"
+        prd_template = SKILLS / "sdlc-prd" / "assets" / "PRD.template.md"
         if not prd_template.is_file():
             fail("PRD template is missing")
         prd_text = prd_template.read_text(encoding="utf-8")
@@ -887,8 +897,15 @@ def validate_manifests() -> None:
     marketplace = load_json_strict_path(
         ROOT / ".claude-plugin" / "marketplace.json"
     )
-    if plugin.get("skills") != ["./skills/sdlc"]:
-        fail("Claude plugin must ship only ./skills/sdlc")
+    expected_skills = ["./skills/sdlc"] + [
+        f"./skills/{path.parent.name}"
+        for path in sorted(SKILLS.glob("sdlc-*/SKILL.md"))
+    ]
+    if plugin.get("skills") != expected_skills:
+        fail(
+            "Claude plugin must ship the control plane and every "
+            "implementation, control plane first"
+        )
     skill_text = SKILL.read_text(encoding="utf-8")
     version_match = re.search(r'^  version:\s+"([^"]+)"$', skill_text, re.MULTILINE)
     marketplace_plugins = marketplace.get("plugins")
@@ -1034,8 +1051,11 @@ def main() -> int:
         print(f"VALIDATION FAILED: {error}", file=sys.stderr)
         return 1
 
-    module_count = len(list(MODULES.glob("sdlc-*/SKILL.md")))
-    print(f"VALIDATION PASSED: 1 skill, {module_count} modules")
+    module_count = len(list(SKILLS.glob("sdlc-*/SKILL.md")))
+    print(
+        f"VALIDATION PASSED: {module_count + 1} skills "
+        f"(1 control plane, {module_count} implementations)"
+    )
     return 0
 
 

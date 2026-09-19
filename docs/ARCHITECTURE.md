@@ -36,9 +36,10 @@ qualification hashes remain stable across supported platforms.
 
 ## Overview
 
-The repository ships one discoverable Agent Skill named `sdlc`. Its
-`SKILL.md` acts as an orchestrator rather than containing every lifecycle
-instruction directly.
+The repository ships a suite of Agent Skills: a control plane named `sdlc`
+and one implementation per lifecycle capability, named `sdlc-<capability>`.
+The control plane's `SKILL.md` acts as an orchestrator rather than containing
+every lifecycle instruction directly.
 
 The orchestrator combines four concerns:
 
@@ -57,33 +58,40 @@ rather than replace, operational readiness and debugging.
 ## Repository Components
 
 ```text
-skills/sdlc/
-├── SKILL.md
-├── assets/
-│   └── sdlc-config.template.json
-├── modules/
-│   ├── registry.json
-│   └── sdlc-MODULE_NAME/
-│       ├── sdlc-capability.json
-│       ├── SKILL.md
-│       ├── REFERENCE.md
-│       └── assets/
-├── contracts/
-│   └── strict input and result schemas
-└── scripts/
-    ├── adaptive_extensions.py
-    ├── artifact_contracts.py
-    ├── config_contract.py
-    ├── manage_extensions.py
-    ├── operator_reports.py
-    ├── resolve_providers.py
-    └── validate_artifacts.py
+skills/
+├── sdlc/                       the control plane
+│   ├── SKILL.md
+│   ├── assets/
+│   │   └── sdlc-config.template.json
+│   ├── modules/
+│   │   └── registry.json       the interfaces and where they are invoked
+│   ├── contracts/
+│   │   └── strict input and result schemas
+│   └── scripts/
+│       ├── adaptive_extensions.py
+│       ├── artifact_contracts.py
+│       ├── config_contract.py
+│       ├── manage_extensions.py
+│       ├── operator_reports.py
+│       ├── resolve_providers.py
+│       └── validate_artifacts.py
+└── sdlc-MODULE_NAME/           one implementation, repeated 22 times
+    ├── SKILL.md
+    ├── sdlc-capability.json
+    ├── REFERENCE.md
+    └── assets/
 ```
 
-Only the top-level `SKILL.md` is discoverable as an Agent Skill. Each
-implementation ships its own `SKILL.md`, but nested documents are not
-discovered by a host that scans the skills root, so installing SDLC adds one
-skill and not twenty-three.
+Every directory above is a discoverable Agent Skill, so a host lists
+twenty-three. That is deliberate. An implementation is a skill in the
+ordinary sense, installable by itself, and the control plane reaches it the
+same way it reaches a third-party provider: through the host, by declared
+name. Nothing about a bundled implementation is privileged by its location.
+
+The suite is the default install, because the control plane binds interfaces
+to implementations it does not contain. When an implementation is absent,
+SDLC reports the capability as missing, names the skill that would restore
+it, and continues without that phase rather than failing.
 
 ## Module Registry
 
@@ -466,8 +474,9 @@ summaries, or the coverage ledger.
 
 ## Project Memory
 
-Project memory is a core module, not a separate discoverable skill. When
-enabled, it maintains:
+Project memory is a core capability, served by the `sdlc-project-memory`
+implementation and governed by the control plane rather than invoked on its
+own. When enabled, it maintains:
 
 - project brief;
 - architecture;
@@ -640,9 +649,11 @@ promotion. No boundary uses implicit last-writer-wins behavior.
 
 New universal lifecycle behavior should normally become:
 
-1. an addition to an existing core module;
-2. a new core module when it has an independent trigger and exit contract;
+1. an addition to an existing core implementation;
+2. a new interface and implementation when it has an independent trigger and
+   exit contract;
 3. a project extension while its generality is still being proven.
 
-The architecture should remain one discoverable skill unless a future ADR
-deliberately changes that product boundary.
+A new interface ships as a new `sdlc-<capability>` skill, registered for
+placement and listed in the plugin manifest. The control plane itself stays
+one skill; growth happens in implementations, not in the orchestrator.

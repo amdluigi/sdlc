@@ -87,6 +87,6 @@ if [[ "$json_output" -eq 1 ]]; then
   printf '%s\n' "$output"
 else
   if [[ "$dry_run" -eq 1 ]]; then verb="Would install"; elif [[ "$mode" == "link" ]]; then verb="Linked"; else verb="Copied"; fi
-  printf '%s\n' "$verb sdlc for $profile ($scope/$mode)." >&2
-  printf '%s\n' "Reload the client and confirm the sdlc skill is discovered." >&2
+  printf '%s\n' "$verb the sdlc suite for $profile ($scope/$mode)." >&2
+  printf '%s\n' "Reload the client and confirm sdlc and its sdlc-* implementations are discovered." >&2
 fi
