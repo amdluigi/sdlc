@@ -28,20 +28,27 @@
       "items": {"type": "object"}
     },
     "missing": {
-      "description": "Registered capabilities whose implementation skill is not installed. The control plane continues without them and names the skill that would restore each one, because a developer who installed part of the suite needs a remedy rather than a failure.",
+      "description": "Requirements the project needs but does not have installed. Derived from configuration, never from the registry alone: a disabled capability requires nothing, and a capability served by an external provider does not require the bundled implementation. A capability listed here is absent from 'capabilities' only when nothing serves it.",
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["capability", "install"],
+        "required": ["capability", "requires", "source"],
         "properties": {
           "capability": {"type": "string"},
-          "install": {"type": "string"}
+          "requires": {
+            "description": "The skill that would serve this capability.",
+            "type": "string"
+          },
+          "source": {
+            "description": "'bundled' when the suite ships the skill, so the control plane can offer an exact install command. 'external' when configuration names a third-party provider that is not installed, which the control plane can report but cannot install, because it does not know where that skill is published.",
+            "enum": ["bundled", "external"]
+          }
         }
       }
     },
     "repair": {
-      "description": "The single command that installs every missing implementation, or null when none are missing. The Agent Skills format has no dependency field and no host resolves one, so the control plane cannot have its requirements installed for it. It hands the developer the exact command instead, to be run only with their consent.",
+      "description": "The single command that installs every missing bundled requirement, or null when none are missing. The Agent Skills format has no dependency field and no host resolves one, so the control plane cannot have its requirements installed for it. It hands the developer the exact command instead, to be run only with their consent. External requirements are never included, because their source is unknown.",
       "type": ["string", "null"]
     }
   },

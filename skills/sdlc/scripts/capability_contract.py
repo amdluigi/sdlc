@@ -304,9 +304,12 @@ def load_registry(registry_path, root=None, on_missing="error"):
 
     ``on_missing`` decides what an absent implementation means. The default
     refuses, because a bundle that cannot find its own implementation is a
-    broken installation. ``report`` instead drops the capability and records
-    the skill that would restore it, which is what a developer who installed
-    part of the suite needs: a named remedy, not a stack trace.
+    broken installation. ``report`` instead records which bundled
+    implementations are absent and keeps every registered name in
+    ``placement``, because whether an absent implementation is actually
+    needed is a question only project configuration can answer, and
+    configuration must still be validated against the full set of
+    registered capability names.
     """
 
     if on_missing not in ("error", "report"):
@@ -330,19 +333,14 @@ def load_registry(registry_path, root=None, on_missing="error"):
         if isinstance(row, dict)
     }
     assembled = []
-    missing = []
+    absent = []
     for entry in registry["modules"]:
         if on_missing == "report" and isinstance(entry, dict):
             name = entry.get("name")
             if isinstance(name, str) and not bundled_declaration_path(
                 modules_root, name
             ).is_file():
-                missing.append(
-                    {
-                        "capability": name,
-                        "install": bundled_provider_id(name),
-                    }
-                )
+                absent.append(name)
                 continue
         declaration = load_bundled_declaration(modules_root, entry, names)
         assembled.append(
@@ -351,7 +349,10 @@ def load_registry(registry_path, root=None, on_missing="error"):
     resolved = dict(registry)
     resolved["modules"] = assembled
     if on_missing == "report":
-        resolved["missing"] = missing
+        resolved["absent"] = absent
+        resolved["placement"] = [
+            entry for entry in registry["modules"] if isinstance(entry, dict)
+        ]
     return resolved
 
 
@@ -544,6 +545,16 @@ class FilesystemProviders:
         }
 
     def _scan(self):
+        """Collect third-party providers, ignoring the bundle's own skills.
+
+        Implementations now sit beside the control plane, so scanning the
+        skills root finds them. They are not third-party providers: the
+        registry already accounts for them, and the reserved prefix means
+        every one would otherwise be recorded as a rejected candidate.
+        Reporting twenty-two healthy skills as skipped would bury the one
+        malformed provider the list exists to surface.
+        """
+
         candidates = []
         self._tokens = {}
         for index, root in enumerate(self.roots):
@@ -558,6 +569,10 @@ class FilesystemProviders:
             for entry in sorted(root.iterdir(), key=lambda item: item.name):
                 declaration_path = entry / DECLARATION_FILENAME
                 if not entry.is_dir() or not declaration_path.is_file():
+                    continue
+                if entry.name == CONTROL_PLANE_ID or entry.name.startswith(
+                    BUNDLED_ID_PREFIX
+                ):
                     continue
                 try:
                     candidate, record = self._candidate(

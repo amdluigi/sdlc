@@ -465,6 +465,12 @@ def _validate_declared_requirements(frontmatter, placement_entries) -> None:
     Skills format records that, so the claim lives in ``sdlc-requires`` and
     would drift the first time a capability was added if it were not
     checked here against the registry that defines it.
+
+    This is the default case. A project's configuration narrows it at
+    runtime, because a disabled capability requires nothing and a replaced
+    one requires its external provider instead. The declaration still lists
+    every capability, since that is what a project with no configuration
+    needs.
     """
 
     match = re.search(

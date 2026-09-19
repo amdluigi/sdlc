@@ -93,13 +93,22 @@ to implementations it does not contain. The dependency runs one way: `sdlc`
 requires its implementations, declared in its `sdlc-requires` metadata and
 validated against the registry; no implementation requires `sdlc`.
 
+That declaration is the default case, not the effective requirement. What a
+project actually needs is decided by its configuration: a capability the
+developer disabled requires nothing, and a capability served by an external
+provider requires that provider rather than the bundled skill. Deriving the
+requirement from the registry alone would demand downloads for phases the
+project deliberately does not run.
+
 The Agent Skills format has no dependency field, and no installer resolves
 one, so the requirement cannot be satisfied automatically at install time.
 The plugin manifest and the repository installers close that gap by shipping
 the suite together. Where they cannot, the control plane closes it at
-runtime: a missing implementation is reported with the single command that
-restores every absent skill, offered to the developer, and run only with
-their consent.
+runtime: it reads configuration, checks only what configuration says is
+needed, and reports a gap with the single command that restores every absent
+bundled skill, offered to the developer and run only with their consent. A
+gap left by an uninstalled external provider is reported without a command,
+because the control plane cannot know where a third party publishes.
 
 ## Module Registry
 
