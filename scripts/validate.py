@@ -14,6 +14,7 @@ if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 SKILL = ROOT / "skills" / "sdlc" / "SKILL.md"
 SKILLS = ROOT / "skills"
+COMMANDS = ROOT / "commands"
 MODULES = ROOT / "skills" / "sdlc" / "modules"
 REGISTRY = MODULES / "registry.json"
 SKILL_SCRIPTS = SKILL.parent / "scripts"
@@ -938,6 +939,12 @@ def validate_manifests() -> None:
             "Claude plugin must ship the control plane and every "
             "implementation, control plane first"
         )
+    expected_commands = [
+        f"./commands/{path.name}"
+        for path in sorted(COMMANDS.glob("*.md"))
+    ]
+    if sorted(plugin.get("commands") or []) != expected_commands:
+        fail("Claude plugin must ship every command in commands/")
     skill_text = SKILL.read_text(encoding="utf-8")
     version_match = re.search(r'^  version:\s+"([^"]+)"$', skill_text, re.MULTILINE)
     marketplace_plugins = marketplace.get("plugins")
@@ -1073,9 +1080,61 @@ def validate_public_naming() -> None:
                 )
 
 
+def validate_commands() -> None:
+    """Commands and the script they delegate to stay in lockstep.
+
+    Commands exist only in hosts that support them, so the script is
+    where the behavior lives. A command naming an operation the script
+    does not have would fail only for whoever ran it, and an operation
+    with no command would be reachable in Claude Code by nobody.
+    """
+
+    script = SKILLS / "sdlc" / "scripts" / "manage_install.py"
+    text = script.read_text(encoding="utf-8")
+    match = re.search(r"^OPERATIONS = \(([^)]*)\)", text, re.MULTILINE)
+    if match is None:
+        fail("manage_install.py must declare OPERATIONS")
+    operations = re.findall(r'"([a-z-]+)"', match.group(1))
+    if not operations:
+        fail("manage_install.py declares no operations")
+
+    commands = COMMANDS if COMMANDS.is_dir() else None
+    if commands is None:
+        fail("commands directory is missing")
+    present = sorted(path.stem for path in commands.glob("*.md"))
+    expected = sorted(f"sdlc-{name}" for name in operations)
+    if present != expected:
+        fail(
+            "commands must match manage_install.py operations; "
+            f"expected {', '.join(expected)}"
+        )
+
+    for path in sorted(commands.glob("*.md")):
+        content = path.read_text(encoding="utf-8")
+        if not content.startswith("---\n"):
+            fail(f"{path.name} must open with frontmatter")
+        end = content.find("\n---\n", 3)
+        if end == -1:
+            fail(f"{path.name} frontmatter is unterminated")
+        frontmatter = content[4:end]
+        if f"name: {path.stem}\n" not in frontmatter + "\n":
+            fail(f"{path.name} must declare name: {path.stem}")
+        description = re.search(
+            r"^description: (.+)$", frontmatter, re.MULTILINE
+        )
+        if description is None or len(description.group(1)) < 40:
+            fail(
+                f"{path.name} needs a description saying when to use it"
+            )
+        operation = path.stem.removeprefix("sdlc-")
+        if f"manage_install.py {operation}" not in content:
+            fail(f"{path.name} must show the command it delegates to")
+
+
 def main() -> int:
     try:
         validate_skill()
+        validate_commands()
         validate_manifests()
         validate_markdown()
         validate_public_naming()
@@ -1084,9 +1143,11 @@ def main() -> int:
         return 1
 
     module_count = len(list(SKILLS.glob("sdlc-*/SKILL.md")))
+    command_count = len(list(COMMANDS.glob("*.md")))
     print(
         f"VALIDATION PASSED: {module_count + 1} skills "
-        f"(1 control plane, {module_count} implementations)"
+        f"(1 control plane, {module_count} implementations), "
+        f"{command_count} commands"
     )
     return 0
 

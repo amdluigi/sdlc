@@ -58,6 +58,11 @@ rather than replace, operational readiness and debugging.
 ## Repository Components
 
 ```text
+commands/                       the operating surface, where hosts support it
+├── sdlc-init.md
+├── sdlc-check.md
+└── sdlc-download.md
+
 skills/
 ├── sdlc/                       the control plane
 │   ├── SKILL.md
@@ -72,6 +77,7 @@ skills/
 │       ├── artifact_contracts.py
 │       ├── config_contract.py
 │       ├── manage_extensions.py
+│       ├── manage_install.py   init, check, and download
 │       ├── operator_reports.py
 │       ├── resolve_providers.py
 │       └── validate_artifacts.py
@@ -82,11 +88,20 @@ skills/
     └── assets/
 ```
 
-Every directory above is a discoverable Agent Skill, so a host lists
-twenty-three. That is deliberate. An implementation is a skill in the
+Every directory under `skills/` is a discoverable Agent Skill, so a host
+lists twenty-three. That is deliberate. An implementation is a skill in the
 ordinary sense, installable by itself, and the control plane reaches it the
 same way it reaches a third-party provider: through the host, by declared
 name. Nothing about a bundled implementation is privileged by its location.
+
+`commands/` is a surface, not a layer. Managing the installation is three
+acts, not one: create the configuration, report what is missing, install
+what is missing. Each is invoked by the control plane when it needs it and
+by a developer who wants it, so each is a command rather than a paragraph of
+procedure inside `SKILL.md`. The behavior lives in
+`scripts/manage_install.py`, because commands exist only in hosts that
+support them and the Skills CLI installs skills alone. A host without
+commands runs the script and behaves identically.
 
 The suite is the default install, because the control plane binds interfaces
 to implementations it does not contain. The dependency runs one way: `sdlc`

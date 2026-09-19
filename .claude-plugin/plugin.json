@@ -43,5 +43,10 @@
     "./skills/sdlc-security-auth",
     "./skills/sdlc-tdd",
     "./skills/sdlc-testing"
+  ],
+  "commands": [
+    "./commands/sdlc-init.md",
+    "./commands/sdlc-check.md",
+    "./commands/sdlc-download.md"
   ]
 }

@@ -17,6 +17,7 @@
       "scripts/delivery_profile.py",
       "scripts/handoff_renderers.py",
       "scripts/manage_extensions.py",
+      "scripts/manage_install.py",
       "scripts/manage_metrics.py",
       "scripts/operator_reports.py",
       "scripts/reconcile_artifacts.py",
@@ -26,7 +27,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "39b47d23c736dc6eeb8f757686dcb6b6ae16599659c3908d36f4ede6d04b977f"
+        "sha256": "e33e4a16cf8c0e90863d2028e69b15a7dd7761880da5800f852b87b1300da7bd"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -133,6 +134,10 @@
         "sha256": "4a67498c53ef044697a509e4e757074bb95f396e8f2552d99c6492d6c50b06a6"
       },
       {
+        "path": "scripts/manage_install.py",
+        "sha256": "e7aee4fe0afcdd2359a8e7b0d370191dc793903259093392754fe1510568b26c"
+      },
+      {
         "path": "scripts/manage_metrics.py",
         "sha256": "f0837e6dff2d3a69e5c7022aa4f3f690089ae24a3cdb0befba9e34b92fda9ef4"
       },
@@ -146,14 +151,14 @@
       },
       {
         "path": "scripts/resolve_providers.py",
-        "sha256": "7314b42191bef709ac98eafbbbcbadaacbd7f64422f7aa99474d395d95943430"
+        "sha256": "2a429d4d9bf3413deb9cf8534b710d706f4172758281cd555c020f89ebfd8e89"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "7ec9536f9ed5b354af63deb72b7df17f3e3e8236ab6f0677fe902ad82873342c"
+    "bundleSha256": "253381fe3f6f7e8d4d480c5384f8e3c10afef7b4f247ef71a1ea5e63ccb38a61"
   },
   "profiles": [
     {

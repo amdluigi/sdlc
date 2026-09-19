@@ -487,6 +487,57 @@ def survey(
     }
 
 
+def survey_install(
+    registry_path,
+    project_root,
+    sdlc_version,
+    *,
+    provider_root=None,
+    host_profile=None,
+    host_adapter=None,
+):
+    """Survey an installation from paths, doing the wiring exactly once.
+
+    Reading the registry in report mode, keeping every registered name so
+    configuration can still refer to an absent one, and discovering
+    providers are four steps that have to happen in that order. Callers
+    that repeated them drifted: the first one to rebuild the phase index
+    from the reduced module list reintroduced the crash this ordering
+    exists to prevent.
+    """
+
+    registry = load_registry(registry_path, on_missing="report")
+    placement = registry.get("placement") or registry["modules"]
+    names = {entry["name"] for entry in placement}
+    config = load_project_config(
+        project_root,
+        names,
+        _phase_of(dict(registry, modules=placement)),
+    )
+    adapter = None
+    modes = {}
+    skipped = []
+    if host_adapter is not None:
+        adapter = _host_adapter_method(
+            host_adapter, "enumerate_providers"
+        )(host_profile or "unknown")
+    elif provider_root:
+        providers = FilesystemProviders(
+            provider_root,
+            capabilities=names,
+            reserved=names | {"sdlc"},
+        )
+        adapter = providers.adapter()
+        modes = providers.declared_modes()
+        skipped = providers.skipped
+    return survey(
+        config, placement, adapter, sdlc_version, host_profile,
+        skipped=skipped, modes=modes,
+        categories=registry.get("categories"),
+        absent=registry.get("absent"),
+    )
+
+
 def resolve(
     config,
     registry_modules,
@@ -863,35 +914,13 @@ def main(argv=None, *, host_adapter=None):
                 args.sdlc_version, args.host_profile,
             )
         elif args.command == "survey":
-            registry = load_registry(args.registry, on_missing="report")
-            placement = registry.get("placement") or registry["modules"]
-            names = {entry["name"] for entry in placement}
-            config = load_project_config(
+            output = survey_install(
+                args.registry,
                 args.project_root,
-                names,
-                _phase_of(dict(registry, modules=placement)),
-            )
-            adapter = None
-            modes = {}
-            skipped = []
-            if host_adapter is not None:
-                adapter = _host_adapter_method(
-                    host_adapter, "enumerate_providers"
-                )(args.host_profile or "unknown")
-            elif args.provider_root:
-                providers = FilesystemProviders(
-                    args.provider_root,
-                    capabilities=names,
-                    reserved=names | {"sdlc"},
-                )
-                adapter = providers.adapter()
-                modes = providers.declared_modes()
-                skipped = providers.skipped
-            output = survey(
-                config, placement, adapter, args.sdlc_version,
-                args.host_profile, skipped=skipped, modes=modes,
-                categories=registry.get("categories"),
-                absent=registry.get("absent"),
+                args.sdlc_version,
+                provider_root=args.provider_root,
+                host_profile=args.host_profile,
+                host_adapter=host_adapter,
             )
         elif args.command == "inspect":
             resolution = load_json_strict(args.resolution)

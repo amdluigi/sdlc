@@ -20,6 +20,7 @@ that discipline without the gates the control plane enforces.
 | Goal | Start here |
 |------|------------|
 | Use SDLC in a project | [Use SDLC](#use-sdlc) |
+| Check or repair the installation | [Operating commands](#operating-commands) |
 | Configure modules or organization behavior | [Configure or extend SDLC](#configure-or-extend-sdlc) |
 | Contribute to the skill or prepare a release | [Maintain and release SDLC](#maintain-and-release-sdlc) |
 
@@ -225,10 +226,13 @@ resulting data path and operational signals.
 
 ## Project setup
 
-On the first non-trivial task, SDLC creates
-`.sdlc/config.json` from the bundled
+On the first non-trivial task, SDLC creates `.sdlc/config.json` from the
+bundled
 [configuration template](skills/sdlc/assets/sdlc-config.template.json) when
-it is missing. With the default configuration:
+it is missing. You can also create it yourself at any time with
+[`/sdlc-init`](#operating-commands). Either way it is never overwritten once
+it exists, because it records decisions you made. With the default
+configuration:
 
 - all core modules are enabled but are loaded only when their triggers apply;
 - project memory is created under `.sdlc/memory/` when needed;
@@ -238,6 +242,45 @@ it is missing. With the default configuration:
 Review and commit the project-owned files so teammates and agents share the
 same delivery policy and durable context. Do not place secrets, credentials,
 customer data, or raw sensitive material in project memory or configuration.
+
+## Operating commands
+
+Three operations manage the installation itself. SDLC runs them when it
+needs to, and you can run them directly.
+
+| Command | Does | Never |
+|---|---|---|
+| `/sdlc-init` | creates `.sdlc/config.json` from the template | overwrites an existing configuration |
+| `/sdlc-check` | reports every capability under its delivery phase as `ok`, `MISSING`, or `disabled` | touches the network or changes a file |
+| `/sdlc-download` | installs the bundled implementations a check found missing | installs anything you have not accepted |
+
+A check reads as the lifecycle:
+
+```text
+verification (enters at gate 5)
+  ok       operational-readiness      bundled
+  disabled review                     disabled in configuration
+  MISSING  testing                    install sdlc-testing
+
+22 capabilities: 19 ok, 2 missing, 1 disabled
+
+to complete this installation:
+  npx skills add amdluigi/sdlc --skill sdlc-testing
+```
+
+Slash commands exist in the Claude Code plugin. Everywhere else the same
+three operations run as a script, with identical behavior:
+
+```bash
+python scripts/manage_install.py init --project-root .
+python scripts/manage_install.py check --project-root . \
+  --registry modules/registry.json --sdlc-version 1.0.0 \
+  --provider-root <skills directory> --host-profile filesystem
+python scripts/manage_install.py download --project-root . ... [--run]
+```
+
+`check` exits 0 when the installation is whole and 1 when something enabled
+has no implementation, so it also works as a CI guard.
 
 ## Configure or extend SDLC
 
@@ -660,8 +703,9 @@ command that restores them, but it cannot deliver any phase until you accept.
 
 ### How SDLC checks its own dependencies
 
-SDLC checks at the start of a session rather than trusting the install. The
-check is driven by your configuration, not by the registry:
+SDLC checks at the start of a session rather than trusting the install, by
+running the same [`/sdlc-check`](#operating-commands) you can run yourself.
+The check is driven by your configuration, not by the registry:
 
 - a capability you disabled requires nothing, and is never reported;
 - a capability you replaced with an external provider requires that provider,

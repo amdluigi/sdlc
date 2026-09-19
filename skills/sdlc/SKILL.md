@@ -139,29 +139,41 @@ contracts.
 `sdlc-requires` is the default case, not the effective requirement.
 Configuration decides what this project needs: a capability the developer
 disabled requires nothing, and a capability replaced by an external provider
-requires that provider rather than the bundled skill. The survey applies
-that narrowing for you and reports only real gaps, so the check costs two
-file reads and stays correct for a project that runs half the lifecycle.
+requires that provider rather than the bundled skill.
 
 The Agent Skills format has no dependency field, so no host installs those
-requirements for you. Run the survey at the start of a session. When it
-reports a gap, do not fail and do not silently skip the capability:
+requirements for you. Three operations handle this, and they are yours to
+run as well as the developer's. Hosts that support commands expose them as
+`/sdlc-init`, `/sdlc-check`, and `/sdlc-download`; everywhere else run
+[scripts/manage_install.py](scripts/manage_install.py) directly. The
+behavior is identical either way.
+
+| Operation | Run it when | It will not |
+|---|---|---|
+| `init` | the project has no configuration and the work is not trivial | overwrite a configuration that exists |
+| `check` | SDLC work begins, or a capability seems absent | touch the network or change a file |
+| `download` | `check` reported a bundled gap and the developer agreed | install anything without `--run` |
+
+Run `check` at the start of a session. It applies the configuration
+narrowing for you, so it costs two file reads and stays correct for a
+project that runs half the lifecycle. When it reports a gap, do not fail and
+do not silently skip the capability:
 
 1. report the capability as missing and name the delivery phase it served;
-2. if the gap is `bundled`, show the `repair` command from the survey, which
+2. if the gap is `bundled`, show the command `download` prints, which
    installs every missing bundled implementation in one step;
 3. ask the developer whether to run it, and run it only on an explicit yes;
 4. if they decline, continue without that phase and state which gate is no
    longer enforced.
 
-When the gap is `external`, there is no `repair` command. Configuration
+When the gap is `external`, there is no command to offer. Configuration
 names a provider this skill cannot locate, because it does not know where a
 third party publishes. Report the provider by name and let the developer
 install it or change the configuration.
 
-Never run the repair command without consent. Installing software is the
-developer's decision, and a skill that installs things unasked is not one a
-developer can safely trust with a repository.
+Never install without consent. Installing software is the developer's
+decision, and a skill that installs things unasked is not one a developer
+can safely trust with a repository.
 
 The registry is organized by lifecycle category. Future bundles may connect
 one module, multiple complementary modules, or an alternative module to a
@@ -174,10 +186,14 @@ itself. Before reading any implementation `SKILL.md`, look for `.sdlc/config.jso
 project root.
 
 - If it is absent, treat every registered module as enabled. On the first
-  non-trivial task, create it from
-  [assets/sdlc-config.template.json](assets/sdlc-config.template.json), tell
-  the user, and continue with all modules enabled. Defer scaffolding for
-  trivial work.
+  non-trivial task, create it by running `init`
+  ([scripts/manage_install.py](scripts/manage_install.py), or `/sdlc-init`
+  where commands exist), tell the user, and continue with all modules
+  enabled. Defer scaffolding for trivial work. `init` writes
+  [assets/sdlc-config.template.json](assets/sdlc-config.template.json) and
+  refuses to overwrite an existing configuration, because a configuration
+  records decisions and regenerating it would silently re-enable phases the
+  developer switched off.
 - Accept `schemaVersion: 1`, `2`, and `3` for backward compatibility.
   Migrate any of them to schema 4 and persist the complete normalized
   configuration atomically before provider or extension resolution. Preserve
