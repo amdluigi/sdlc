@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "skills" / "sdlc" / "modules" / "registry.json"
+ARTIFACT = ROOT / "docs" / "DELIVERY-PROFILE.md"
 
 EXPECTED_PHASES = [
     "inception",
@@ -238,6 +239,34 @@ class RenderMarkdownTest(unittest.TestCase):
 
         self.assertNotEqual(default_text, replaced_text)
         self.assertIn("acme-testing", replaced_text)
+
+
+class ProfileArtifactTest(unittest.TestCase):
+    """The committed artifact must match what the renderer produces."""
+
+    def test_artifact_exists(self) -> None:
+        self.assertTrue(ARTIFACT.is_file(), f"missing artifact: {ARTIFACT}")
+
+    def test_artifact_matches_regenerated_output(self) -> None:
+        expected = delivery_profile.render_markdown(
+            delivery_profile.build_profile(registry(), None)
+        )
+        actual = ARTIFACT.read_text(encoding="utf-8")
+
+        self.assertEqual(
+            actual,
+            expected,
+            "docs/DELIVERY-PROFILE.md is stale. Regenerate it with "
+            "scripts/delivery_profile.py render.",
+        )
+
+    def test_artifact_warns_against_hand_editing(self) -> None:
+        self.assertIn(
+            "Do not edit by hand", ARTIFACT.read_text(encoding="utf-8")
+        )
+
+    def test_artifact_contains_no_em_dash(self) -> None:
+        self.assertNotIn("\u2014", ARTIFACT.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

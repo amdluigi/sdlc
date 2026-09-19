@@ -27,6 +27,14 @@ HEADER = (
     "Each row states which plugin serves a capability and where that plugin\n"
     "came from. A phase without a gate lies outside the per-change state\n"
     "machine and carries no blocking authority.\n"
+    "\n"
+    "To change a plugin, edit the project configuration, then regenerate:\n"
+    "\n"
+    "```\n"
+    "python skills/sdlc/scripts/delivery_profile.py render \\\n"
+    "  --registry skills/sdlc/modules/registry.json \\\n"
+    "  --output docs/DELIVERY-PROFILE.md\n"
+    "```"
 )
 
 COLUMNS = ("Capability", "Plugin", "Source", "Role", "Enabled")

@@ -25,7 +25,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "5b5dd8c9c28f74d9aa615b86bfbd895ee2e1c73d2ec901a1d122aa366c097c0c"
+        "sha256": "76d7a24b89405da04e28eb3fb54636141a076cadd5f18ee78b0ad5b3af5a1992"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -241,7 +241,7 @@
       },
       {
         "path": "scripts/delivery_profile.py",
-        "sha256": "479c8bb92bc22213e63139d8973d6ad1ba5c6edbd01935e5efb74d3be05944ef"
+        "sha256": "8cd04743e68c853baae892df7f227b5363edf99b3ebe2be6acaabd36e1dc63cf"
       },
       {
         "path": "scripts/handoff_renderers.py",
@@ -272,7 +272,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "04ea3569015eefe951f4c6b45c4573a799aac0ac45eb38deca888c87a73f45ac"
+    "bundleSha256": "4660ae88612d2540a00acfa48628f570450a10f87ea4491b845660e453374a19"
   },
   "profiles": [
     {

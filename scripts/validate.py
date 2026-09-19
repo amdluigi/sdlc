@@ -19,6 +19,7 @@ if str(SKILL_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SKILL_SCRIPTS))
 
 import adaptive_extensions
+import delivery_profile
 import qualify
 
 
@@ -520,6 +521,20 @@ def validate_skill() -> None:
         fail(
             "Every delivery phase must contain at least one module: "
             f"empty={sorted(set(phases) - covered)}"
+        )
+
+    profile_path = ROOT / "docs" / "DELIVERY-PROFILE.md"
+    if not profile_path.is_file():
+        fail("Missing generated delivery profile: docs/DELIVERY-PROFILE.md")
+    expected_profile = delivery_profile.render_markdown(
+        delivery_profile.build_profile(registry, None)
+    )
+    if profile_path.read_text(encoding="utf-8") != expected_profile:
+        fail(
+            "docs/DELIVERY-PROFILE.md is stale. Regenerate it with: "
+            "python skills/sdlc/scripts/delivery_profile.py render "
+            "--registry skills/sdlc/modules/registry.json "
+            "--output docs/DELIVERY-PROFILE.md"
         )
     if "project-memory" in registered:
         memory_templates = (
