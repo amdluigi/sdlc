@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-testing",
+  "capability": "testing",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "Behavior, bug, refactor, tests, or non-trivial verification are in scope.",
+  "exitSignal": "Acceptance evidence is fresh and test sensitivity is known.",
+  "evidence": [
+    "Fresh command or CI results are tied to the current implementation revision and cover the relevant acceptance criteria.",
+    "When a PRD is selected, acceptance evidence is traceable to every approved AC identifier.",
+    "Bug regression sensitivity is demonstrated, or a technical limitation and credible alternative evidence are explicit."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

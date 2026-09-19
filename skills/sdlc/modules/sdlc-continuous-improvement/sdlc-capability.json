@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-continuous-improvement",
+  "capability": "continuous-improvement",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "A task produces a correction, repeated merge step, recurring review finding or coverage gap, explicit learning request, or an SDLC core upgrade changes core responsibilities.",
+  "exitSignal": "Learning signals and upgrade-driven extension overlap were classified and routed, recorded, proposed, accepted, rejected, or proposed for supersession with rationale.",
+  "evidence": [
+    "Every qualifying signal is matched to existing configuration, standards, memory, core behavior, or a sanitized candidate.",
+    "No extension is active without inspectable validation and explicit developer approval."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

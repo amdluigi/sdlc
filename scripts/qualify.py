@@ -765,19 +765,19 @@ def inspect_install(
     registry = load_json_strict(destination / "modules" / "registry.json")
     config = load_json_strict(destination / str(manifest["skill"]["configTemplate"]))
     module_names = {item["name"] for item in registry["modules"]}
+    expected_dirs = {"sdlc-" + name for name in module_names}
     module_dirs = {path.name for path in (destination / "modules").iterdir() if path.is_dir()}
     if (
         len(registry["modules"]) != manifest["skill"]["moduleCount"]
-        or module_dirs != module_names
+        or module_dirs != expected_dirs
     ):
         fail("Installed module registry and filesystem do not match")
     performed["module-count"] = [
         {"code": "module-count", "value": len(registry["modules"])}
     ]
     for item in registry["modules"]:
-        declaration_path = (
-            destination / "modules" / item["name"] / "sdlc-capability.json"
-        )
+        directory = destination / "modules" / ("sdlc-" + item["name"])
+        declaration_path = directory / "sdlc-capability.json"
         if not declaration_path.is_file():
             fail(
                 "Installed capability ships no sdlc-capability.json: "
@@ -791,6 +791,14 @@ def inspect_install(
         ):
             fail(
                 "Installed capability declaration is invalid: "
+                f"{item['name']}"
+            )
+        implementation = _read_frontmatter(
+            directory / str(declaration.get("instructions"))
+        )
+        if implementation.get("name") != "sdlc-" + item["name"]:
+            fail(
+                "Installed implementation is not a conformant skill: "
                 f"{item['name']}"
             )
     if set(config) != {

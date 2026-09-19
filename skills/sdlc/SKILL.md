@@ -117,12 +117,18 @@ safeguards.
 
 ## Module contract
 
-`modules/` contains internal SDLC modules, not separately discoverable skills.
-Before reading any `MODULE.md`, read
+A module is an interface. The skill serving it is an implementation. Each
+implementation lives in `modules/sdlc-<capability>/` and ships an Agent Skill
+`SKILL.md` beside its `sdlc-capability.json`, which is exactly the shape a
+third-party provider ships. They are not separately discoverable, because a
+host scanning the skills root sees only this skill.
+
+Before reading any implementation `SKILL.md`, read
 [modules/registry.json](modules/registry.json). It is the single source for
-module names, categories, order, paths, triggers, exit signals, and lightweight
-evidence contracts. If a registered path is missing, report an invalid
-installation.
+module placement: name, category, order, and whether the module may be
+replaced. Triggers, exit signals, and evidence contracts belong to each
+implementation's declaration. If a registered path is missing, report an
+invalid installation.
 
 The registry is organized by lifecycle category. Future bundles may connect
 one module, multiple complementary modules, or an alternative module to a
@@ -131,7 +137,7 @@ category. Alternatives must satisfy the category's exit signal.
 ## Project configuration
 
 Configuration is orchestrator policy, not a module, so it cannot disable
-itself. Before reading any `MODULE.md`, look for `.sdlc/config.json` at the
+itself. Before reading any implementation `SKILL.md`, look for `.sdlc/config.json` at the
 project root.
 
 - If it is absent, treat every registered module as enabled. On the first
@@ -347,7 +353,7 @@ using a non-empty instruction body. Give the provider the core trigger, exit
 signal, evidence clauses, recognized evidence, and only the unresolved gaps.
 Independently inspect and validate its results against every core evidence
 clause afterward. Provider failure or missing evidence blocks without reading
-the bundled `MODULE.md`.
+the bundled implementation.
 
 Coverage identifies the core module, provider type (`bundled`, `disabled`, or
 `replacement`), replacement ID when present, recognized evidence, gaps,
@@ -367,13 +373,13 @@ global catalog for arbitrary Markdown. Validate every configured ID first.
 For enabled entries, validate the confined extension path, metadata,
 compatibility, required files, and content digest before returning metadata.
 An explicit `false` entry becomes a `configured-disabled` coverage entry
-without reading its `MODULE.md`.
+without reading its instructions.
 
 Resolution binds metadata and `contentDigest` to one immutable byte snapshot.
 When an extension later reaches `partial`, `missing`, or `stale/unverified`,
 load it through `manage_extensions.py load-module` with that exact digest.
 The loader reads and validates one new snapshot, rejects any digest mismatch,
-and returns `MODULE.md` from the bytes it validated. Never load the live path
+and returns the instruction document from the bytes it validated. Never load the live path
 directly after resolution.
 
 Before loading any returned module instructions, compare extension metadata
@@ -409,7 +415,7 @@ python scripts/validate_artifacts.py render-coverage --input STATE.json
 
 Use `--detail concise`, `normal`, or `detailed`. These read-only commands
 explain and project only supplied facts. They do not resolve extensions,
-inspect artifacts, load `MODULE.md`, execute scripts, inspect the worktree, or
+inspect artifacts, load instructions, execute scripts, inspect the worktree, or
 mutate configuration. The orchestrator remains responsible for semantic
 trigger interpretation, evidence quality and freshness, and readiness.
 Concise output still preserves blockers and configured-disabled safeguards.
@@ -552,12 +558,12 @@ reported honestly and cannot block otherwise satisfied lifecycle work.
    artifacts making opposing claims about the same capability. Resolve a
    contradiction as a gap and state which artifacts conflict; never silently
    prefer one producer over another.
-8. Do not load `MODULE.md` instructions for `satisfied`,
+8. Do not load implementation instructions for `satisfied`,
    `configured-disabled`, or
    `not-applicable` entries. Do not repeat their work.
 9. For `partial`, `missing`, or `stale/unverified` entries, read the
    instructions and perform only the unresolved work. Read a bundled
-   `MODULE.md` at its registry path; its integrity is bound at the bundle
+   its instruction document at its registry path; its integrity is bound at the bundle
    level by `qualification/manifest.json`, verified with
    `qualify.py verify-manifest`, not per module at load time. Load a
    replacement provider through `resolve_providers.py load-module` and an

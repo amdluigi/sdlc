@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-review",
+  "capability": "review",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "Always before completion when enabled.",
+  "exitSignal": "Risk-scaled perspectives reviewed the current final diff and findings were triaged.",
+  "evidence": [
+    "Review output identifies the actual final diff or revision, perspectives used, actionable findings, and confidence.",
+    "Relevant findings are resolved or disclosed, and affected checks were rerun after fixes."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-project-standards",
+  "capability": "project-standards",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "Always when enabled.",
+  "exitSignal": "Repository-specific engineering and delivery rules are identified.",
+  "evidence": [
+    "Current-task trace or report identifies the standards file inspected, or establishes that none exists.",
+    "Inferred commands and conventions are tied to inspectable repository files when standards are absent."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

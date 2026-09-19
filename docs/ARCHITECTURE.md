@@ -63,9 +63,9 @@ skills/sdlc/
 │   └── sdlc-config.template.json
 ├── modules/
 │   ├── registry.json
-│   └── MODULE_NAME/
+│   └── sdlc-MODULE_NAME/
 │       ├── sdlc-capability.json
-│       ├── MODULE.md
+│       ├── SKILL.md
 │       ├── REFERENCE.md
 │       └── assets/
 ├── contracts/
@@ -80,8 +80,10 @@ skills/sdlc/
     └── validate_artifacts.py
 ```
 
-Only `SKILL.md` is discoverable as an Agent Skill. `MODULE.md` files are
-internal references loaded by the orchestrator.
+Only the top-level `SKILL.md` is discoverable as an Agent Skill. Each
+implementation ships its own `SKILL.md`, but nested documents are not
+discovered by a host that scans the skills root, so installing SDLC adds one
+skill and not twenty-three.
 
 ## Module Registry
 
@@ -541,7 +543,7 @@ The orchestrator can serialize task facts and its ephemeral coverage ledger
 to `operator-state.schema.json`. `explain`, `preview`, and `render-coverage`
 strictly validate that caller-supplied state and return deterministic JSON at
 concise, normal, or detailed levels. They do not rediscover evidence, resolve
-extensions, inspect `MODULE.md`, execute extension scripts, or mutate project
+extensions, inspect extension instructions, execute extension scripts, or mutate project
 state. Exact core fact rules may detect assertion conflicts; prose-only
 extension triggers remain undetermined unless the runtime supplies a result.
 

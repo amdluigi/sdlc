@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-accessibility-browser",
+  "capability": "accessibility-browser",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "A change creates or modifies rendered web or mobile UI, user interaction behavior, responsive layout, navigation or focus behavior, accessibility semantics, or browser-only runtime behavior.",
+  "exitSignal": "Every affected user flow has current browser or app-runtime evidence at relevant viewport and input modes, applicable accessibility checks pass, and any unresolved usability or accessibility limitation is explicit.",
+  "evidence": [
+    "An affected-flow inventory maps changed acceptance criteria to pages, screens, interaction states, viewport classes, and relevant input modes.",
+    "Current runtime evidence exercises each changed flow through the real rendered interface, including applicable loading, empty, error, disabled, validation, and success states.",
+    "Automated accessibility results cover affected rendered surfaces, and manual evidence covers applicable assistive input, focus, names, announcements, reflow, and motion behavior.",
+    "Responsive evidence names tested viewport classes and records overflow, clipping, target size, orientation, and content-reflow outcomes.",
+    "Findings identify severity, affected flow, reproduction, and disposition, with accepted limitations visible in final risk and handoff evidence."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

@@ -2666,7 +2666,7 @@ class ContinuousImprovementContractTests(unittest.TestCase):
                 / "skills"
                 / "sdlc"
                 / "modules"
-                / "continuous-improvement"
+                / "sdlc-continuous-improvement"
                 / "sdlc-capability.json"
             ).read_text(encoding="utf-8")
         )
@@ -2675,8 +2675,8 @@ class ContinuousImprovementContractTests(unittest.TestCase):
             / "skills"
             / "sdlc"
             / "modules"
-            / "continuous-improvement"
-            / "MODULE.md"
+            / "sdlc-continuous-improvement"
+            / "SKILL.md"
         ).read_text(encoding="utf-8")
         trigger = declaration["trigger"]
 

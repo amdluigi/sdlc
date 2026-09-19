@@ -93,7 +93,7 @@ class BundledDeclarationTest(unittest.TestCase):
     def test_assembly_exposes_every_evidence_clause(self):
         for entry in registry()["modules"]:
             declaration = json.loads(
-                (MODULES / entry["name"] / "sdlc-capability.json").read_text(
+                (MODULES / ("sdlc-" + entry["name"]) / "sdlc-capability.json").read_text(
                     encoding="utf-8"
                 )
             )
