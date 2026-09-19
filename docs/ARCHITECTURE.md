@@ -201,9 +201,15 @@ distinguish duplicates, or bind loading, and has no provider root, reports
 
 `resolve_providers.py survey` reports which provider serves each capability,
 whether that is a decision or the default, and which installed alternatives
-declare the same capability. It is read-only and adopts nothing. Its
-eligibility check is the one resolution raises on, so it cannot offer a
-choice resolution would refuse.
+declare the same capability. It also reports where the capability is invoked:
+its category, delivery phase, and phase entry gate, so a developer can judge
+whether an installed skill covers the same ground. Placement is read from the
+registry and never from a declaration, because a provider that could name its
+own phase could claim one carrying no entry gate and so escape the evidence
+gate governing the capability it replaces. The survey is read-only and adopts
+nothing. Its eligibility check is the one resolution raises on, so it cannot
+offer a choice resolution would refuse. The report shape is
+`contracts/provider-survey.schema.json`.
 
 The runtime evaluates the core trigger and evidence before loading provider
 instructions. Satisfied and not-applicable modules load nothing. Only partial,
