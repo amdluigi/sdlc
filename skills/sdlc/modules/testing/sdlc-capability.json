@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-testing",
   "capability": "testing",
   "mode": "default",
   "instructions": "MODULE.md",

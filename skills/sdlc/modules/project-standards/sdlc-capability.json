@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-project-standards",
   "capability": "project-standards",
   "mode": "default",
   "instructions": "MODULE.md",

@@ -139,7 +139,7 @@ class ProviderResolutionTests(unittest.TestCase):
         )
         declaration = {
             "schemaVersion": 1,
-            "id": "sdlc",
+            "id": "sdlc-" + name,
             "capability": name,
             "mode": "default",
             "instructions": "MODULE.md",

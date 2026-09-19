@@ -17,7 +17,7 @@ from pathlib import Path
 
 
 SCHEMA_VERSION = 1
-BUNDLED_PLUGIN = "sdlc"
+BUNDLED_PLUGIN_PREFIX = "sdlc-"
 
 HEADER = (
     "# SDLC delivery profile\n"
@@ -25,11 +25,16 @@ HEADER = (
     "Generated file. Do not edit by hand.\n"
     "\n"
     "Each row states which plugin serves a capability and where that plugin\n"
-    "came from. A phase heading shows its entry gate: the earliest lifecycle\n"
-    "gate at which any of its capabilities participates. It is not a\n"
-    "per-phase identifier, so one gate can open two phases and a gate that\n"
-    "opens no phase does not appear. A phase without an entry gate lies\n"
-    "outside the per-change state machine and carries no blocking authority.\n"
+    "came from. A capability is an interface and its plugin is the\n"
+    "implementation bound to it. Implementations the bundle ships are named\n"
+    "after the capability they serve, so `sdlc-testing` is the bundled\n"
+    "implementation of `testing`.\n"
+    "\n"
+    "A phase heading shows its entry gate: the earliest lifecycle gate at\n"
+    "which any of its capabilities participates. It is not a per-phase\n"
+    "identifier, so one gate can open two phases and a gate that opens no\n"
+    "phase does not appear. A phase without an entry gate lies outside the\n"
+    "per-change state machine and carries no blocking authority.\n"
     "\n"
     "To change a plugin, edit the project configuration, then regenerate:\n"
     "\n"
@@ -49,7 +54,7 @@ def _module_state(config, name):
     return config.get("modules", {}).get(name, True)
 
 
-def _resolve(state):
+def _resolve(state, capability):
     if isinstance(state, dict) and "replaceWith" in state:
         return {
             "plugin": state["replaceWith"],
@@ -59,7 +64,7 @@ def _resolve(state):
         }
     explicit = isinstance(state, dict)
     return {
-        "plugin": BUNDLED_PLUGIN,
+        "plugin": BUNDLED_PLUGIN_PREFIX + capability,
         "source": "bundled",
         "role": "chosen" if explicit else "default",
         "enabled": state is not False,
@@ -74,7 +79,9 @@ def build_profile(registry, config):
     grouped = {name: [] for name in phases}
     for entry in registry["modules"]:
         category = categories[entry["category"]]
-        resolved = _resolve(_module_state(config, entry["name"]))
+        resolved = _resolve(
+            _module_state(config, entry["name"]), entry["name"]
+        )
         resolved["name"] = entry["name"]
         resolved["category"] = entry["category"]
         grouped[category["deliveryPhase"]].append(resolved)

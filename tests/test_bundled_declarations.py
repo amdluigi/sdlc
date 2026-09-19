@@ -49,7 +49,7 @@ def write_declaration(directory, name, **overrides):
     (capability_dir / "MODULE.md").write_text("# module\n", encoding="utf-8")
     declaration = {
         "schemaVersion": 1,
-        "id": "sdlc",
+        "id": capability_contract.bundled_provider_id(name),
         "capability": name,
         "mode": "default",
         "instructions": "MODULE.md",
@@ -106,8 +106,38 @@ class ShippedBundleTest(unittest.TestCase):
                 declaration, capabilities=names
             )
             self.assertEqual(normalized["capability"], name)
-            self.assertEqual(normalized["id"], "sdlc")
+            self.assertEqual(
+                normalized["id"],
+                capability_contract.bundled_provider_id(name),
+            )
             self.assertEqual(normalized["mode"], "default")
+
+    def test_every_implementation_is_named_after_its_interface(self):
+        """A module is an interface; the skill serving it is named."""
+        for entry in self.registry["modules"]:
+            name = entry["name"]
+            declaration = json.loads(
+                (MODULES / name / "sdlc-capability.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(declaration["id"], f"sdlc-{name}")
+
+    def test_a_third_party_may_not_claim_a_bundled_name(self):
+        for identity in ("sdlc", "sdlc-testing", "sdlc-anything"):
+            with self.subTest(identity=identity):
+                declaration = json.loads(
+                    (MODULES / "testing" / "sdlc-capability.json").read_text(
+                        encoding="utf-8"
+                    )
+                )
+                declaration["id"] = identity
+                declaration["mode"] = "replace"
+                declaration["evaluations"] = "evaluations.json"
+                with self.assertRaises(capability_contract.ContractError):
+                    capability_contract.validate_declaration(
+                        declaration, reserved={"sdlc"}
+                    )
 
     def test_a_shipped_declaration_is_a_usable_example(self):
         """A contributor copies this file and changes three fields."""

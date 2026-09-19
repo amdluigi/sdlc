@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-debugging",
   "capability": "debugging",
   "mode": "default",
   "instructions": "MODULE.md",

@@ -325,13 +325,20 @@ Each module takes one of four values:
 
 | Value | Meaning |
 |-------|---------|
-| `true` | Use the bundled module. You have not decided, so SDLC may raise a competing installed skill with you |
+| `true` | Use the bundled implementation. You have not decided, so SDLC may raise a competing installed skill with you |
 | `false` | Disable the module. Disclosed in SDLC's final report |
-| `{"provider": "bundled"}` | Keep the bundled module, decided. SDLC stops asking |
+| `{"provider": "bundled"}` | Keep the bundled implementation, decided. SDLC stops asking |
 | `{"replaceWith": "<skill-id>"}` | An external skill serves this module |
 
 `true` and `{"provider": "bundled"}` run identical instructions. They differ
 only in whether you have made a decision.
+
+A module is an interface, and the skill that serves it is an implementation.
+Each bundled implementation is named after the interface it serves, so
+`sdlc-testing` serves `testing`. To see which implementation every interface
+is currently bound to, read
+[the delivery profile](docs/DELIVERY-PROFILE.md). The `sdlc-` prefix is
+reserved, so no external skill can claim a bundled name.
 
 `change-contract`, `review`, `operational-readiness`, and `pr-handoff` accept
 only `true` or `false`. Each renders the judgment that permits a change to
@@ -379,9 +386,11 @@ document:
 }
 ```
 
-`capability` must name a module from the table above. The declaration cannot
-name a phase: the registry decides where a module is gated, so a provider
-cannot move itself somewhere the lifecycle checks less.
+`capability` must name a module from the table above. `id` is your skill's own
+identity and may not begin with `sdlc-`, which is reserved for the
+implementations the bundle ships. The declaration cannot name a phase: the
+registry decides where a module is gated, so a provider cannot move itself
+somewhere the lifecycle checks less.
 
 **Step 2. Ask SDLC what it can see.** This command reads only; it changes
 nothing and never adopts a skill:

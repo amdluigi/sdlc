@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-planning",
   "capability": "planning",
   "mode": "default",
   "instructions": "MODULE.md",

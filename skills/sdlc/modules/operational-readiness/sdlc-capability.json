@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-operational-readiness",
   "capability": "operational-readiness",
   "mode": "default",
   "instructions": "MODULE.md",

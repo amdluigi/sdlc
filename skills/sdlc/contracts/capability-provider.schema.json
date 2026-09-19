@@ -19,7 +19,7 @@
   "properties": {
     "schemaVersion": {"const": 1},
     "id": {
-      "description": "Provider identity. A third-party provider may not claim 'sdlc' or the name of a core capability; the bundled projection declares 'sdlc' because the bundle is that provider.",
+      "description": "Provider identity, meaning the implementation that serves the capability. A third-party provider may not claim 'sdlc', an 'sdlc-' prefixed name, or the name of a core capability. Each bundled implementation declares 'sdlc-' followed by the capability it serves.",
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
       "maxLength": 64

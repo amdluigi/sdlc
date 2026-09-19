@@ -80,7 +80,10 @@ class BundledDeclarationTest(unittest.TestCase):
                 declaration = capability_contract.load_bundled_declaration(
                     MODULES, entry, capabilities
                 )
-                self.assertEqual(declaration["id"], "sdlc")
+                self.assertEqual(
+                    declaration["id"],
+                    capability_contract.bundled_provider_id(entry["name"]),
+                )
                 self.assertEqual(declaration["capability"], entry["name"])
                 self.assertEqual(declaration["mode"], "default")
                 self.assertTrue(declaration["trigger"])
@@ -251,10 +254,12 @@ class DeclarationValidationTest(unittest.TestCase):
             )
 
     def test_reserved_identity_is_rejected(self):
-        with self.assertRaises(capability_contract.ContractError):
-            capability_contract.validate_declaration(
-                valid_declaration(id="sdlc"), reserved={"sdlc"}
-            )
+        for identity in ("sdlc", "sdlc-review", "sdlc-not-a-capability"):
+            with self.subTest(identity=identity):
+                with self.assertRaises(capability_contract.ContractError):
+                    capability_contract.validate_declaration(
+                        valid_declaration(id=identity), reserved={"sdlc"}
+                    )
 
 
 class DeclarationParsingTest(unittest.TestCase):

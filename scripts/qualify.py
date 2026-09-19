@@ -786,7 +786,7 @@ def inspect_install(
         declaration = load_json_strict(declaration_path)
         if (
             declaration.get("capability") != item["name"]
-            or declaration.get("id") != "sdlc"
+            or declaration.get("id") != "sdlc-" + item["name"]
             or declaration.get("mode") != "default"
         ):
             fail(
