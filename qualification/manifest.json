@@ -84,7 +84,7 @@
       },
       {
         "path": "contracts/sdlc-config.schema.json",
-        "sha256": "96478ce3b172ca13e5756ff828ee2f8d94f546ef65f7e68ec4fe150598b76796"
+        "sha256": "57024135be096baec3109e004439c38fee166d20e808d36168e5cff508b15126"
       },
       {
         "path": "modules/accessibility-browser/MODULE.md",
@@ -263,7 +263,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "aab17d97e93923dbe052481f4fe0c35732db0b98a640f59ecb74b849c5c01cdc"
+    "bundleSha256": "1989109a9034cfb6e584d100e88526064aa765305ced5aa8ab559181c92cb0d0"
   },
   "profiles": [
     {

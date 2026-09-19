@@ -465,6 +465,21 @@ def validate_skill() -> None:
             f"missing={sorted(available - registered)}, "
             f"unknown={sorted(registered - available)}"
         )
+
+    config_schema = load_json_strict_path(
+        SKILL.parent / "contracts" / "sdlc-config.schema.json"
+    )
+    configurable = set(
+        config_schema.get("properties", {})
+        .get("modules", {})
+        .get("properties", {})
+    )
+    if configurable != registered:
+        fail(
+            "Configuration schema and registry disagree: "
+            f"missing={sorted(registered - configurable)}, "
+            f"unknown={sorted(configurable - registered)}"
+        )
     if "project-memory" in registered:
         memory_templates = (
             MODULES / "project-memory" / "assets" / "project-memory-templates"
