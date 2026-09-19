@@ -306,8 +306,12 @@ python skills/sdlc/scripts/resolve_providers.py survey \
 
 The survey reports which provider serves each capability, whether that is a
 decision or the default, which installed alternatives declare the same
-capability, and which declarations were skipped as malformed. It is
-read-only and adopts nothing.
+capability, and which declarations were skipped as malformed. Each capability
+also reports its category, the delivery phase it is invoked in, and that
+phase's entry gate, so you can tell whether a skill you already trust covers
+the same ground. Placement comes from the module registry, never from a
+declaration: a provider names the capability it serves and does not get to
+choose which phase governs it. The survey is read-only and adopts nothing.
 
 When an eligible alternative meets a capability you have not decided on,
 SDLC keeps using its own module and raises the choice with you rather than

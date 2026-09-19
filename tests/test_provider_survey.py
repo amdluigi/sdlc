@@ -33,6 +33,16 @@ from test_filesystem_providers import (  # noqa: E402
 
 SDLC_VERSION = "1.0.0"
 
+REGISTRY_PATH = ROOT / "skills" / "sdlc" / "modules" / "registry.json"
+
+SURVEY_SCHEMA = (
+    ROOT / "skills" / "sdlc" / "contracts" / "provider-survey.schema.json"
+)
+
+
+def registry_categories() -> dict:
+    return json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))["categories"]
+
 
 def survey_from(root, project_config=None, roots=None):
     providers = capability_contract.FilesystemProviders(
@@ -55,6 +65,7 @@ def survey_from(root, project_config=None, roots=None):
         host_profile="filesystem",
         skipped=providers.skipped,
         modes=providers.declared_modes(),
+        categories=registry_categories(),
     )
 
 
@@ -63,6 +74,175 @@ def entry_for(document, capability):
         row for row in document["capabilities"]
         if row["capability"] == capability
     )
+
+
+class LifecyclePlacementTest(unittest.TestCase):
+    """Where a capability is invoked must be visible, not inferred.
+
+    A developer judging whether an installed skill is a better fit needs to
+    know which phase the capability is invoked in and which categories share
+    that phase. Requiring them to join the registry by hand is the reason
+    placement was invisible.
+    """
+
+    def test_every_capability_reports_its_category_and_phase(self):
+        categories = registry_categories()
+        with tempfile.TemporaryDirectory() as temporary:
+            document = survey_from(Path(temporary))
+            for row, entry in zip(
+                document["capabilities"], registry_modules()
+            ):
+                category = entry["category"]
+                self.assertEqual(row["category"], category)
+                self.assertEqual(
+                    row["deliveryPhase"], categories[category]["deliveryPhase"]
+                )
+                self.assertEqual(
+                    row["entryGate"], categories[category]["gate"]
+                )
+
+    def test_a_phase_outside_the_state_machine_reports_no_entry_gate(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            document = survey_from(Path(temporary))
+            row = entry_for(document, "project-memory")
+            self.assertEqual(row["deliveryPhase"], "inception")
+            self.assertIsNone(row["entryGate"])
+
+    def test_placement_is_reported_even_when_a_provider_replaces(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root)
+            document = survey_from(root, project_config=config())
+            testing = entry_for(document, "testing")
+            self.assertEqual(
+                testing["active"],
+                {"type": "replacement", "id": "acme-testing"},
+            )
+            self.assertEqual(testing["deliveryPhase"], "verification")
+            self.assertEqual(testing["entryGate"], 5)
+
+    def test_placement_is_omitted_when_the_registry_declares_no_categories(
+        self,
+    ):
+        document = resolve_providers.survey(
+            {
+                "schemaVersion": 3,
+                "modules": {name: True for name in capability_names()},
+                "extensions": {"project": {}, "global": {}},
+                "measurement": {"enabled": False},
+            },
+            registry_modules(),
+            None,
+            SDLC_VERSION,
+            host_profile="filesystem",
+        )
+        for row in document["capabilities"]:
+            self.assertIsNone(row["deliveryPhase"])
+            self.assertIsNone(row["entryGate"])
+
+    def test_a_provider_may_not_declare_its_own_lifecycle_placement(self):
+        """Placement is the registry's, not the provider's.
+
+        If a provider could name its phase it could claim a phase the
+        control plane does not gate, escaping the evidence gate that governs
+        the capability it replaces.
+        """
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, deliveryPhase="operate")
+            document = survey_from(root)
+            self.assertEqual(len(document["skipped"]), 1)
+            self.assertEqual(
+                entry_for(document, "testing")["alternatives"], []
+            )
+
+
+class SurveyContractTest(unittest.TestCase):
+    """The published contract must match what the survey emits.
+
+    Nothing in this repository validates a document against a schema at
+    runtime, so a schema can drift from its producer silently. Bind the two
+    by key here, because a field that exists only in one of them is the
+    failure a reader would hit.
+    """
+
+    def schema(self) -> dict:
+        return json.loads(SURVEY_SCHEMA.read_text(encoding="utf-8"))
+
+    def test_the_schema_is_published_beside_the_other_contracts(self):
+        self.assertTrue(SURVEY_SCHEMA.is_file())
+        self.assertEqual(self.schema()["$id"], "urn:sdlc:provider-survey:1")
+
+    def test_the_document_keys_match_the_schema(self):
+        schema = self.schema()
+        with tempfile.TemporaryDirectory() as temporary:
+            document = survey_from(Path(temporary))
+
+        self.assertEqual(
+            sorted(document), sorted(schema["properties"])
+        )
+        self.assertEqual(
+            sorted(document), sorted(schema["required"])
+        )
+
+    def test_the_capability_keys_match_the_schema(self):
+        capability = self.schema()["$defs"]["capability"]
+        with tempfile.TemporaryDirectory() as temporary:
+            document = survey_from(Path(temporary))
+
+        for row in document["capabilities"]:
+            self.assertEqual(sorted(row), sorted(capability["properties"]))
+            self.assertEqual(sorted(row), sorted(capability["required"]))
+
+    def test_the_schema_admits_every_decision_the_survey_emits(self):
+        allowed = set(
+            self.schema()["$defs"]["capability"]["properties"]["decision"][
+                "enum"
+            ]
+        )
+        emitted = set()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root)
+            write_provider(
+                root,
+                name="acme-review",
+                capability="review",
+                evaluations=True,
+            )
+            document = survey_from(root)
+            emitted.update(
+                row["decision"] for row in document["capabilities"]
+            )
+
+        self.assertEqual(
+            emitted,
+            {"settled", "developer-choice-required", "refused"},
+        )
+        self.assertTrue(emitted <= allowed)
+
+    def test_the_schema_admits_every_alternative_key_emitted(self):
+        alternative = self.schema()["$defs"]["alternative"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root)
+            write_provider(
+                root,
+                name="acme-review",
+                capability="review",
+                evaluations=True,
+            )
+            document = survey_from(root)
+            seen = [
+                key
+                for row in document["capabilities"]
+                for item in row["alternatives"]
+                for key in item
+            ]
+
+        self.assertTrue(seen)
+        self.assertTrue(set(seen) <= set(alternative["properties"]))
 
 
 class ConnectedProviderTest(unittest.TestCase):

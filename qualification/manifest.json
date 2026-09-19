@@ -26,7 +26,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "b1f4bb3f361a0b67600549be4a08b28f00ae093594a81ced3860fa91fbde93e3"
+        "sha256": "c4bfa7f80dfc98641ae40f488cfad786c4aa8b6e980ff01bee09bc2ba1cb17a3"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -87,6 +87,10 @@
       {
         "path": "contracts/provider-resolution.schema.json",
         "sha256": "27bae4ed2671d782ac4d030ce92981a5b2f6a8c98046f8287a690d56cfd1ff69"
+      },
+      {
+        "path": "contracts/provider-survey.schema.json",
+        "sha256": "b15f925f8fdb3d8881ca9e6e8fe713819c54d0285553d35a12435d07177bcc9a"
       },
       {
         "path": "contracts/reconciliation-report.schema.json",
@@ -274,14 +278,14 @@
       },
       {
         "path": "scripts/resolve_providers.py",
-        "sha256": "014f579fe6fbc153ee5f998fb428d7164f7b191650b3fffb69b66cfe48a31cd9"
+        "sha256": "eea1598388187d54984fa0c7919603902406ac0898f5594eef3a743bdf937098"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "7a01193693ff342dee0ffb6a54e0f993bcc195588b9fc9f29865808914a61069"
+    "bundleSha256": "ab072b6e021f8237625a939434ca9050e96f9bd0fcec558a888dbc2e8ca2d20d"
   },
   "profiles": [
     {

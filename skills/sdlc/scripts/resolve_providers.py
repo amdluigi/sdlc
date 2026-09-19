@@ -276,6 +276,7 @@ def survey(
     host_profile=None,
     skipped=None,
     modes=None,
+    categories=None,
 ):
     """Report which provider serves each capability, and what else could.
 
@@ -285,11 +286,18 @@ def survey(
     as a decision for the developer, never adopted. Only configuration
     adopts a provider, so discovery stays explicit.
 
+    Each capability also reports where it is invoked: its category, its
+    delivery phase, and the phase entry gate. Placement is read from the
+    registry and never from a provider, because a provider that could name
+    its own phase could claim one the control plane does not gate, escaping
+    the evidence gate that governs the capability it replaces.
+
     An alternative is eligible only when ``resolve`` would accept it, so the
     report can never offer a choice that resolution would refuse.
     """
 
     modes = modes or {}
+    categories = categories or {}
     candidates = []
     if adapter is not None:
         _, candidates = _validate_adapter(adapter)
@@ -308,6 +316,7 @@ def survey(
     choices = []
     for entry in registry_modules:
         name = entry["name"]
+        placement = categories.get(entry.get("category"), {})
         configured = config["modules"].get(name, True)
         replaceable = bool(entry.get("replaceable", True))
         explicit = isinstance(configured, dict)
@@ -362,6 +371,9 @@ def survey(
         capabilities.append(
             {
                 "capability": name,
+                "category": entry.get("category"),
+                "deliveryPhase": placement.get("deliveryPhase"),
+                "entryGate": placement.get("gate"),
                 "replaceable": replaceable,
                 "state": state,
                 "active": active,
@@ -776,6 +788,7 @@ def main(argv=None, *, host_adapter=None):
             output = survey(
                 config, registry["modules"], adapter, args.sdlc_version,
                 args.host_profile, skipped=skipped, modes=modes,
+                categories=registry.get("categories"),
             )
         elif args.command == "inspect":
             resolution = load_json_strict(args.resolution)

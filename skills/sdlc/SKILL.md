@@ -268,8 +268,18 @@ its declaration; a mismatch is refused at load.
 `resolve_providers.py survey` reports, for every capability, the connected
 provider, whether that is a deliberate decision or the default, which
 installed alternatives declare the same capability, and which declarations
-were skipped. It is read-only and adopts nothing, so discovery stays
-explicit.
+were skipped. It also reports where the capability is invoked: its category,
+its delivery phase, and that phase's entry gate. Placement lets a developer
+judge whether an installed skill covers the same ground, because a category
+is the unit a competing skill tends to cover. The report is read-only and
+adopts nothing, so discovery stays explicit. Its shape is
+[contracts/provider-survey.schema.json](contracts/provider-survey.schema.json).
+
+Placement is always read from the registry and never from a declaration. A
+provider that could name its own phase could claim one the control plane does
+not gate, escaping the evidence gate that governs the capability it replaces.
+A declaration names the capability it serves; the registry decides where that
+capability participates.
 
 In configuration, `true` enables the bundled module as the default and
 leaves the choice open. `{"provider": "bundled"}` records a deliberate
