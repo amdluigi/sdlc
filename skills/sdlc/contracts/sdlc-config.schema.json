@@ -59,6 +59,7 @@
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
     "moduleState": {
+      "description": "true enables the bundled module as the default and leaves the choice open, so a competing installed provider is raised as a question. An object records an explicit decision and settles it.",
       "oneOf": [
         {"type": "boolean"},
         {
@@ -66,6 +67,12 @@
           "additionalProperties": false,
           "required": ["replaceWith"],
           "properties": {"replaceWith": {"$ref": "#/$defs/id"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider"],
+          "properties": {"provider": {"const": "bundled"}}
         }
       ]
     },

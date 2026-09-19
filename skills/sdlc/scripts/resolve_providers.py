@@ -77,7 +77,7 @@ def module_provider(config, module):
     state = config["modules"][module]
     if state is False:
         return {"type": "disabled", "id": None}
-    if state is True:
+    if state is True or "provider" in state:
         return {"type": "bundled", "id": None}
     return {"type": "replacement", "id": state["replaceWith"]}
 
@@ -194,43 +194,46 @@ def _frontmatter(content, module, provider, profile):
     return name, metadata, text[end + 5:]
 
 
-def _validate_provider_metadata(
-    declared_name, metadata, module, provider, profile, sdlc_version
-):
+_METADATA_REMEDIES = {
+    "provider-identity-mismatch":
+        "make declared skill name exactly match configured provider ID",
+    "provider-metadata-invalid":
+        "expose valid supported sdlc provider metadata",
+    "provider-incompatible":
+        "install a provider compatible with this SDLC release",
+    "provider-module-unsupported":
+        "install a provider that declares this core module",
+}
+
+
+def _metadata_problem(declared_name, metadata, module, provider,
+                      sdlc_version):
+    """Return the blocking error code for a candidate, or None.
+
+    ``resolve`` raises on the result and ``survey`` reports it, so an
+    alternative can never be offered as eligible when resolution would
+    refuse it.
+    """
+
     if declared_name != provider:
-        _error(
-            "provider-identity-mismatch", module, provider, profile,
-            "make declared skill name exactly match configured provider ID",
-        )
+        return "provider-identity-mismatch"
     if not isinstance(metadata, dict):
-        _error(
-            "provider-metadata-invalid", module, provider, profile,
-            "expose provider metadata independently of instructions",
-        )
+        return "provider-metadata-invalid"
     if any(
         not isinstance(key, str)
         or not isinstance(value, str)
         or not value
         for key, value in metadata.items()
     ):
-        _error(
-            "provider-metadata-invalid", module, provider, profile,
-            "expose non-empty string provider metadata values",
-        )
+        return "provider-metadata-invalid"
     unknown = {
         key for key in metadata
         if key.startswith("sdlc-") and key not in _PROVIDER_METADATA
     }
     if unknown or set(metadata) & _PROVIDER_METADATA != _PROVIDER_METADATA:
-        _error(
-            "provider-metadata-invalid", module, provider, profile,
-            "declare only the required supported sdlc provider metadata",
-        )
+        return "provider-metadata-invalid"
     if metadata["sdlc-provider-schema"] != "1":
-        _error(
-            "provider-metadata-invalid", module, provider, profile,
-            "use sdlc-provider-schema 1",
-        )
+        return "provider-metadata-invalid"
     try:
         compatible = version_satisfies(
             sdlc_version, metadata["sdlc-compatible"]
@@ -238,25 +241,143 @@ def _validate_provider_metadata(
     except ValueError:
         compatible = False
     if not compatible:
-        _error(
-            "provider-incompatible", module, provider, profile,
-            f"install a provider compatible with SDLC {sdlc_version}",
-        )
+        return "provider-incompatible"
     supported = [item.strip() for item in metadata["sdlc-modules"].split(",")]
     if (
         not supported
         or len(supported) != len(set(supported))
         or any(not _ID_PATTERN.fullmatch(item) for item in supported)
     ):
-        _error(
-            "provider-metadata-invalid", module, provider, profile,
-            "declare a comma-separated unique core module list",
-        )
+        return "provider-metadata-invalid"
     if module not in supported:
-        _error(
-            "provider-module-unsupported", module, provider, profile,
-            "install a provider that declares this core module",
+        return "provider-module-unsupported"
+    return None
+
+
+def _validate_provider_metadata(
+    declared_name, metadata, module, provider, profile, sdlc_version
+):
+    problem = _metadata_problem(
+        declared_name, metadata, module, provider, sdlc_version
+    )
+    if problem is None:
+        return
+    remedy = _METADATA_REMEDIES[problem]
+    if problem == "provider-incompatible":
+        remedy = f"install a provider compatible with SDLC {sdlc_version}"
+    _error(problem, module, provider, profile, remedy)
+
+
+def survey(
+    config,
+    registry_modules,
+    adapter,
+    sdlc_version,
+    host_profile=None,
+    skipped=None,
+    modes=None,
+):
+    """Report which provider serves each capability, and what else could.
+
+    A developer could configure a replacement but had no way to see what was
+    connected, and was never told an installed alternative existed. This
+    answers both questions and changes nothing: an alternative is reported
+    as a decision for the developer, never adopted. Only configuration
+    adopts a provider, so discovery stays explicit.
+
+    An alternative is eligible only when ``resolve`` would accept it, so the
+    report can never offer a choice that resolution would refuse.
+    """
+
+    modes = modes or {}
+    candidates = []
+    if adapter is not None:
+        _, candidates = _validate_adapter(adapter)
+
+    by_capability = {}
+    for candidate in candidates:
+        metadata = candidate.get("providerMetadata")
+        declared = metadata.get("sdlc-modules", "") if (
+            isinstance(metadata, dict)
+        ) else ""
+        for name in (item.strip() for item in declared.split(",")):
+            if name:
+                by_capability.setdefault(name, []).append(candidate)
+
+    capabilities = []
+    choices = []
+    for entry in registry_modules:
+        name = entry["name"]
+        configured = config["modules"].get(name, True)
+        replaceable = bool(entry.get("replaceable", True))
+        explicit = isinstance(configured, dict)
+        if explicit and "replaceWith" in configured:
+            active = {"type": "replacement", "id": configured["replaceWith"]}
+        else:
+            active = {"type": "bundled"}
+        state = "disabled" if configured is False else "enabled"
+
+        alternatives = []
+        for candidate in sorted(
+            by_capability.get(name, []),
+            key=lambda item: item["declaredName"],
+        ):
+            provider = candidate["declaredName"]
+            if active.get("id") == provider:
+                continue
+            alternative = {
+                "id": provider,
+                "mode": modes.get(provider, "unknown"),
+            }
+            if not replaceable:
+                alternative["eligible"] = False
+                alternative["reason"] = "capability-non-delegatable"
+            else:
+                problem = _metadata_problem(
+                    provider,
+                    candidate.get("providerMetadata"),
+                    name,
+                    provider,
+                    sdlc_version,
+                )
+                alternative["eligible"] = problem is None
+                if problem is not None:
+                    alternative["reason"] = problem
+            alternatives.append(alternative)
+
+        offered = [item for item in alternatives if item["eligible"]]
+        if alternatives and not replaceable:
+            decision = "refused"
+        elif (
+            offered
+            and state == "enabled"
+            and active["type"] == "bundled"
+            and not explicit
+        ):
+            decision = "developer-choice-required"
+            choices.append(name)
+        else:
+            decision = "settled"
+
+        capabilities.append(
+            {
+                "capability": name,
+                "replaceable": replaceable,
+                "state": state,
+                "active": active,
+                "explicit": explicit,
+                "alternatives": alternatives,
+                "decision": decision,
+            }
         )
+
+    return {
+        "schemaVersion": 1,
+        "hostProfile": host_profile,
+        "capabilities": capabilities,
+        "choicesRequired": choices,
+        "skipped": list(skipped or []),
+    }
 
 
 def resolve(
@@ -271,7 +392,7 @@ def resolve(
     replacements = {
         module: value["replaceWith"]
         for module, value in config["modules"].items()
-        if isinstance(value, dict)
+        if isinstance(value, dict) and "replaceWith" in value
     }
     if not replacements:
         return {
@@ -569,6 +690,25 @@ def main(argv=None, *, host_adapter=None):
         ),
     )
 
+    survey_parser = subparsers.add_parser(
+        "survey",
+        help=(
+            "Report which provider serves each capability and which "
+            "installed alternatives exist. Read-only: it adopts nothing."
+        ),
+    )
+    survey_parser.add_argument("--project-root", type=Path, required=True)
+    survey_parser.add_argument("--registry", type=Path, required=True)
+    survey_parser.add_argument("--sdlc-version", required=True)
+    survey_parser.add_argument("--host-profile", default=None)
+    survey_parser.add_argument(
+        "--provider-root",
+        type=Path,
+        action="append",
+        default=[],
+        help="Directory containing third-party provider directories.",
+    )
+
     inspect_parser = subparsers.add_parser("inspect")
     inspect_parser.add_argument("--resolution", type=Path, required=True)
     inspect_parser.add_argument("--module", required=True)
@@ -612,6 +752,30 @@ def main(argv=None, *, host_adapter=None):
             output = resolve(
                 config, registry["modules"], adapter,
                 args.sdlc_version, args.host_profile,
+            )
+        elif args.command == "survey":
+            registry = load_json_strict(args.registry)
+            names = _registry_names(registry)
+            config = load_project_config(args.project_root, names)
+            adapter = None
+            modes = {}
+            skipped = []
+            if host_adapter is not None:
+                adapter = _host_adapter_method(
+                    host_adapter, "enumerate_providers"
+                )(args.host_profile or "unknown")
+            elif args.provider_root:
+                providers = FilesystemProviders(
+                    args.provider_root,
+                    capabilities=names,
+                    reserved=names | {"sdlc"},
+                )
+                adapter = providers.adapter()
+                modes = providers.declared_modes()
+                skipped = providers.skipped
+            output = survey(
+                config, registry["modules"], adapter, args.sdlc_version,
+                args.host_profile, skipped=skipped, modes=modes,
             )
         elif args.command == "inspect":
             resolution = load_json_strict(args.resolution)

@@ -160,8 +160,21 @@ class BuildProfileTest(unittest.TestCase):
         capability = find(profile, "testing")
 
         self.assertEqual(capability["plugin"], "acme-testing")
-        self.assertEqual(capability["source"], "host")
+        self.assertEqual(capability["source"], "external")
         self.assertEqual(capability["role"], "replace")
+
+    def test_an_explicit_bundled_choice_is_distinguished_from_default(
+        self,
+    ) -> None:
+        config = base_config()
+        config["modules"]["testing"] = {"provider": "bundled"}
+
+        profile = delivery_profile.build_profile(registry(), config)
+        capability = find(profile, "testing")
+
+        self.assertEqual(capability["source"], "bundled")
+        self.assertEqual(capability["role"], "chosen")
+        self.assertTrue(capability["enabled"])
 
     def test_disabled_module_is_reported_but_not_hidden(self) -> None:
         config = base_config()

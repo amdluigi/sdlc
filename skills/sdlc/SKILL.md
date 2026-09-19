@@ -263,6 +263,37 @@ disable the lifecycle. The declared instruction document is the provider's
 own skill document, so its frontmatter name and `sdlc-*` metadata must match
 its declaration; a mismatch is refused at load.
 
+### Seeing and choosing what serves a capability
+
+`resolve_providers.py survey` reports, for every capability, the connected
+provider, whether that is a deliberate decision or the default, which
+installed alternatives declare the same capability, and which declarations
+were skipped. It is read-only and adopts nothing, so discovery stays
+explicit.
+
+In configuration, `true` enables the bundled module as the default and
+leaves the choice open. `{"provider": "bundled"}` records a deliberate
+decision to keep it, and `{"replaceWith": "<id>"}` selects an external
+provider. Both object forms are explicit decisions.
+
+Do not raise provider selection with the developer routinely. Ask only when
+the choice is genuinely undecided or has become confused, specifically:
+
+- an eligible installed alternative declares an enabled capability whose
+  state is still the default `true`, which `survey` reports as
+  `developer-choice-required`; or
+- artifacts attributable to a provider this configuration did not select
+  appear during implementation, which makes the effective owner of a
+  capability ambiguous.
+
+Present the competing options, the capability at stake, and the evidence
+each would be accountable for, then let the developer decide. Record the
+outcome as an explicit configuration decision so the same question is not
+asked again. Never adopt an alternative to resolve the ambiguity yourself,
+and never stall the lifecycle waiting on this: proceed with the connected
+provider and assess any unselected provider's artifacts as ordinary
+evidence under the coverage ledger rules.
+
 Evaluate the unchanged core trigger and evidence contract before loading
 instructions. If the module is not applicable or existing evidence satisfies
 the contract, load neither provider. For `partial`, `missing`, or
@@ -479,10 +510,21 @@ reported honestly and cannot block otherwise satisfied lifecycle work.
 6. Accept evidence only when it is inspectable, scope-aligned, specific enough
    to satisfy the registry contract, and current for the task or implementation
    revision. Unsupported completion claims are leads, not evidence.
-7. Do not load `MODULE.md` instructions for `satisfied`,
+7. Accept an artifact produced by another skill or workflow on the same
+   terms, including one produced by a provider this configuration did not
+   select. Producing an artifact never grants authority: it satisfies a
+   capability only when it meets the registry contract for that capability
+   and does not contradict evidence already accepted for another enabled
+   module. Contradiction means a provable inconsistency, such as an
+   artifact asserting a scope the approved change contract excludes, a
+   result claiming a revision other than the one under assessment, or two
+   artifacts making opposing claims about the same capability. Resolve a
+   contradiction as a gap and state which artifacts conflict; never silently
+   prefer one producer over another.
+8. Do not load `MODULE.md` instructions for `satisfied`,
    `configured-disabled`, or
    `not-applicable` entries. Do not repeat their work.
-8. For `partial`, `missing`, or `stale/unverified` entries, read the
+9. For `partial`, `missing`, or `stale/unverified` entries, read the
    instructions and perform only the unresolved work. Read a bundled
    `MODULE.md` at its registry path; its integrity is bound at the bundle
    level by `qualification/manifest.json`, verified with
@@ -491,10 +533,10 @@ reported honestly and cannot block otherwise satisfied lifecycle work.
    extension through `manage_extensions.py load-module`, both of which are
    digest-bound per load. Preserve core registry order, then resolved
    extension order.
-9. Do not load a conditional module or extension merely to investigate
+10. Do not load a conditional module or extension merely to investigate
    whether it might apply. If later evidence triggers it, add it to the
    ledger then.
-10. In every final response, list `Configured-disabled modules: ...` or
+11. In every final response, list `Configured-disabled modules: ...` or
    `Configured-disabled modules: none`, even when `pr-handoff` is disabled.
 
 PR readiness is judged against the selected modules. The disclosure makes

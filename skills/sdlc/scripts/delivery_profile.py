@@ -50,14 +50,15 @@ def _resolve(state):
     if isinstance(state, dict) and "replaceWith" in state:
         return {
             "plugin": state["replaceWith"],
-            "source": "host",
+            "source": "external",
             "role": "replace",
             "enabled": True,
         }
+    explicit = isinstance(state, dict)
     return {
         "plugin": BUNDLED_PLUGIN,
         "source": "bundled",
-        "role": "default",
+        "role": "chosen" if explicit else "default",
         "enabled": state is not False,
     }
 
