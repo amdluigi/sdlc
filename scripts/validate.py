@@ -19,6 +19,7 @@ if str(SKILL_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SKILL_SCRIPTS))
 
 import adaptive_extensions
+import capability_contract
 import delivery_profile
 import qualify
 
@@ -77,6 +78,7 @@ DOMAIN_MODULE_SECTIONS = (
 REQUIRED_HELPERS = {
     "adaptive_extensions.py",
     "artifact_contracts.py",
+    "capability_contract.py",
     "config_contract.py",
     "delivery_profile.py",
     "handoff_renderers.py",
@@ -88,6 +90,7 @@ REQUIRED_HELPERS = {
     "validate_artifacts.py",
 }
 REQUIRED_CONTRACTS = {
+    "capability-provider.schema.json",
     "delivery-profile.schema.json",
     "handoff-result.schema.json",
     "handoff.schema.json",
@@ -523,6 +526,18 @@ def validate_skill() -> None:
             f"empty={sorted(set(phases) - covered)}"
         )
 
+    version = skill_version()
+    for entry in entries:
+        try:
+            capability_contract.declaration_from_registry_entry(
+                entry, version, registered
+            )
+        except capability_contract.ContractError as error:
+            fail(
+                "Bundled module does not satisfy the capability provider "
+                f"contract: {entry['name']}: {error}"
+            )
+
     profile_path = ROOT / "docs" / "DELIVERY-PROFILE.md"
     if not profile_path.is_file():
         fail("Missing generated delivery profile: docs/DELIVERY-PROFILE.md")
@@ -772,6 +787,17 @@ def validate_manifests() -> None:
         qualify.validate_result(
             qualify.load_json_strict(result_path), qualification_manifest
         )
+
+
+def skill_version() -> str:
+    match = re.search(
+        r'^  version:\s+"([^"]+)"$',
+        SKILL.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    if not match:
+        fail("SKILL.md must declare a metadata version")
+    return match.group(1)
 
 
 def validate_domain_module_contract(

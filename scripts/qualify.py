@@ -118,6 +118,7 @@ SUITE_ONLY_CASES = {
 HELPERS = {
     "scripts/adaptive_extensions.py",
     "scripts/artifact_contracts.py",
+    "scripts/capability_contract.py",
     "scripts/config_contract.py",
     "scripts/delivery_profile.py",
     "scripts/handoff_renderers.py",
@@ -128,7 +129,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 62
+BUNDLE_FILE_COUNT = 64
 DETERMINISTIC_EVIDENCE = {
     "manifest-valid",
     "file-count",
