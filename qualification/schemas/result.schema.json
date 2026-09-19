@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:qualification:result:1",
+  "title": "Sanitized SDLC qualification summary",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "value"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "value": {"type": ["boolean", "integer"], "minimum": 0, "maximum": 10000}
+      }
+    },
+    "deterministicCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "critical", "status", "evidence"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "critical": {"const": true},
+        "status": {"enum": ["pass", "fail", "not-executed"]},
+        "evidence": {"type": "array", "minItems": 0, "maxItems": 8, "items": {"$ref": "#/$defs/evidence"}}
+      }
+    },
+    "liveCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "critical", "status", "repetitions", "evidence"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "critical": {"const": true},
+        "status": {"enum": ["pass", "fail", "not-executed"]},
+        "repetitions": {"type": "integer", "minimum": 0, "maximum": 5},
+        "evidence": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/evidence"}}
+      }
+    }
+  },
+  "required": ["schemaVersion", "kind", "release", "resultType", "profile", "clientVersion", "modelClass", "skillVersion", "bundleSha256", "installation", "cases"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "sdlc-qualification-summary"},
+    "release": {"const": "1.0.0"},
+    "resultType": {"enum": ["deterministic-installation", "live-host"]},
+    "profile": {"enum": ["copilot-vscode", "claude-code", "generic-agent-skills"]},
+    "clientVersion": {"type": "string", "minLength": 1, "maxLength": 64},
+    "modelClass": {"enum": ["not-applicable", "general", "reasoning", "lightweight"]},
+    "skillVersion": {"const": "1.0.0"},
+    "bundleSha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "mode", "status"],
+      "properties": {
+        "scope": {"enum": ["project", "global"]},
+        "mode": {"enum": ["copy", "link"]},
+        "status": {"enum": ["pass", "fail", "not-executed", "unsupported"]}
+      }
+    },
+    "cases": {"type": "array"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"resultType": {"const": "deterministic-installation"}}},
+      "then": {
+        "properties": {
+          "clientVersion": {"const": "not-applicable"},
+          "modelClass": {"const": "not-applicable"},
+          "cases": {"minItems": 15, "maxItems": 15, "items": {"$ref": "#/$defs/deterministicCase"}}
+        }
+      },
+      "else": {
+        "properties": {
+          "clientVersion": {"type": "string", "pattern": "^v?[0-9]+(?:\\.[0-9]+){1,3}(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$"},
+          "modelClass": {"enum": ["general", "reasoning", "lightweight"]},
+          "cases": {"minItems": 19, "maxItems": 19, "items": {"$ref": "#/$defs/liveCase"}}
+        }
+      }
+    }
+  ]
+}

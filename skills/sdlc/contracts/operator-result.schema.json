@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:operator-result:1",
+  "title": "SDLC operator command result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "command", "valid", "result"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "command": {"enum": ["explain", "preview", "render-coverage"]},
+    "valid": {"const": true},
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taskId", "detail", "modules", "configuredDisabledModules", "blockers", "semanticApproval"],
+      "properties": {
+        "taskId": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "detail": {"enum": ["concise", "normal", "detailed"]},
+        "modules": {"type": "array", "items": {"$ref": "#/$defs/module"}},
+        "configuredDisabledModules": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+        },
+        "blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}},
+        "semanticApproval": {"const": "not-assessed"}
+      }
+    }
+  },
+  "$defs": {
+      "module": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "source", "blockers"],
+        "allOf": [
+          {
+            "if": {
+              "properties": {"source": {"const": "core"}},
+              "required": ["source"]
+            },
+            "then": {"required": ["provider"]}
+          },
+          {
+            "if": {
+              "properties": {
+                "source": {
+                  "enum": ["project-extension", "global-extension"]
+                }
+              },
+              "required": ["source"]
+            },
+            "then": {"not": {"required": ["provider"]}}
+          }
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "provider": {"$ref": "#/$defs/provider"},
+          "source": {"enum": ["core", "project-extension", "global-extension"]},
+          "configured": {"enum": ["enabled", "disabled"]},
+          "triggered": {"type": ["boolean", "null"]},
+          "evidenceStatus": {"type": "string"},
+          "instructionState": {"type": "string"},
+          "reasons": {"type": "array", "items": {"type": "string"}},
+          "wouldLoad": {"type": ["boolean", "null"]},
+          "status": {"type": "string"},
+          "recognizedEvidenceOrGap": {"type": "array", "items": {"type": "string"}},
+          "action": {"type": "string"},
+          "blockers": {"type": "array", "items": {"type": "string"}},
+          "evidenceItems": {"type": "array", "items": {"$ref": "#/$defs/evidenceItem"}},
+          "gaps": {"type": "array", "items": {"type": "string"}},
+          "triggerBasis": {"type": "array", "items": {"type": "string"}},
+          "contentDigest": {"type": "string"},
+          "sources": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "provider": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type"],
+        "properties": {
+          "type": {"enum": ["bundled", "disabled", "replacement"]},
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"type": {"const": "replacement"}}},
+            "then": {"required": ["id"]},
+            "else": {"not": {"required": ["id"]}}
+          }
+        ]
+      },
+      "blocker": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["module", "message"],
+        "properties": {
+          "module": {"type": "string"},
+          "message": {"type": "string"}
+        }
+      },
+      "evidenceItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "reference", "summary", "current"],
+        "properties": {
+          "kind": {"type": "string"},
+          "reference": {"type": "string"},
+          "summary": {"type": "string"},
+          "current": {"type": "boolean"}
+        }
+    }
+  }
+}

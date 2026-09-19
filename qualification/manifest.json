@@ -1,0 +1,528 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdlc-qualification-manifest",
+  "release": "1.0.0",
+  "skill": {
+    "id": "sdlc",
+    "version": "1.0.0",
+    "source": "skills/sdlc",
+    "discoverableSkillCount": 1,
+    "moduleCount": 22,
+    "configTemplate": "assets/sdlc-config.template.json",
+    "helperScripts": [
+      "scripts/adaptive_extensions.py",
+      "scripts/artifact_contracts.py",
+      "scripts/config_contract.py",
+      "scripts/handoff_renderers.py",
+      "scripts/manage_extensions.py",
+      "scripts/manage_metrics.py",
+      "scripts/operator_reports.py",
+      "scripts/reconcile_artifacts.py",
+      "scripts/resolve_providers.py",
+      "scripts/validate_artifacts.py"
+    ],
+    "files": [
+      {
+        "path": "SKILL.md",
+        "sha256": "5b5dd8c9c28f74d9aa615b86bfbd895ee2e1c73d2ec901a1d122aa366c097c0c"
+      },
+      {
+        "path": "assets/sdlc-config.template.json",
+        "sha256": "25588e3fa5e8845ad5971567f8084840934149a41596893dd330b23bddf528af"
+      },
+      {
+        "path": "contracts/handoff-result.schema.json",
+        "sha256": "1a829e2bdb2a1c652efc4215f636daa6d8ea930cc64e12dec1b32baca58802fa"
+      },
+      {
+        "path": "contracts/handoff.schema.json",
+        "sha256": "fd2508f4fbb2286dc3c7984321c6add93d8c5380a9694079e0a5f0a575c94906"
+      },
+      {
+        "path": "contracts/metrics.schema.json",
+        "sha256": "48946d3f8fb0e94e9612d44d42ff9a46b9fa869197933a11273f804295eb56fc"
+      },
+      {
+        "path": "contracts/operator-result.schema.json",
+        "sha256": "a835b3119adb01cfcfb05be44f0e8eed84986b574f087238f62a8732fe6ee869"
+      },
+      {
+        "path": "contracts/operator-state.schema.json",
+        "sha256": "4cc9281b586d04523b1ecf5a5102f97ce1c25bb1fb5b88874bc10b0d28605f4f"
+      },
+      {
+        "path": "contracts/plan-result.schema.json",
+        "sha256": "93ae49e7dfceebf1ea114284121520b419af5c891ceda68eafd9653560e1e62d"
+      },
+      {
+        "path": "contracts/prd-result.schema.json",
+        "sha256": "cb09ad00b126ded2ea0c850201d92f048474c99355c7618906e6ba8a69e6c982"
+      },
+      {
+        "path": "contracts/provider-adapter-load.schema.json",
+        "sha256": "c9a22b7f39622adb361cdb6b8306e01bb1966fabf9297aa036f7e8fafa0a090e"
+      },
+      {
+        "path": "contracts/provider-adapter.schema.json",
+        "sha256": "665010bac13aa4a41ff83a0d280eece0fe96a2b2b96790d8cac1fab266211106"
+      },
+      {
+        "path": "contracts/provider-inspection.schema.json",
+        "sha256": "42b041d71e5612fcf4e71b76fbdb849248dd4c4baa460bb5d8ae2ff02c331233"
+      },
+      {
+        "path": "contracts/provider-load-result.schema.json",
+        "sha256": "b11ad712375373d2483090133541117cc65bdf8ed565dafc5096df7bea17ba0f"
+      },
+      {
+        "path": "contracts/provider-resolution.schema.json",
+        "sha256": "1a5325c3a20c428cda0406e5e32de2c6be2ee3ed923589b0a676f223f69fd17c"
+      },
+      {
+        "path": "contracts/reconciliation-report.schema.json",
+        "sha256": "62af39d57b2d01daf06c2360335a6776827ffdc6c389709a6e7c6ae3d3119ffd"
+      },
+      {
+        "path": "contracts/sdlc-config.schema.json",
+        "sha256": "96478ce3b172ca13e5756ff828ee2f8d94f546ef65f7e68ec4fe150598b76796"
+      },
+      {
+        "path": "modules/accessibility-browser/MODULE.md",
+        "sha256": "5228cd6c1f0628eba15c980569d41f5628012002c62ff607cfce873aae337e49"
+      },
+      {
+        "path": "modules/api-compatibility/MODULE.md",
+        "sha256": "94b8bfd8bf5353de3427865523c399bfe9530364776f586052df37b56a9ef30a"
+      },
+      {
+        "path": "modules/change-contract/MODULE.md",
+        "sha256": "8eb635cd450ff7e675179eae3d96cea3dbdaaf02ff7f6cdafdf98b885f7df011"
+      },
+      {
+        "path": "modules/continuous-improvement/MODULE.md",
+        "sha256": "3b26f31908dc05b6fe77a9747ea6a327bb213edb6dee7b4ad6ef34778865f816"
+      },
+      {
+        "path": "modules/continuous-improvement/REFERENCE.md",
+        "sha256": "8628d415e4c8efb7636d6e47438b3856298b5505dc780d00ec12f5d2d75f8ceb"
+      },
+      {
+        "path": "modules/data-migration/MODULE.md",
+        "sha256": "72c26150dc988cb8a64ac689f228ba39cc329a7f1c0dc83fae9f02dc9ececeb6"
+      },
+      {
+        "path": "modules/debugging/MODULE.md",
+        "sha256": "668e839bb4fbfee8c7543e39f917b7828ecce297885f2002102d60be9bf2aa3d"
+      },
+      {
+        "path": "modules/dependency-supply-chain/MODULE.md",
+        "sha256": "b68f810aea94d4af0ab71bc3a89cb747d8a6aad6531656572352c08a8866187c"
+      },
+      {
+        "path": "modules/implementation/MODULE.md",
+        "sha256": "c5ab1fbf886a12f7cb165d3586e28477056107296f8cc8062b10dc323e1bb21e"
+      },
+      {
+        "path": "modules/incident-response/MODULE.md",
+        "sha256": "c5058645e3724028e3aeb39e0a9e5f6dee082d629ca4350720f2a9b7aa77a671"
+      },
+      {
+        "path": "modules/observability/MODULE.md",
+        "sha256": "1f3bc91c3bd2bce4c3cb5d83516df6d5153f895322e47407c98db09dab4a6a32"
+      },
+      {
+        "path": "modules/operational-readiness/MODULE.md",
+        "sha256": "b44048ad0ab0417dd753cff7e138f831f450efb6ff5f9aaaca58271061edf1ce"
+      },
+      {
+        "path": "modules/performance-concurrency/MODULE.md",
+        "sha256": "f838701706e32a81f2ea369ff88b30dbfe3cd04935b4ad73166294ab0ec1658b"
+      },
+      {
+        "path": "modules/planning/MODULE.md",
+        "sha256": "f3383ea451d30a643f75ce5b8bb1f19928ef2958ecb40fde4f6cb3ad0d071bb9"
+      },
+      {
+        "path": "modules/pr-handoff/MODULE.md",
+        "sha256": "0955e48985ef0ee0df291ee6f1cdbda1425eb47485db90d710c51db7e599b7f4"
+      },
+      {
+        "path": "modules/prd/MODULE.md",
+        "sha256": "07e19c59ae42fad27779b7cec04e11a5ece0b5bdc9878ebb8d4bfc567610001f"
+      },
+      {
+        "path": "modules/prd/assets/PRD.template.md",
+        "sha256": "cb08048b3634b4100e609e9d51438c5b6df14a1fa7d76a2796e7478c73ba1e05"
+      },
+      {
+        "path": "modules/prd/references/external-reconciliation.md",
+        "sha256": "d63469e869ef78538619392dcedc484c32e5617efc69bf46197c6cc9191fc9a5"
+      },
+      {
+        "path": "modules/project-memory/MODULE.md",
+        "sha256": "632dacdff384b6a90ea7852be4204c72fdc873b2259b3271300332b6c97da3d4"
+      },
+      {
+        "path": "modules/project-memory/REFERENCE.md",
+        "sha256": "c22dba4240a1c2c1dcb4dca4a361c6c1f030e1edca020d1860d948f793ed0c48"
+      },
+      {
+        "path": "modules/project-memory/assets/project-memory-templates/active-context.md",
+        "sha256": "9c5d0a097ac1ad2d16640b75c92f474ffd08750ecdcc4c84404a1dd7f0c72f2a"
+      },
+      {
+        "path": "modules/project-memory/assets/project-memory-templates/architecture.md",
+        "sha256": "3dc9cc6bcf0dbcacc8e4c61184bb8a5f8dcd0cd933cb1ba942265f4afb36c647"
+      },
+      {
+        "path": "modules/project-memory/assets/project-memory-templates/decisions-log.md",
+        "sha256": "eed7cf1bb93bc60b08588a0a4ed335c01e61841daead93c52f4c6978f38426b4"
+      },
+      {
+        "path": "modules/project-memory/assets/project-memory-templates/do-and-dont.md",
+        "sha256": "bd7e310a402fc7b837eb5a3f097c12419d547059d2efe7c3319788101a875f06"
+      },
+      {
+        "path": "modules/project-memory/assets/project-memory-templates/glossary.md",
+        "sha256": "b8a9d8b90e01e8aa6d5ce97cd4c42ea263e487b82e33f78d0792907cc9481ba6"
+      },
+      {
+        "path": "modules/project-memory/assets/project-memory-templates/project-brief.md",
+        "sha256": "129106be7cc8fa12cc3367ce658c3ae4725fef0aba621302ad09872db841c421"
+      },
+      {
+        "path": "modules/project-standards/MODULE.md",
+        "sha256": "7acda35d2dc9c9a29ea0899b909a17f59013e4359ef0765fa0cea456909f8185"
+      },
+      {
+        "path": "modules/project-standards/assets/PROJECT-STANDARDS.template.md",
+        "sha256": "170d35f079b5dcd869c78f634ec99893d3d936c7ada9891a86e8c72781c5c629"
+      },
+      {
+        "path": "modules/registry.json",
+        "sha256": "432c1da6c885e16812c5e8165af9f4834443fc3e41a0437b2cd33bf29248e95f"
+      },
+      {
+        "path": "modules/release-launch/MODULE.md",
+        "sha256": "9b4e9a51042466d711ba2c50e1a6a4d3b0663f377cad463d5ebac2ad56758eb9"
+      },
+      {
+        "path": "modules/review/MODULE.md",
+        "sha256": "443c415edc6bb64c90be4ab58f343ff1f6fa2054754a71dc82a767ac8391a4a2"
+      },
+      {
+        "path": "modules/security-auth/MODULE.md",
+        "sha256": "6b7d0496710f081bd3779ff79bf435e763c05a3ad885dc9c4409b5e6e00b320f"
+      },
+      {
+        "path": "modules/tdd/MODULE.md",
+        "sha256": "5b317e2ed4932367328ea2c5d93b92b205f1be30b9f75453801d40f4842d699f"
+      },
+      {
+        "path": "modules/testing/MODULE.md",
+        "sha256": "3c06c895e4b44129e3b4d2b0fa7ef7cf4ab831d7243d1036e5fa4a6d5a9adb66"
+      },
+      {
+        "path": "scripts/adaptive_extensions.py",
+        "sha256": "c6dff70f1bc18af116f9e9cf0c0e072ed36ee35cbc515ca99814e9578bf0436c"
+      },
+      {
+        "path": "scripts/artifact_contracts.py",
+        "sha256": "6c85588b6f31a3f228e3f18b3cc2e223ca6325b14f458581945ad82f3c8e63b3"
+      },
+      {
+        "path": "scripts/config_contract.py",
+        "sha256": "a24c698eed5c523db2f7a50578f5f209f09b933ef62239c24febdd4dd6ba6d74"
+      },
+      {
+        "path": "scripts/handoff_renderers.py",
+        "sha256": "f4d054e02784aa540ff6320bed4d620b278624ea02948885e134d4350db211f2"
+      },
+      {
+        "path": "scripts/manage_extensions.py",
+        "sha256": "3289c95f5080b6786aac2ad83d62148d866d849473f15550f554be4e5e55d186"
+      },
+      {
+        "path": "scripts/manage_metrics.py",
+        "sha256": "0e6c4c62b5c52edb1784d9d21b9abe1ab3ae92f0184925af6aed1be4d6b331b4"
+      },
+      {
+        "path": "scripts/operator_reports.py",
+        "sha256": "9ce0ffbd9486fd82332e518fb249da29b32f72fbbdf6815ade3819c411c5774b"
+      },
+      {
+        "path": "scripts/reconcile_artifacts.py",
+        "sha256": "5281217cccc78fcb93ccf9bfadb77ff6167f0d8a9e9c404ce4f16f619d15d132"
+      },
+      {
+        "path": "scripts/resolve_providers.py",
+        "sha256": "0e7078cd68f47e7a654682b92d88c55b22f660d9e3c19426edc67f69be810a9f"
+      },
+      {
+        "path": "scripts/validate_artifacts.py",
+        "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
+      }
+    ],
+    "bundleSha256": "aab17d97e93923dbe052481f4fe0c35732db0b98a640f59ecb74b849c5c01cdc"
+  },
+  "profiles": [
+    {
+      "id": "copilot-vscode",
+      "label": "GitHub Copilot / VS Code",
+      "projectRoot": ".github/skills",
+      "globalRoot": ".copilot/skills",
+      "required": true,
+      "cells": [
+        {
+          "scope": "project",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "project",
+          "mode": "link",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "link",
+          "support": "required"
+        }
+      ]
+    },
+    {
+      "id": "claude-code",
+      "label": "Claude Code",
+      "projectRoot": ".claude/skills",
+      "globalRoot": ".claude/skills",
+      "required": true,
+      "cells": [
+        {
+          "scope": "project",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "project",
+          "mode": "link",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "link",
+          "support": "required"
+        }
+      ]
+    },
+    {
+      "id": "generic-agent-skills",
+      "label": "Generic Agent Skills client",
+      "projectRoot": ".agents/skills",
+      "globalRoot": null,
+      "required": true,
+      "cells": [
+        {
+          "scope": "project",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "project",
+          "mode": "link",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "copy",
+          "support": "unsupported",
+          "reason": "No portable user-global root is defined."
+        },
+        {
+          "scope": "global",
+          "mode": "link",
+          "support": "unsupported",
+          "reason": "No portable user-global root is defined."
+        }
+      ]
+    }
+  ],
+  "deterministicCases": [
+    {
+      "id": "manifest-contract",
+      "critical": true
+    },
+    {
+      "id": "bundle-inventory",
+      "critical": true
+    },
+    {
+      "id": "discoverable-skill-count",
+      "critical": true
+    },
+    {
+      "id": "module-count",
+      "critical": true
+    },
+    {
+      "id": "config-template",
+      "critical": true
+    },
+    {
+      "id": "helper-scripts",
+      "critical": true
+    },
+    {
+      "id": "trigger-discovery-metadata",
+      "critical": true
+    },
+    {
+      "id": "copy-byte-identity",
+      "critical": true
+    },
+    {
+      "id": "link-target-identity",
+      "critical": true
+    },
+    {
+      "id": "project-global-isolation",
+      "critical": true
+    },
+    {
+      "id": "installer-idempotence",
+      "critical": true
+    },
+    {
+      "id": "legacy-install-conflict",
+      "critical": true
+    },
+    {
+      "id": "path-confinement",
+      "critical": true
+    },
+    {
+      "id": "installer-no-network",
+      "critical": true
+    },
+    {
+      "id": "shell-contract",
+      "critical": true
+    }
+  ],
+  "liveCases": [
+    {
+      "id": "qualification-standard-change-trigger",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-non-code-counterexample",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-lazy-module-loading",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-invalid-installation",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-disabled-disclosure",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-review-fallback",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "measurement-consent-refusal",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "measurement-private-aggregate-boundary",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "measurement-timing-unavailable",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-successful-specialization",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-unavailable-blocks",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-ambiguous-blocks",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-incompatible-blocks",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-core-authority-pressure",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-satisfied-without-loading",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-unsupported-success-claim",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-partial-evidence",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-unsupported-host-enumeration",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-disabled-and-no-automatic-selection",
+      "critical": true,
+      "repetitions": 5
+    }
+  ],
+  "gate": {
+    "requireEverySupportedCell": true,
+    "requireEveryProfileLive": true,
+    "failOnCriticalNotPassed": true,
+    "liveBaseline": {
+      "scope": "project",
+      "mode": "copy"
+    },
+    "requireSupportedLiveLink": true
+  }
+}

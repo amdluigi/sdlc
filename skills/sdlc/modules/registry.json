@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "name": "project-memory",
+      "category": "context",
+      "order": 0,
+      "path": "project-memory/MODULE.md",
+      "trigger": "Always when enabled.",
+      "exitSignal": "The memory layout is canonical and conflict-free, or a trivial legacy-only task explicitly deferred migration; relevant current project memory was read and meaningful new knowledge was recorded.",
+      "evidence": [
+        "Current-task trace or report identifies the memory layout state and the relevant canonical .sdlc/memory or deferred legacy project-memory files inspected.",
+        "A legacy-only project-memory directory was migrated intact for non-trivial work; trivial work may read it only when migration is explicitly deferred and reported.",
+        "A dual-path or linked-path conflict blocked progress without merging, following, or deleting data.",
+        "Any durable decision, correction, constraint, architecture change, or active-context change is reflected in .sdlc/memory files."
+      ]
+    },
+    {
+      "name": "project-standards",
+      "category": "context",
+      "order": 1,
+      "path": "project-standards/MODULE.md",
+      "trigger": "Always when enabled.",
+      "exitSignal": "Repository-specific engineering and delivery rules are identified.",
+      "evidence": [
+        "Current-task trace or report identifies the standards file inspected, or establishes that none exists.",
+        "Inferred commands and conventions are tied to inspectable repository files when standards are absent."
+      ]
+    },
+    {
+      "name": "change-contract",
+      "category": "requirements",
+      "order": 2,
+      "path": "change-contract/MODULE.md",
+      "trigger": "Always when enabled to establish the change contract.",
+      "exitSignal": "Repository findings, outcome, acceptance criteria, non-goals, impact, PR boundary, and costly open decisions are clear at the rigor required by the change.",
+      "evidence": [
+        "For a Significant existing-codebase change, a concise discovery brief identifies inspected evidence, existing decisions and patterns, integration points, relevant constraints, facts, assumptions, and unknowns before clarification.",
+        "An inspectable specification, plan, issue, conversation decision, or change brief states the outcome, acceptance criteria, non-goals, affected surfaces, coherent boundary, and unresolved decisions.",
+        "For user-facing changes, the target user and benefit are clear; scenarios and success metrics are included when they materially define behavior or success."
+      ]
+    },
+    {
+      "name": "prd",
+      "category": "product-requirements",
+      "order": 3,
+      "path": "prd/MODULE.md",
+      "trigger": "A new project, a new user-facing or product-facing feature, or a Significant internal feature introduces a new capability.",
+      "exitSignal": "A durable, identifiable, current PRD is complete, explicitly approved, and traceable through numbered requirements and acceptance criteria.",
+      "evidence": [
+        "The artifact identifies itself with PRD frontmatter containing a stable ID, approved status, and positive version.",
+        "The PRD defines problem, target users and benefit, outcome, goals, non-goals, scenarios, numbered functional requirements and acceptance criteria, data and authority concerns, constraints, conditional success measures, open decisions, and approval evidence.",
+        "Every applicable change-contract acceptance criterion maps to a numbered PRD AC identifier or is explicitly superseded with developer approval.",
+        "No approval-blocking decision remains unresolved, and planning can map implementation and verification to FR and AC identifiers."
+      ]
+    },
+    {
+      "name": "debugging",
+      "category": "diagnosis",
+      "order": 4,
+      "path": "debugging/MODULE.md",
+      "trigger": "A bug or unexplained failure is in scope.",
+      "exitSignal": "The root cause is supported by reproduction and a tested hypothesis.",
+      "evidence": [
+        "A deterministic reproduction or current diagnostic evidence localizes the failure.",
+        "A falsifiable root-cause hypothesis was tested, and regression sensitivity is demonstrated or its limitation is explicit."
+      ]
+    },
+    {
+      "name": "incident-response",
+      "category": "incident",
+      "order": 5,
+      "path": "incident-response/MODULE.md",
+      "trigger": "An active production incident, material service degradation, security event, or customer-impacting data integrity failure requires containment, recovery, or a post-incident follow-up.",
+      "exitSignal": "Containment or recovery is verified, remaining impact and risk are explicit, root-cause status is honest, and follow-up actions have owners and observable completion criteria.",
+      "evidence": [
+        "Current incident evidence identifies impact, severity, affected scope, owner, and containment or mitigation decision.",
+        "Relevant diagnostic and decision evidence was preserved safely, recovery checks were defined and observed, and communications distinguish verified facts from unknowns.",
+        "A blameless post-incident record identifies timeline, contributing conditions, root-cause status, and owned corrective actions."
+      ]
+    },
+    {
+      "name": "release-launch",
+      "category": "release",
+      "order": 6,
+      "path": "release-launch/MODULE.md",
+      "trigger": "A completed change is being published, deployed, released, launched, rolled out, tagged, or otherwise made available to an external audience.",
+      "exitSignal": "The release state is explicit and supported by current artifact, rollout, signal, and post-release validation evidence, with unresolved limitations visible to the owner.",
+      "evidence": [
+        "The exact revision, version, audience, compatibility declaration, and release criteria are identified.",
+        "Release notes, rollout cohorts, measurable success and failure signals, monitoring owner, decision window, and rollback triggers are current and inspectable.",
+        "The actual release artifact or deployment target and post-release smoke checks were verified before a launch-success claim."
+      ]
+    },
+    {
+      "name": "planning",
+      "category": "planning",
+      "order": 7,
+      "path": "planning/MODULE.md",
+      "trigger": "The change is Standard or Significant.",
+      "exitSignal": "A current proportional implementation and verification plan exists, including dependency-aware execution for Significant work.",
+      "evidence": [
+        "An inspectable current plan covers approach, affected files, sequencing, scope, verification, risk, and deferred work.",
+        "The plan still matches the current change contract, authoritative design, and repository state.",
+        "When a PRD is selected, the plan identifies its path, ID, approved version, and maps tasks and verification to FR and AC identifiers.",
+        "A Significant plan identifies task prerequisites, consumed and produced interfaces, conservative parallel groups, and later integration work."
+      ]
+    },
+    {
+      "name": "accessibility-browser",
+      "category": "experience",
+      "order": 8,
+      "path": "accessibility-browser/MODULE.md",
+      "trigger": "A change creates or modifies rendered web or mobile UI, user interaction behavior, responsive layout, navigation or focus behavior, accessibility semantics, or browser-only runtime behavior.",
+      "exitSignal": "Every affected user flow has current browser or app-runtime evidence at relevant viewport and input modes, applicable accessibility checks pass, and any unresolved usability or accessibility limitation is explicit.",
+      "evidence": [
+        "An affected-flow inventory maps changed acceptance criteria to pages, screens, interaction states, viewport classes, and relevant input modes.",
+        "Current runtime evidence exercises each changed flow through the real rendered interface, including applicable loading, empty, error, disabled, validation, and success states.",
+        "Automated accessibility results cover affected rendered surfaces, and manual evidence covers applicable assistive input, focus, names, announcements, reflow, and motion behavior.",
+        "Responsive evidence names tested viewport classes and records overflow, clipping, target size, orientation, and content-reflow outcomes.",
+        "Findings identify severity, affected flow, reproduction, and disposition, with accepted limitations visible in final risk and handoff evidence."
+      ]
+    },
+    {
+      "name": "performance-concurrency",
+      "category": "performance",
+      "order": 9,
+      "path": "performance-concurrency/MODULE.md",
+      "trigger": "A change has an explicit latency, throughput, capacity, or resource objective; modifies an evidenced hot path; or introduces or changes concurrency, parallel work, batching, caching, streaming, queueing, rate control, or shared mutable state.",
+      "exitSignal": "The relevant budget or baseline is explicit, representative current measurements meet it without correctness, contention, or resource regressions, and remaining capacity limits or measurement uncertainty are disclosed.",
+      "evidence": [
+        "A measurable hypothesis identifies the operation, workload, baseline or budget, metric, environment, and expected direction or threshold.",
+        "Before-and-after measurements use the same representative workload and method, include repetitions that expose variance, and identify material environmental limitations.",
+        "Concurrency evidence covers applicable race, ordering, cancellation, timeout, retry, duplicate work, deadlock, starvation, backpressure, and shared-state behavior.",
+        "Resource evidence reports applicable CPU, memory, I/O, network, connection, queue-depth, or cache metrics, including relevant warm and cold conditions.",
+        "Tests or invariants demonstrate correctness at the measured load, and evidence records the current revision and measurement source."
+      ]
+    },
+    {
+      "name": "observability",
+      "category": "observability",
+      "order": 10,
+      "path": "observability/MODULE.md",
+      "trigger": "A change adds, removes, or modifies logs, metrics, traces, dashboards, or alerts; introduces or changes a service, queue, scheduled-job, or other asynchronous production boundary; or has an accepted requirement for new diagnostic or operational signals.",
+      "exitSignal": "Each affected production boundary and failure mode has current, queryable, privacy-safe diagnostic evidence with defined meaning and bounded cardinality or volume; applicable alerts have actionable thresholds and validated routing or are explicitly deferred as missing evidence.",
+      "evidence": [
+        "A signal map ties affected boundaries and important failure modes to named signals and states the diagnostic question each answers.",
+        "Current output or deterministic telemetry tests prove names, fields, units, status, correlation, and failure classification at the real instrumentation boundary.",
+        "Privacy evidence shows that secrets, credentials, sensitive payloads, and unnecessary personal data are excluded or transformed according to project policy.",
+        "Metric and attribute cardinality is reviewed, and material log or trace volume, sampling, and retention implications are bounded.",
+        "Changed alerts identify destination or owner, threshold, window, severity, response, and validated fire and no-fire behavior.",
+        "Signal changes preserve or explicitly migrate dashboards, alerts, queries, and other consumers."
+      ]
+    },
+    {
+      "name": "api-compatibility",
+      "category": "compatibility",
+      "order": 11,
+      "path": "api-compatibility/MODULE.md",
+      "trigger": "A change adds, removes, or modifies a consumer-visible request, response, command, event, schema, serialization, error, SDK, generated-client, or versioning contract, including behavior observable by an independently deployed or external consumer.",
+      "exitSignal": "Affected consumers and contract deltas are explicit; compatible and breaking changes are classified; required versioning, deprecation, generated artifacts, and mixed-version behavior are implemented; and current contract plus representative consumer evidence passes.",
+      "evidence": [
+        "A before-and-after contract delta identifies affected operations, fields, types, defaults, validation, side effects, ordering, errors, and version identifiers.",
+        "A consumer inventory names internal, external, generated, and independently deployed consumers, or records bounded evidence that none exist.",
+        "Each delta is classified as compatible, conditionally compatible, or breaking for those consumers, including relevant serialization differences.",
+        "Current contract tests cover success and error shapes, and representative old and new consumer or provider combinations prove the required compatibility window.",
+        "Applicable generated clients, schemas, documentation, examples, fixtures, and compatibility baselines are regenerated from maintained sources and checked for drift.",
+        "Breaking changes have explicit approval, versioning, transition guidance, and rollout sequencing."
+      ]
+    },
+    {
+      "name": "data-migration",
+      "category": "data",
+      "order": 12,
+      "path": "data-migration/MODULE.md",
+      "trigger": "A change transforms, backfills, moves, reinterprets, or deletes durable production data; changes a production schema in a way that requires old and new application or schema versions to coexist; or introduces a migration whose failure could leave persistent state partial or invalid.",
+      "exitSignal": "The expand, backfill, switch, and contract sequence is explicit; current production-like rehearsal proves integrity, idempotency or resumability, mixed-version safety, and failure handling; rollback is tested where possible, otherwise a tested mitigation and irreversibility statement are present.",
+      "evidence": [
+        "A migration inventory identifies source and target representations, volume and shape assumptions, invariants, ownership, retention, and destructive or irreversible steps.",
+        "The sequence separates compatible expand, backfill, verification, consumer switch, and destructive contract stages with gates and prerequisites.",
+        "Backfill evidence covers applicable batching, checkpoints, idempotency, resume, live writes, error quarantine, and bounded resource use.",
+        "Integrity evidence reconciles counts and domain invariants, samples transformed records, detects partial state, and defines acceptance thresholds.",
+        "A production-like rehearsal records duration, load, failures, mixed-version compatibility, and post-migration validation.",
+        "Rollback evidence restores code, schema, and data where reversible; otherwise a tested mitigation and irreversibility statement are explicit."
+      ]
+    },
+    {
+      "name": "dependency-supply-chain",
+      "category": "dependency",
+      "order": 13,
+      "path": "dependency-supply-chain/MODULE.md",
+      "trigger": "A change adds, removes, replaces, updates, pins, vendors, generates, downloads, or changes the resolution or execution of a third-party dependency, package manager, registry, lockfile, build plugin, action, container base, or fetched build artifact.",
+      "exitSignal": "Each changed third-party component is necessary, resolves reproducibly from an approved provenance, has current advisory and license assessment, has reviewed transitive and build-script impact, and passes focused compatibility plus repository verification with residual risk disclosed.",
+      "evidence": [
+        "A dependency delta identifies direct and transitive additions, removals, versions, sources, integrity data, lockfile changes, scripts or plugins, and runtime or build-time placement.",
+        "A necessity record explains why platform, standard-library, or current dependency capabilities cannot meet the accepted outcome.",
+        "Provenance evidence identifies configured source, available publisher or owner, integrity mechanism, release identity, and vendored or generated origin.",
+        "Current advisory and maintenance evidence records the approved source, source identity, result time or advisory-database identity, severity disposition, supported versions, and signs of abandonment or compromise; evidence becomes stale after advisory-database changes unless its identity still matches.",
+        "License evidence identifies declared licenses and compatibility with project policy, escalating ambiguity instead of guessing.",
+        "Focused tests cover changed behavior, and clean or frozen restore evidence proves reproducibility and detects unexpected artifacts or scripts where supported.",
+        "High-risk updates include release-guidance review, transitive diff, rollback, and residual-risk disclosure without automatic network, install, update, or publication actions."
+      ]
+    },
+    {
+      "name": "tdd",
+      "category": "implementation",
+      "order": 14,
+      "path": "tdd/MODULE.md",
+      "trigger": "New behavior or a bug fix changes executable behavior.",
+      "exitSignal": "Each changed behavior has inspectable red-before-green evidence against real behavior, followed by minimal green and safe refactor, or a valid narrow technical exception.",
+      "evidence": [
+        "A focused test was written before production implementation and failed for the expected missing or defective behavior.",
+        "The minimum implementation made the focused test pass, and any refactor preserved the green state.",
+        "Tests exercise real behavior, with mocks limited to genuine external seams.",
+        "Generated output, configuration-only behavior, or unsafe reproduction exceptions identify the category, technical reason, and strongest safe alternative evidence."
+      ]
+    },
+    {
+      "name": "implementation",
+      "category": "implementation",
+      "order": 15,
+      "path": "implementation/MODULE.md",
+      "trigger": "Code or configuration changes are required.",
+      "exitSignal": "The minimum complete implementation and authoritative design match the current contract through verified, safe, reversible slices.",
+      "evidence": [
+        "The slice sequence identifies each increment's outcome, scope, verification checkpoint, exposure strategy, and reversal path.",
+        "Each completed slice left the repository coherent and has fresh affected checks tied to its resulting work product.",
+        "The inspectable final diff implements every acceptance criterion within the agreed boundary, including necessary tests, documentation, migrations, configuration, compatibility handling, and generated artifacts.",
+        "Any accepted requirement, public-contract, or architecture change discovered during implementation is synchronized to the PRD and renewed approval when selected, authoritative design, project memory when selected, plan, and dependent evidence."
+      ]
+    },
+    {
+      "name": "testing",
+      "category": "verification",
+      "order": 16,
+      "path": "testing/MODULE.md",
+      "trigger": "Behavior, bug, refactor, tests, or non-trivial verification are in scope.",
+      "exitSignal": "Acceptance evidence is fresh and test sensitivity is known.",
+      "evidence": [
+        "Fresh command or CI results are tied to the current implementation revision and cover the relevant acceptance criteria.",
+        "When a PRD is selected, acceptance evidence is traceable to every approved AC identifier.",
+        "Bug regression sensitivity is demonstrated, or a technical limitation and credible alternative evidence are explicit."
+      ]
+    },
+    {
+      "name": "security-auth",
+      "category": "risk",
+      "order": 17,
+      "path": "security-auth/MODULE.md",
+      "trigger": "External input, stored or sensitive data, network access, identity, permissions, secrets, dependencies, or user-visible output are affected.",
+      "exitSignal": "Applicable security, authentication, and authorization risks are mitigated or disclosed.",
+      "evidence": [
+        "A current analysis identifies applicable trust, input, auth, data, secret, dependency, and abuse risks for the actual diff.",
+        "Mitigations, tests, and any accepted residual risk are inspectable and scope-aligned."
+      ]
+    },
+    {
+      "name": "operational-readiness",
+      "category": "delivery-risk",
+      "order": 18,
+      "path": "operational-readiness/MODULE.md",
+      "trigger": "Production data, public contracts, runtime or deployment configuration, infrastructure, background processing, or rollout are affected.",
+      "exitSignal": "Reversibility, compatibility, rollout, operational signals, and post-change checks are credible.",
+      "evidence": [
+        "A current plan defines compatibility sequencing, rollout, rollback or mitigation, measurable signals, and post-change validation.",
+        "Required rehearsal, restore, dry-run, or production-like evidence is current and inspectable."
+      ]
+    },
+    {
+      "name": "review",
+      "category": "review",
+      "order": 19,
+      "path": "review/MODULE.md",
+      "trigger": "Always before completion when enabled.",
+      "exitSignal": "Risk-scaled perspectives reviewed the current final diff and findings were triaged.",
+      "evidence": [
+        "Review output identifies the actual final diff or revision, perspectives used, actionable findings, and confidence.",
+        "Relevant findings are resolved or disclosed, and affected checks were rerun after fixes."
+      ]
+    },
+    {
+      "name": "pr-handoff",
+      "category": "handoff",
+      "order": 20,
+      "path": "pr-handoff/MODULE.md",
+      "trigger": "Always before completion when enabled to prepare PR handoff.",
+      "exitSignal": "Final repository state and a human-readable handoff support a readiness decision.",
+      "evidence": [
+        "Current repository status and complete diff were inspected against the coherent boundary.",
+        "The handoff maps outcome, PRD path/ID/version and delivered FR/AC identifiers when selected, scope, acceptance evidence, review, compatibility, rollout or rollback, limitations, deferred work, and risk."
+      ]
+    },
+    {
+      "name": "continuous-improvement",
+      "category": "adaptation",
+      "order": 21,
+      "path": "continuous-improvement/MODULE.md",
+      "trigger": "A task produces a correction, repeated merge step, recurring review finding or coverage gap, explicit learning request, or an SDLC core upgrade changes core responsibilities.",
+      "exitSignal": "Learning signals and upgrade-driven extension overlap were classified and routed, recorded, proposed, accepted, rejected, or proposed for supersession with rationale.",
+      "evidence": [
+        "Every qualifying signal is matched to existing configuration, standards, memory, core behavior, or a sanitized candidate.",
+        "No extension is active without inspectable validation and explicit developer approval."
+      ]
+    }
+  ]
+}

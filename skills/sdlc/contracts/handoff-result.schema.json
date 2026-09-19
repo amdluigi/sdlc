@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:handoff-result:1",
+  "title": "SDLC handoff validation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractValid", "semanticApproval", "notice", "path", "prd", "deliveredRequirements", "evidencedAcceptanceCriteria", "failedOrUnavailableEvidence", "configuredDisabledModules", "blockers"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "contractValid": {"const": true},
+    "semanticApproval": {"const": "not-assessed"},
+    "notice": {"type": "string", "minLength": 1},
+    "path": {"type": "string", "minLength": 1},
+    "prd": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicability"],
+      "properties": {
+        "applicability": {"enum": ["applicable", "not-applicable"]},
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "version": {"type": "integer", "minimum": 1},
+        "identityMatchedLocalArtifact": {"type": "boolean"}
+      }
+    },
+    "deliveredRequirements": {"$ref": "#/$defs/refs"},
+    "evidencedAcceptanceCriteria": {"$ref": "#/$defs/refs"},
+    "failedOrUnavailableEvidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["acceptanceCriterion", "result", "summary"],
+        "properties": {
+          "acceptanceCriterion": {"type": "string", "pattern": "^AC-[1-9][0-9]*$"},
+          "result": {"enum": ["failed", "not-run", "unavailable"]},
+          "summary": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "configuredDisabledModules": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    },
+    "blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^(?:FR|AC)-[1-9][0-9]*$"}
+    }
+  }
+}

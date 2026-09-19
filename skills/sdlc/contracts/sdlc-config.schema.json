@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:config:3",
+  "title": "SDLC project configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "modules", "extensions", "measurement"],
+  "properties": {
+    "schemaVersion": {"const": 3},
+    "modules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project-memory": {"$ref": "#/$defs/moduleState"},
+        "project-standards": {"$ref": "#/$defs/moduleState"},
+        "change-contract": {"$ref": "#/$defs/moduleState"},
+        "prd": {"$ref": "#/$defs/moduleState"},
+        "debugging": {"$ref": "#/$defs/moduleState"},
+        "planning": {"$ref": "#/$defs/moduleState"},
+        "accessibility-browser": {"$ref": "#/$defs/moduleState"},
+        "performance-concurrency": {"$ref": "#/$defs/moduleState"},
+        "observability": {"$ref": "#/$defs/moduleState"},
+        "api-compatibility": {"$ref": "#/$defs/moduleState"},
+        "data-migration": {"$ref": "#/$defs/moduleState"},
+        "dependency-supply-chain": {"$ref": "#/$defs/moduleState"},
+        "tdd": {"$ref": "#/$defs/moduleState"},
+        "implementation": {"$ref": "#/$defs/moduleState"},
+        "testing": {"$ref": "#/$defs/moduleState"},
+        "security-auth": {"$ref": "#/$defs/moduleState"},
+        "operational-readiness": {"$ref": "#/$defs/moduleState"},
+        "review": {"$ref": "#/$defs/moduleState"},
+        "pr-handoff": {"$ref": "#/$defs/moduleState"},
+        "continuous-improvement": {"$ref": "#/$defs/moduleState"}
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project", "global"],
+      "properties": {
+        "project": {"$ref": "#/$defs/booleanMap"},
+        "global": {"$ref": "#/$defs/booleanMap"}
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {"enabled": {"type": "boolean"}}
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "moduleState": {
+      "oneOf": [
+        {"type": "boolean"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["replaceWith"],
+          "properties": {"replaceWith": {"$ref": "#/$defs/id"}}
+        }
+      ]
+    },
+    "booleanMap": {
+      "type": "object",
+      "additionalProperties": {"type": "boolean"},
+      "propertyNames": {"$ref": "#/$defs/id"}
+    }
+  }
+}

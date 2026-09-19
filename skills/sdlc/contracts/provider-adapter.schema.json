@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:provider-adapter:1",
+  "title": "Trusted host-injected provider enumeration",
+  "description": "Metadata-only result from an adapter object injected by the embedding host outside caller-controlled CLI arguments.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "hostProfile", "candidates"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "hostProfile": {
+      "enum": ["copilot-vscode", "claude-code", "generic-agent-skills"]
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "declaredName", "providerMetadata", "contentDigest", "loadToken"
+        ],
+        "properties": {
+          "declaredName": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "providerMetadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "required": [
+              "sdlc-provider-schema", "sdlc-compatible", "sdlc-modules"
+            ],
+            "properties": {
+              "sdlc-provider-schema": {"type": "string"},
+              "sdlc-compatible": {"type": "string"},
+              "sdlc-modules": {"type": "string"}
+            }
+          },
+          "contentDigest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "loadToken": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
