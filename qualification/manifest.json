@@ -30,7 +30,7 @@
       },
       {
         "path": "assets/sdlc-config.template.json",
-        "sha256": "25588e3fa5e8845ad5971567f8084840934149a41596893dd330b23bddf528af"
+        "sha256": "1ab2ba33f2619a02c1e4ed86f0ce128d7ceca213fe89327b1f2ddef2a529f1a4"
       },
       {
         "path": "contracts/capability-provider.schema.json",
@@ -98,7 +98,7 @@
       },
       {
         "path": "contracts/sdlc-config.schema.json",
-        "sha256": "0edcd5d1facc9c68be7100dcde34f861777bf22eb46484abbb1d602ab8954b32"
+        "sha256": "537d2aeca88b2ef52c49b1491c6e633db6c152f5d8bf599387aa6e84830f957f"
       },
       {
         "path": "modules/accessibility-browser/MODULE.md",
@@ -285,7 +285,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "ab072b6e021f8237625a939434ca9050e96f9bd0fcec558a888dbc2e8ca2d20d"
+    "bundleSha256": "6bf574c32de02fb9a7bb267a4aa897b8b3dbc944f8536175a6ba407e9118184f"
   },
   "profiles": [
     {

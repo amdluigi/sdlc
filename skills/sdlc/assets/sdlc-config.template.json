@@ -3,25 +3,31 @@
   "modules": {
     "project-memory": true,
     "project-standards": true,
-    "change-contract": true,
     "prd": true,
-    "debugging": true,
-    "incident-response": true,
-    "release-launch": true,
     "planning": true,
-    "accessibility-browser": true,
-    "performance-concurrency": true,
-    "observability": true,
+
+    "change-contract": true,
+    "debugging": true,
+
     "api-compatibility": true,
     "data-migration": true,
+    "security-auth": true,
+    "performance-concurrency": true,
+    "accessibility-browser": true,
     "dependency-supply-chain": true,
+    "observability": true,
+
     "tdd": true,
     "implementation": true,
+
     "testing": true,
-    "security-auth": true,
-    "operational-readiness": true,
     "review": true,
+    "operational-readiness": true,
+
     "pr-handoff": true,
+    "release-launch": true,
+
+    "incident-response": true,
     "continuous-improvement": true
   },
   "extensions": {
