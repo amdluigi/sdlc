@@ -64,6 +64,7 @@ skills/sdlc/
 ├── modules/
 │   ├── registry.json
 │   └── MODULE_NAME/
+│       ├── sdlc-capability.json
 │       ├── MODULE.md
 │       ├── REFERENCE.md
 │       └── assets/
@@ -84,15 +85,19 @@ internal references loaded by the orchestrator.
 
 ## Module Registry
 
-`skills/sdlc/modules/registry.json` is the source of truth for core module:
+`skills/sdlc/modules/registry.json` is the source of truth for where each
+core module sits in the lifecycle:
 
 - name;
 - category;
 - execution order;
-- instruction path;
-- activation trigger;
-- exit signal;
-- acceptable evidence.
+- whether the module may be replaced.
+
+Each module directory owns what it does. `sdlc-capability.json` beside the
+module states identity, mode, instruction path, activation trigger, exit
+signal, and acceptable evidence, using the same contract a third-party
+provider satisfies. A registry row carrying those fields is rejected, and a
+declaration carrying placement is rejected, so each field has one home.
 
 It also declares the delivery phase layer:
 

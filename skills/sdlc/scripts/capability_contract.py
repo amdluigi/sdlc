@@ -159,35 +159,127 @@ def validate_declaration(declaration, *, capabilities=None, reserved=None):
     return normalized
 
 
-def declaration_from_registry_entry(entry, sdlc_version, capabilities=None):
-    """Project a bundled module registry entry onto the contract.
+PLACEMENT_FIELDS = ("name", "category", "order", "replaceable")
 
-    The bundle is one provider, ``sdlc``, serving every core capability, so
-    the projection claims that identity rather than the capability name.
+
+def bundled_declaration_path(modules_root, name):
+    """Return the declaration path for a bundled capability."""
+
+    return Path(modules_root) / name / DECLARATION_FILENAME
+
+
+def load_bundled_declaration(modules_root, entry, capabilities=None):
+    """Load one bundled capability's own declaration from disk.
+
+    The bundle is not exempt from the contract it publishes. Each capability
+    declares itself in the same file, with the same fields, that a
+    third-party provider authors. The registry row supplies placement only,
+    so the two sources may never disagree: a field has exactly one home.
     """
 
-    if not isinstance(entry, dict):
-        raise ContractError("registry entry must be an object")
-    required = {"name", "path", "trigger", "exitSignal", "evidence"}
-    missing = required - set(entry)
-    if missing:
+    if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
+        raise ContractError("registry entry must name a capability")
+    name = entry["name"]
+
+    declared = set(entry) - set(PLACEMENT_FIELDS)
+    if declared:
+        field = sorted(declared)[0]
         raise ContractError(
-            f"registry entry is missing {sorted(missing)[0]}"
+            f"registry entry {name} declares {field}, which belongs to its "
+            f"{DECLARATION_FILENAME}; the registry owns placement only"
         )
-    return validate_declaration(
-        {
-            "schemaVersion": SCHEMA_VERSION,
-            "id": BUNDLED_PROVIDER_ID,
-            "capability": entry["name"],
-            "mode": "default",
-            "instructions": entry["path"],
-            "trigger": entry["trigger"],
-            "exitSignal": entry["exitSignal"],
-            "evidence": entry["evidence"],
-            "compatibleSdlc": f"=={sdlc_version}",
-        },
-        capabilities=capabilities,
+
+    path = bundled_declaration_path(modules_root, name)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ContractError(
+            f"capability {name} ships no readable {DECLARATION_FILENAME}: "
+            f"{error}"
+        )
+
+    declaration = parse_declaration(text)
+    if isinstance(declaration, dict):
+        for field in PLACEMENT_FIELDS:
+            if field == "name":
+                continue
+            if field in declaration:
+                raise ContractError(
+                    f"{name} declares {field}; module placement is owned by "
+                    "the registry and may not be claimed by a declaration"
+                )
+
+    normalized = validate_declaration(
+        declaration, capabilities=capabilities
     )
+    if normalized["capability"] != name:
+        raise ContractError(
+            f"capability directory {name} declares capability "
+            f"{normalized['capability']}"
+        )
+    if normalized["id"] != BUNDLED_PROVIDER_ID:
+        raise ContractError(
+            f"{name} claims provider id {normalized['id']}; a bundled "
+            f"declaration is the {BUNDLED_PROVIDER_ID} provider"
+        )
+    if normalized["mode"] != "default":
+        raise ContractError(
+            f"{name} declares mode {normalized['mode']}; a bundled "
+            "declaration is always the default provider"
+        )
+
+    instructions = _confined(path.parent, normalized["instructions"])
+    if not instructions.is_file():
+        raise ContractError(
+            f"{name} declares instructions {normalized['instructions']} "
+            "which is not a readable file"
+        )
+    return normalized
+
+
+def assemble_module(entry, declaration, name):
+    """Rejoin registry placement with a capability's own declaration.
+
+    Consumers read one module record. Holding that record constant is what
+    lets the storage change without moving a single consumer.
+    """
+
+    assembled = dict(entry)
+    assembled["path"] = f"{name}/{declaration['instructions']}"
+    assembled["trigger"] = declaration["trigger"]
+    assembled["exitSignal"] = declaration["exitSignal"]
+    assembled["evidence"] = list(declaration["evidence"])
+    return assembled
+
+
+def load_registry(registry_path):
+    """Read the registry and each capability's declaration as one record."""
+
+    registry_path = Path(registry_path)
+    try:
+        text = registry_path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ContractError(f"registry is unreadable: {error}")
+    registry = parse_declaration(text)
+    if not isinstance(registry, dict) or not isinstance(
+        registry.get("modules"), list
+    ):
+        raise ContractError("registry must declare a list of modules")
+
+    modules_root = registry_path.parent
+    names = {
+        row.get("name") for row in registry["modules"]
+        if isinstance(row, dict)
+    }
+    assembled = []
+    for entry in registry["modules"]:
+        declaration = load_bundled_declaration(modules_root, entry, names)
+        assembled.append(
+            assemble_module(entry, declaration, entry["name"])
+        )
+    resolved = dict(registry)
+    resolved["modules"] = assembled
+    return resolved
 
 
 def declaration_from_extension(metadata, capabilities=None, reserved=None):

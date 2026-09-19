@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import capability_contract
 import config_contract
 
 
@@ -1477,7 +1478,7 @@ def load_candidates(project_root: Path) -> dict:
 
 
 def _installed_registry() -> dict:
-    return load_json_strict(
+    return capability_contract.load_registry(
         Path(__file__).resolve().parents[1] / "modules" / "registry.json"
     )
 

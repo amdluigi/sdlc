@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "dependency-supply-chain",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "A change adds, removes, replaces, updates, pins, vendors, generates, downloads, or changes the resolution or execution of a third-party dependency, package manager, registry, lockfile, build plugin, action, container base, or fetched build artifact.",
+  "exitSignal": "Each changed third-party component is necessary, resolves reproducibly from an approved provenance, has current advisory and license assessment, has reviewed transitive and build-script impact, and passes focused compatibility plus repository verification with residual risk disclosed.",
+  "evidence": [
+    "A dependency delta identifies direct and transitive additions, removals, versions, sources, integrity data, lockfile changes, scripts or plugins, and runtime or build-time placement.",
+    "A necessity record explains why platform, standard-library, or current dependency capabilities cannot meet the accepted outcome.",
+    "Provenance evidence identifies configured source, available publisher or owner, integrity mechanism, release identity, and vendored or generated origin.",
+    "Current advisory and maintenance evidence records the approved source, source identity, result time or advisory-database identity, severity disposition, supported versions, and signs of abandonment or compromise; evidence becomes stale after advisory-database changes unless its identity still matches.",
+    "License evidence identifies declared licenses and compatibility with project policy, escalating ambiguity instead of guessing.",
+    "Focused tests cover changed behavior, and clean or frozen restore evidence proves reproducibility and detects unexpected artifacts or scripts where supported.",
+    "High-risk updates include release-guidance review, transitive diff, rollback, and residual-risk disclosure without automatic network, install, update, or publication actions."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

@@ -44,11 +44,11 @@ evidence for the risks they introduce.
 
 ## Source and maintenance
 
-The module order, triggers, and evidence contracts are defined by
-[`skills/sdlc/modules/registry.json`](../skills/sdlc/modules/registry.json),
-which also declares the delivery phases and the category that maps each
-module to one. These diagrams are explanatory views, not an authoritative
-replacement for that registry.
+The module order and the delivery phase a module belongs to are defined by
+[`skills/sdlc/modules/registry.json`](../skills/sdlc/modules/registry.json).
+Each module's trigger and evidence contract live in the
+`sdlc-capability.json` beside that module. These diagrams are explanatory
+views, not an authoritative replacement for those files.
 
 Keep each diagram:
 

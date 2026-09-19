@@ -43,7 +43,7 @@ INSTRUCTIONS = skill_document()
 
 
 def registry_modules() -> list:
-    return json.loads(REGISTRY.read_text(encoding="utf-8"))["modules"]
+    return capability_contract.load_registry(REGISTRY)["modules"]
 
 
 def capability_names() -> set:

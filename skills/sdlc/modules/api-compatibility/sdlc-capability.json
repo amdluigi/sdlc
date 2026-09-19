@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "api-compatibility",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "A change adds, removes, or modifies a consumer-visible request, response, command, event, schema, serialization, error, SDK, generated-client, or versioning contract, including behavior observable by an independently deployed or external consumer.",
+  "exitSignal": "Affected consumers and contract deltas are explicit; compatible and breaking changes are classified; required versioning, deprecation, generated artifacts, and mixed-version behavior are implemented; and current contract plus representative consumer evidence passes.",
+  "evidence": [
+    "A before-and-after contract delta identifies affected operations, fields, types, defaults, validation, side effects, ordering, errors, and version identifiers.",
+    "A consumer inventory names internal, external, generated, and independently deployed consumers, or records bounded evidence that none exist.",
+    "Each delta is classified as compatible, conditionally compatible, or breaking for those consumers, including relevant serialization differences.",
+    "Current contract tests cover success and error shapes, and representative old and new consumer or provider combinations prove the required compatibility window.",
+    "Applicable generated clients, schemas, documentation, examples, fixtures, and compatibility baselines are regenerated from maintained sources and checked for drift.",
+    "Breaking changes have explicit approval, versioning, transition guidance, and rollout sequencing."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

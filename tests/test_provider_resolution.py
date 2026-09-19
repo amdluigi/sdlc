@@ -129,6 +129,31 @@ class ProviderResolutionTests(unittest.TestCase):
         path.write_text(json.dumps(value), encoding="utf-8")
         return path
 
+    def write_capability(self, name, **overrides):
+        """Write a bundled-style declaration beside a synthetic registry."""
+
+        directory = self.work / name
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "MODULE.md").write_text(
+            f"# {name}\n", encoding="utf-8"
+        )
+        declaration = {
+            "schemaVersion": 1,
+            "id": "sdlc",
+            "capability": name,
+            "mode": "default",
+            "instructions": "MODULE.md",
+            "trigger": "Product change.",
+            "exitSignal": "Evidence exists.",
+            "evidence": ["Approved definition."],
+            "compatibleSdlc": ">=1.0.0 <2.0.0",
+        }
+        declaration.update(overrides)
+        (directory / "sdlc-capability.json").write_text(
+            json.dumps(declaration), encoding="utf-8"
+        )
+        return directory
+
     def cli_load_files(self):
         content = provider_text()
         digest = "sha256:" + hashlib.sha256(content.encode()).hexdigest()
@@ -161,16 +186,12 @@ class ProviderResolutionTests(unittest.TestCase):
                 "gaps": ["approval"],
             },
         )
+        self.write_capability("prd")
         registry = self.write_json(
             "registry.json",
             {
                 "schemaVersion": 1,
-                "modules": [{
-                    "name": "prd",
-                    "trigger": "Product change.",
-                    "exitSignal": "Evidence exists.",
-                    "evidence": ["Approved definition."],
-                }],
+                "modules": [{"name": "prd"}],
             },
         )
         context = self.write_json(
@@ -352,6 +373,7 @@ class ProviderResolutionTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        self.write_capability("prd")
         registry = self.write_json(
             "registry.json",
             {
