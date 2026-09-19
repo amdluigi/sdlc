@@ -477,7 +477,7 @@ class ConfigTests(unittest.TestCase):
             )
 
     def test_unsupported_schema_version_is_rejected(self):
-        for version in (True, 4):
+        for version in (True, 5):
             with self.subTest(version=version):
                 with self.assertRaisesRegex(
                     AdaptiveError, "unsupported schema version"
@@ -1433,7 +1433,8 @@ class ExtensionValidationTests(unittest.TestCase):
         config = json.loads(config_path.read_text("utf-8"))
         self.assertTrue(config["extensions"]["project"][extension.name])
         self.assertEqual({}, config["extensions"]["global"])
-        self.assertFalse(config["modules"]["testing"])
+        self.assertFalse(config["phases"]["verification"]["testing"])
+        self.assertEqual(4, config["schemaVersion"])
         self.assertEqual([".sdlc/config.json"], result["changedPaths"])
         self.assertIn(extension.name, result["rollback"])
 

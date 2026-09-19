@@ -364,7 +364,11 @@ class NonDelegatableTest(unittest.TestCase):
                 / "sdlc-config.schema.json"
             ).read_text(encoding="utf-8")
         )
-        states = schema["properties"]["modules"]["properties"]
+        states = {
+            name: state
+            for group in schema["properties"]["phases"]["properties"].values()
+            for name, state in group["properties"].items()
+        }
         restricted = {
             name
             for name, state in states.items()

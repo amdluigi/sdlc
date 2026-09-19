@@ -146,14 +146,22 @@ Projects control activation through `.sdlc/config.json`.
 
 Core modules default to enabled when a known key is omitted. Project and
 global extensions default to disabled and require explicit project opt-in.
-Schema 3 gives each core module exactly one state: bundled instructions by
+Schema 4 groups module states under the delivery phase that invokes them, so
+the configured file names the lifecycle rather than presenting a flat list.
+Phase membership is read from the module registry and is not configurable: a
+module listed under a phase that does not own it is a configuration error,
+because relocating a module to a less strictly gated phase would weaken a
+safeguard without disabling it visibly.
+
+Schema 4 gives each core module exactly one state: bundled instructions by
 default, bundled instructions by explicit decision, disabled, or one exact
 installed replacement provider. The two bundled states resolve identically
 and differ only in whether the developer has decided. An undecided
 capability with an eligible installed alternative is a question for the
-developer; a decided one is not. Schema 1 and schema 2
-booleans migrate to schema 3 without changing behavior. Migration is persisted
-atomically before any provider or extension resolution.
+developer; a decided one is not. Schema 1, 2, and 3 configurations migrate to
+schema 4 without changing behavior, preserving every explicit decision.
+Migration is persisted atomically before any provider or extension
+resolution.
 
 Configuration controls eligibility. Runtime triggers control applicability.
 Evidence controls whether work remains. A module is loaded only when all

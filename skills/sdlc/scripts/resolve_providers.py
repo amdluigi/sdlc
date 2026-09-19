@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 
+import config_contract
 from config_contract import (
     ConfigError,
     load_json_strict,
@@ -54,6 +55,14 @@ def _error(failure_class, module, provider, profile, remediation):
         f"{failure_class}: module={module}; provider={provider}; "
         f"hostProfile={profile}; remediation={remediation}"
     )
+
+
+def _phase_of(registry):
+    """Delivery phase per module, or None when the registry omits it."""
+    try:
+        return config_contract.phase_index(registry)
+    except config_contract.ConfigError:
+        return None
 
 
 def _registry_names(registry):
@@ -747,7 +756,9 @@ def main(argv=None, *, host_adapter=None):
         if args.command == "resolve":
             registry = load_json_strict(args.registry)
             names = _registry_names(registry)
-            config = load_project_config(args.project_root, names)
+            config = load_project_config(
+                args.project_root, names, _phase_of(registry)
+            )
             adapter = None
             if host_adapter is not None:
                 adapter = _host_adapter_method(
@@ -768,7 +779,9 @@ def main(argv=None, *, host_adapter=None):
         elif args.command == "survey":
             registry = load_json_strict(args.registry)
             names = _registry_names(registry)
-            config = load_project_config(args.project_root, names)
+            config = load_project_config(
+                args.project_root, names, _phase_of(registry)
+            )
             adapter = None
             modes = {}
             skipped = []

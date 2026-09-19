@@ -26,11 +26,11 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "c4bfa7f80dfc98641ae40f488cfad786c4aa8b6e980ff01bee09bc2ba1cb17a3"
+        "sha256": "a00019dc0873f6248755ad56a879d039179e087201d616d144a84181fd0471c3"
       },
       {
         "path": "assets/sdlc-config.template.json",
-        "sha256": "1ab2ba33f2619a02c1e4ed86f0ce128d7ceca213fe89327b1f2ddef2a529f1a4"
+        "sha256": "9e368206784ea808943c53220df58cd014e095a1c764ac77e278e2a2f741c973"
       },
       {
         "path": "contracts/capability-provider.schema.json",
@@ -98,7 +98,7 @@
       },
       {
         "path": "contracts/sdlc-config.schema.json",
-        "sha256": "537d2aeca88b2ef52c49b1491c6e633db6c152f5d8bf599387aa6e84830f957f"
+        "sha256": "7639baddf3a184ad8088620cb8d8f97fcb0a951fe381a993f3f1c7985f516f4c"
       },
       {
         "path": "modules/accessibility-browser/MODULE.md",
@@ -238,7 +238,7 @@
       },
       {
         "path": "scripts/adaptive_extensions.py",
-        "sha256": "c6dff70f1bc18af116f9e9cf0c0e072ed36ee35cbc515ca99814e9578bf0436c"
+        "sha256": "4e353016c6e1e04539257b4edc8277f7e87308f8f8457ec15a7c309d40034f53"
       },
       {
         "path": "scripts/artifact_contracts.py",
@@ -250,7 +250,7 @@
       },
       {
         "path": "scripts/config_contract.py",
-        "sha256": "8c281d88f998b10786a5a59a66abd00bf53922e6d7b7ce343a149fababe3fd2c"
+        "sha256": "461ad9707ba37771b4b11f8476baeeb5749781bd48dd703f9b3bc50ca5659d41"
       },
       {
         "path": "scripts/delivery_profile.py",
@@ -262,11 +262,11 @@
       },
       {
         "path": "scripts/manage_extensions.py",
-        "sha256": "3289c95f5080b6786aac2ad83d62148d866d849473f15550f554be4e5e55d186"
+        "sha256": "b630012f35830d8e5d1e624e034882252c0d20ee0777428b440df02cab9720c3"
       },
       {
         "path": "scripts/manage_metrics.py",
-        "sha256": "0e6c4c62b5c52edb1784d9d21b9abe1ab3ae92f0184925af6aed1be4d6b331b4"
+        "sha256": "f0837e6dff2d3a69e5c7022aa4f3f690089ae24a3cdb0befba9e34b92fda9ef4"
       },
       {
         "path": "scripts/operator_reports.py",
@@ -278,14 +278,14 @@
       },
       {
         "path": "scripts/resolve_providers.py",
-        "sha256": "eea1598388187d54984fa0c7919603902406ac0898f5594eef3a743bdf937098"
+        "sha256": "902d7114f5cbadeff16105d92900dbd77d40957bc9146697f0bbd0731ae4627e"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "6bf574c32de02fb9a7bb267a4aa897b8b3dbc944f8536175a6ba407e9118184f"
+    "bundleSha256": "7782eeb893838441ff1c9d923caa34525523ffac2fe403a779be72e519dcc5e4"
   },
   "profiles": [
     {

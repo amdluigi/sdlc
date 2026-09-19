@@ -776,14 +776,32 @@ def inspect_install(
     ]
     if set(config) != {
         "schemaVersion",
-        "modules",
+        "phases",
         "extensions",
         "measurement",
     }:
         fail("Installed config template fields are invalid")
-    if config.get("schemaVersion") != 3 or set(config.get("modules", {})) != module_names:
+    installed_phase = {
+        item["name"]: registry.get("categories", {})
+        .get(item.get("category"), {})
+        .get("deliveryPhase")
+        for item in registry["modules"]
+    }
+    configured = {}
+    if not isinstance(config.get("phases"), dict):
+        fail("Installed config template phases are invalid")
+    if list(config["phases"]) != list(registry.get("deliveryPhases", [])):
+        fail("Installed config template phases do not match the registry")
+    for phase, group in config["phases"].items():
+        if not isinstance(group, dict):
+            fail("Installed config template phases are invalid")
+        for name, value in group.items():
+            if installed_phase.get(name) != phase:
+                fail("Installed config template misplaces a module")
+            configured[name] = value
+    if config.get("schemaVersion") != 4 or set(configured) != module_names:
         fail("Installed config template does not match the module registry")
-    if not all(value is True for value in config["modules"].values()):
+    if not all(value is True for value in configured.values()):
         fail("Installed config template must enable every module")
     if config.get("extensions") != {"project": {}, "global": {}}:
         fail("Installed config template extension maps must be empty")

@@ -826,17 +826,21 @@ def _require_boolean_map(value, field: str) -> dict:
     return dict(value)
 
 
-def normalize_config(config, registry_names) -> dict:
+def normalize_config(config, registry_names, phase_of=None) -> dict:
     try:
-        return config_contract.normalize_config(config, registry_names)
+        return config_contract.normalize_config(
+            config, registry_names, phase_of
+        )
     except config_contract.ConfigError as error:
         raise AdaptiveError(str(error)) from error
 
 
-def load_project_config(project_root: Path, registry_names) -> dict:
+def load_project_config(
+    project_root: Path, registry_names, phase_of=None
+) -> dict:
     try:
         return config_contract.load_project_config(
-            project_root, registry_names
+            project_root, registry_names, phase_of
         )
     except config_contract.ConfigError as error:
         raise AdaptiveError(str(error)) from error
@@ -1058,6 +1062,14 @@ def _core_module_names(core_registry) -> set[str]:
             raise AdaptiveError(f"duplicate core module: {name}")
         names.add(name)
     return names
+
+
+def _phase_index(core_registry):
+    """Module name to delivery phase, or None when the registry lacks it."""
+    try:
+        return config_contract.phase_index(core_registry)
+    except config_contract.ConfigError:
+        return None
 
 
 def _unsafe_extension_matches(value: str):
@@ -1384,7 +1396,9 @@ def resolve_extensions(
 ) -> list[dict]:
     registry_names = _core_module_names(core_registry)
     triggers = _core_triggers(core_registry)
-    normalized = normalize_config(config, registry_names)
+    normalized = normalize_config(
+        config, registry_names, _phase_index(core_registry)
+    )
     configured = []
     for source in ("project", "global"):
         for identifier, enabled in normalized["extensions"][source].items():
@@ -1498,10 +1512,15 @@ def activate_extension(project_root: Path, extension_id: str) -> dict:
         )
 
     registry_names = _core_module_names(registry)
-    config = load_project_config(project_root, registry_names)
+    phase_of = _phase_index(registry)
+    config = load_project_config(project_root, registry_names, phase_of)
     config["extensions"]["project"][extension_id] = True
     config_path = project_root / ".sdlc" / "config.json"
-    _write_project_json(project_root, config_path, config)
+    _write_project_json(
+        project_root,
+        config_path,
+        config_contract.config_to_document(config, phase_of),
+    )
     return {
         "changedPaths": [".sdlc/config.json"],
         "rollback": (

@@ -1,34 +1,42 @@
 {
-  "schemaVersion": 3,
-  "modules": {
-    "project-memory": true,
-    "project-standards": true,
-    "prd": true,
-    "planning": true,
-
-    "change-contract": true,
-    "debugging": true,
-
-    "api-compatibility": true,
-    "data-migration": true,
-    "security-auth": true,
-    "performance-concurrency": true,
-    "accessibility-browser": true,
-    "dependency-supply-chain": true,
-    "observability": true,
-
-    "tdd": true,
-    "implementation": true,
-
-    "testing": true,
-    "review": true,
-    "operational-readiness": true,
-
-    "pr-handoff": true,
-    "release-launch": true,
-
-    "incident-response": true,
-    "continuous-improvement": true
+  "schemaVersion": 4,
+  "phases": {
+    "inception": {
+      "project-memory": true,
+      "project-standards": true,
+      "prd": true,
+      "planning": true
+    },
+    "triage": {
+      "change-contract": true,
+      "debugging": true
+    },
+    "design": {
+      "api-compatibility": true,
+      "data-migration": true,
+      "security-auth": true,
+      "performance-concurrency": true,
+      "accessibility-browser": true,
+      "dependency-supply-chain": true,
+      "observability": true
+    },
+    "implementation": {
+      "tdd": true,
+      "implementation": true
+    },
+    "verification": {
+      "testing": true,
+      "review": true,
+      "operational-readiness": true
+    },
+    "delivery": {
+      "pr-handoff": true,
+      "release-launch": true
+    },
+    "operate": {
+      "incident-response": true,
+      "continuous-improvement": true
+    }
   },
   "extensions": {
     "project": {},

@@ -42,6 +42,27 @@ def lifecycle_order() -> list:
     ]
 
 
+def schema_modules() -> list:
+    """Configurable module names, read out of the phase groups in order."""
+
+    groups = load(CONFIG_SCHEMA)["properties"]["phases"]["properties"]
+    return [
+        name
+        for phase in groups.values()
+        for name in phase["properties"]
+    ]
+
+
+def template_modules() -> list:
+    """Template module names, read out of the phase groups in order."""
+
+    return [
+        name
+        for group in load(CONFIG_TEMPLATE)["phases"].values()
+        for name in group
+    ]
+
+
 class LifecycleOrderTest(unittest.TestCase):
     """Configuration should read top to bottom as the lifecycle.
 
@@ -52,17 +73,18 @@ class LifecycleOrderTest(unittest.TestCase):
     """
 
     def test_the_config_template_is_ordered_by_phase(self) -> None:
-        template = load(CONFIG_TEMPLATE)
-
-        self.assertEqual(list(template["modules"]), lifecycle_order())
+        self.assertEqual(template_modules(), lifecycle_order())
 
     def test_the_config_schema_is_ordered_by_phase(self) -> None:
-        schema = load(CONFIG_SCHEMA)
+        self.assertEqual(schema_modules(), lifecycle_order())
 
-        self.assertEqual(
-            list(schema["properties"]["modules"]["properties"]),
-            lifecycle_order(),
-        )
+    def test_both_files_group_modules_under_the_same_phases(self) -> None:
+        template = load(CONFIG_TEMPLATE)["phases"]
+        schema = load(CONFIG_SCHEMA)["properties"]["phases"]["properties"]
+
+        self.assertEqual(list(template), list(schema))
+        for phase, group in template.items():
+            self.assertEqual(list(group), list(schema[phase]["properties"]))
 
     def test_the_first_and_last_entries_are_the_outer_phases(self) -> None:
         order = lifecycle_order()
@@ -74,20 +96,19 @@ class LifecycleOrderTest(unittest.TestCase):
 class RegistryConfigConsistencyTest(unittest.TestCase):
     def test_every_registry_module_is_configurable(self) -> None:
         registry = {entry["name"] for entry in load(REGISTRY)["modules"]}
-        schema = set(
-            load(CONFIG_SCHEMA)["properties"]["modules"]["properties"]
-        )
 
         self.assertEqual(
             registry,
-            schema,
+            set(schema_modules()),
             "Registry modules and configurable modules must match exactly",
         )
 
     def test_configuration_schema_rejects_unknown_modules(self) -> None:
-        modules = load(CONFIG_SCHEMA)["properties"]["modules"]
+        phases = load(CONFIG_SCHEMA)["properties"]["phases"]
 
-        self.assertFalse(modules["additionalProperties"])
+        self.assertFalse(phases["additionalProperties"])
+        for group in phases["properties"].values():
+            self.assertFalse(group["additionalProperties"])
 
 
 if __name__ == "__main__":
