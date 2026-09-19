@@ -2,7 +2,7 @@
 
 ## Repository authority and collaboration
 
-The public `skills` repository is the code authority. Product code, tests,
+The public `sdlc` repository is the code authority. Product code, tests,
 public documentation, CI, versions, releases, and contribution history are
 maintained directly in this Git repository.
 

@@ -7,12 +7,12 @@ belong in the charter, architecture, registry, modules, and specifications.
 ## Language
 
 **Public code authority**:
-The public `skills` repository where product code, tests, public
+The public `sdlc` repository where product code, tests, public
 documentation, CI, versions, releases, and contributions are maintained.
 _Avoid_: distribution mirror, generated repository
 
 **Public contribution**:
-A branch and pull request proposed directly against public `skills`, reviewed
+A branch and pull request proposed directly against public `sdlc`, reviewed
 and merged through public CI.
 _Avoid_: contribution ingestion, reverse synchronization
 

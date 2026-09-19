@@ -2,7 +2,7 @@
 
 ## Public code authority
 
-The public `skills` repository is authoritative for the usable product,
+The public `sdlc` repository is authoritative for the usable product,
 tests, public documentation, CI, versions, releases, and contribution
 history.
 
