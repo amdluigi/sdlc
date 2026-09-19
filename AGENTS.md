@@ -86,7 +86,7 @@ scripts/
    `modules/registry.json`, the default config template, documentation, and
    behavioral evaluations.
 9. Do not add `Co-authored-by` trailers to commits in this repository.
-10. Keep the extension metadata, candidate, evaluation, and schema-2
+10. Keep the extension metadata, candidate, evaluation, and schema-4
     configuration contracts backward compatible within the 2.x release line.
     A schema change requires an explicit migration path, strict validation,
     compatibility tests, and updated user documentation.

@@ -83,11 +83,11 @@ or reject.
 ### 8. Activate or reject
 
 After explicit acceptance and validation, add the extension ID to the
-appropriate schema-3 project configuration map. Record rejection rationale
-so the same proposal is not repeated without new evidence. Activation is a
-separate repository change subject to normal SDLC review. Never execute
-extension scripts, publish content, use the network, or mutate the installed
-core bundle.
+appropriate `extensions` map in project configuration. Record rejection
+rationale so the same proposal is not repeated without new evidence.
+Activation is a separate repository change subject to normal SDLC review.
+Never execute extension scripts, publish content, use the network, or mutate
+the installed core bundle.
 
 ### 9. Revalidate after core updates
 

@@ -213,8 +213,8 @@ still produced nothing until its exit evidence exists.
 
 ## Replacement providers
 
-A schema-3 replacement changes only the instruction provider for one core
-module. The core registry still controls its category, order, trigger, exit
+A replacement entry in project configuration changes only the instruction
+provider for one core module. The core registry still controls its category, order, trigger, exit
 signal, evidence clauses, freshness, and readiness. Never treat provider
 selection, loading, output, or self-certification as evidence.
 
