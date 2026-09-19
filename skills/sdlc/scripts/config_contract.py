@@ -12,6 +12,19 @@ class ConfigError(ValueError):
     pass
 
 
+NON_DELEGATABLE = frozenset(
+    {"change-contract", "review", "operational-readiness", "pr-handoff"}
+)
+"""Capabilities that may never be served by a replacement provider.
+
+Each renders the judgment that permits progression, so delegating it would
+let a provider authorize its own advancement. The set is hard-coded rather
+than passed in so that it fails closed when a caller forgets it; validation
+cross-checks it against the registry's replaceable flags, so the two cannot
+drift apart.
+"""
+
+
 _ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _REPARSE_POINT_ATTRIBUTE = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 
@@ -102,6 +115,11 @@ def normalize_config(config, registry_names):
         if type(value) is bool:
             normalized_modules[name] = value
         elif version == 3:
+            if name in NON_DELEGATABLE:
+                raise ConfigError(
+                    f"modules.{name} may not be replaced; it renders the "
+                    "judgment that permits progression"
+                )
             replacement = _replacement(value, f"modules.{name}")
             provider = replacement["replaceWith"]
             if provider == "sdlc" or provider in known:

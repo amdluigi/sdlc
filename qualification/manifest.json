@@ -94,7 +94,7 @@
       },
       {
         "path": "contracts/sdlc-config.schema.json",
-        "sha256": "57024135be096baec3109e004439c38fee166d20e808d36168e5cff508b15126"
+        "sha256": "c4110a91bf177dae05c036df2c4cdaed16cab84d5892351d533c94a8ebc1c118"
       },
       {
         "path": "modules/accessibility-browser/MODULE.md",
@@ -210,7 +210,7 @@
       },
       {
         "path": "modules/registry.json",
-        "sha256": "641f76c89332fbe5969a3cb5bb87edaa641faaa1661edb0ad501605838707048"
+        "sha256": "a81ad156aa8053a2ce324cc4f9e19533a9f4d2b60cef8128e44e3f95398010e5"
       },
       {
         "path": "modules/release-launch/MODULE.md",
@@ -246,7 +246,7 @@
       },
       {
         "path": "scripts/config_contract.py",
-        "sha256": "a24c698eed5c523db2f7a50578f5f209f09b933ef62239c24febdd4dd6ba6d74"
+        "sha256": "457869be0e36a2d78fa86651551e1f5ba02957326bb1a1c6959028b6e8f1c4f5"
       },
       {
         "path": "scripts/delivery_profile.py",
@@ -281,7 +281,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "74c32f06a779b3da7f4e3ad67cca63a0c4cff04312d76f1eb1944d1ead65a8cd"
+    "bundleSha256": "f4d8c85f7ba2dff99fb40ddf4de071e8ec77cb6d78773fe89f0429e8edb848bc"
   },
   "profiles": [
     {

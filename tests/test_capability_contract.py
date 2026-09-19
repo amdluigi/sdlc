@@ -24,6 +24,7 @@ SCHEMA = (
 sys.path.insert(0, str(ROOT / "skills" / "sdlc" / "scripts"))
 
 import capability_contract  # noqa: E402
+import config_contract  # noqa: E402
 
 
 def sdlc_version() -> str:
@@ -299,6 +300,90 @@ class ContractSchemaTest(unittest.TestCase):
     def test_schema_forbids_unknown_fields(self):
         schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
         self.assertFalse(schema["additionalProperties"])
+
+
+class NonDelegatableTest(unittest.TestCase):
+    """The four capabilities that permit progression may not be delegated."""
+
+    def config(self, **modules) -> dict:
+        return {
+            "schemaVersion": 3,
+            "modules": modules,
+            "extensions": {"project": {}, "global": {}},
+            "measurement": {"enabled": False},
+        }
+
+    def names(self) -> set:
+        return {entry["name"] for entry in registry()["modules"]}
+
+    def test_replacing_a_judgment_capability_is_refused(self):
+        for name in config_contract.NON_DELEGATABLE:
+            with self.subTest(module=name):
+                with self.assertRaises(config_contract.ConfigError) as caught:
+                    config_contract.normalize_config(
+                        self.config(**{name: {"replaceWith": "acme-plugin"}}),
+                        self.names(),
+                    )
+                self.assertIn("may not be replaced", str(caught.exception))
+
+    def test_a_judgment_capability_may_still_be_disabled(self):
+        normalized = config_contract.normalize_config(
+            self.config(review=False), self.names()
+        )
+        self.assertIs(normalized["modules"]["review"], False)
+
+    def test_a_delegatable_capability_may_still_be_replaced(self):
+        normalized = config_contract.normalize_config(
+            self.config(testing={"replaceWith": "acme-testing"}),
+            self.names(),
+        )
+        self.assertEqual(
+            normalized["modules"]["testing"], {"replaceWith": "acme-testing"}
+        )
+
+    def test_registry_flags_match_the_non_delegatable_set(self):
+        flagged = {
+            entry["name"]
+            for entry in registry()["modules"]
+            if not entry["replaceable"]
+        }
+        self.assertEqual(flagged, set(config_contract.NON_DELEGATABLE))
+
+    def test_every_module_declares_replaceability(self):
+        for entry in registry()["modules"]:
+            with self.subTest(module=entry["name"]):
+                self.assertIsInstance(entry["replaceable"], bool)
+
+    def test_config_schema_declares_the_restriction(self):
+        schema = json.loads(
+            (
+                ROOT
+                / "skills"
+                / "sdlc"
+                / "contracts"
+                / "sdlc-config.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        states = schema["properties"]["modules"]["properties"]
+        restricted = {
+            name
+            for name, state in states.items()
+            if state["$ref"].endswith("nonDelegatableState")
+        }
+        self.assertEqual(restricted, set(config_contract.NON_DELEGATABLE))
+
+    def test_restricted_schema_state_forbids_replacement(self):
+        schema = json.loads(
+            (
+                ROOT
+                / "skills"
+                / "sdlc"
+                / "contracts"
+                / "sdlc-config.schema.json"
+            ).read_text(encoding="utf-8")
+        )
+        state = schema["$defs"]["nonDelegatableState"]
+        self.assertEqual(state["type"], "boolean")
 
 
 if __name__ == "__main__":

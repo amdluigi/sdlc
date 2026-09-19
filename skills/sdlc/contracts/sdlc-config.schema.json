@@ -13,7 +13,7 @@
       "properties": {
         "project-memory": {"$ref": "#/$defs/moduleState"},
         "project-standards": {"$ref": "#/$defs/moduleState"},
-        "change-contract": {"$ref": "#/$defs/moduleState"},
+        "change-contract": {"$ref": "#/$defs/nonDelegatableState"},
         "prd": {"$ref": "#/$defs/moduleState"},
         "debugging": {"$ref": "#/$defs/moduleState"},
         "incident-response": {"$ref": "#/$defs/moduleState"},
@@ -29,9 +29,9 @@
         "implementation": {"$ref": "#/$defs/moduleState"},
         "testing": {"$ref": "#/$defs/moduleState"},
         "security-auth": {"$ref": "#/$defs/moduleState"},
-        "operational-readiness": {"$ref": "#/$defs/moduleState"},
-        "review": {"$ref": "#/$defs/moduleState"},
-        "pr-handoff": {"$ref": "#/$defs/moduleState"},
+        "operational-readiness": {"$ref": "#/$defs/nonDelegatableState"},
+        "review": {"$ref": "#/$defs/nonDelegatableState"},
+        "pr-handoff": {"$ref": "#/$defs/nonDelegatableState"},
         "continuous-improvement": {"$ref": "#/$defs/moduleState"}
       }
     },
@@ -68,6 +68,10 @@
           "properties": {"replaceWith": {"$ref": "#/$defs/id"}}
         }
       ]
+    },
+    "nonDelegatableState": {
+      "description": "This capability may only be enabled or disabled. It renders the judgment that permits progression, so it may not be served by a replacement provider.",
+      "type": "boolean"
     },
     "booleanMap": {
       "type": "object",

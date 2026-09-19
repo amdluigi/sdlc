@@ -20,6 +20,7 @@ if str(SKILL_SCRIPTS) not in sys.path:
 
 import adaptive_extensions
 import capability_contract
+import config_contract
 import delivery_profile
 import qualify
 
@@ -447,6 +448,11 @@ def validate_skill() -> None:
         for field in ("name", "category", "path", "trigger", "exitSignal"):
             if not entry.get(field):
                 fail(f"Module registry entry is missing {field}: {entry}")
+        if type(entry.get("replaceable")) is not bool:
+            fail(
+                "Module registry entry must declare replaceable: "
+                f"{entry.get('name')}"
+            )
         if not isinstance(entry.get("evidence"), list) or not entry["evidence"]:
             fail(f"Module evidence contract is missing: {entry['name']}")
         validate_fixture_path(entry["path"], f"module {entry['name']}")
@@ -476,17 +482,37 @@ def validate_skill() -> None:
     config_schema = load_json_strict_path(
         SKILL.parent / "contracts" / "sdlc-config.schema.json"
     )
-    configurable = set(
-        config_schema.get("properties", {})
-        .get("modules", {})
-        .get("properties", {})
+    module_states = config_schema.get("properties", {}).get("modules", {}).get(
+        "properties", {}
     )
+    configurable = set(module_states)
     if configurable != registered:
         fail(
             "Configuration schema and registry disagree: "
             f"missing={sorted(registered - configurable)}, "
             f"unknown={sorted(configurable - registered)}"
         )
+
+    non_replaceable = {
+        entry["name"] for entry in entries if not entry["replaceable"]
+    }
+    if non_replaceable != set(config_contract.NON_DELEGATABLE):
+        fail(
+            "Registry replaceable flags and the non-delegatable set "
+            f"disagree: registry={sorted(non_replaceable)}, "
+            f"code={sorted(config_contract.NON_DELEGATABLE)}"
+        )
+    for name, state in module_states.items():
+        expected = (
+            "#/$defs/nonDelegatableState"
+            if name in non_replaceable
+            else "#/$defs/moduleState"
+        )
+        if state.get("$ref") != expected:
+            fail(
+                "Configuration schema does not declare the replaceability "
+                f"of {name}; expected {expected}"
+            )
 
     phases = registry.get("deliveryPhases")
     if not isinstance(phases, list) or not phases:

@@ -10,32 +10,113 @@
     "operate"
   ],
   "categories": {
-    "context": {"deliveryPhase": "inception", "gate": null, "order": 0},
-    "product-requirements": {"deliveryPhase": "inception", "gate": null, "order": 1},
-    "planning": {"deliveryPhase": "inception", "gate": null, "order": 2},
-    "requirements": {"deliveryPhase": "triage", "gate": 1, "order": 3},
-    "diagnosis": {"deliveryPhase": "triage", "gate": 1, "order": 4},
-    "compatibility": {"deliveryPhase": "design", "gate": 2, "order": 5},
-    "data": {"deliveryPhase": "design", "gate": 2, "order": 6},
-    "risk": {"deliveryPhase": "design", "gate": 2, "order": 7},
-    "performance": {"deliveryPhase": "design", "gate": 2, "order": 8},
-    "experience": {"deliveryPhase": "design", "gate": 2, "order": 9},
-    "dependency": {"deliveryPhase": "design", "gate": 2, "order": 10},
-    "observability": {"deliveryPhase": "design", "gate": 2, "order": 11},
-    "implementation": {"deliveryPhase": "implementation", "gate": 3, "order": 12},
-    "verification": {"deliveryPhase": "verification", "gate": 5, "order": 13},
-    "review": {"deliveryPhase": "verification", "gate": 5, "order": 14},
-    "delivery-risk": {"deliveryPhase": "verification", "gate": 5, "order": 15},
-    "handoff": {"deliveryPhase": "delivery", "gate": 5, "order": 16},
-    "release": {"deliveryPhase": "delivery", "gate": null, "order": 17},
-    "incident": {"deliveryPhase": "operate", "gate": null, "order": 18},
-    "adaptation": {"deliveryPhase": "operate", "gate": null, "order": 19}
+    "context": {
+      "deliveryPhase": "inception",
+      "gate": null,
+      "order": 0
+    },
+    "product-requirements": {
+      "deliveryPhase": "inception",
+      "gate": null,
+      "order": 1
+    },
+    "planning": {
+      "deliveryPhase": "inception",
+      "gate": null,
+      "order": 2
+    },
+    "requirements": {
+      "deliveryPhase": "triage",
+      "gate": 1,
+      "order": 3
+    },
+    "diagnosis": {
+      "deliveryPhase": "triage",
+      "gate": 1,
+      "order": 4
+    },
+    "compatibility": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 5
+    },
+    "data": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 6
+    },
+    "risk": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 7
+    },
+    "performance": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 8
+    },
+    "experience": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 9
+    },
+    "dependency": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 10
+    },
+    "observability": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 11
+    },
+    "implementation": {
+      "deliveryPhase": "implementation",
+      "gate": 3,
+      "order": 12
+    },
+    "verification": {
+      "deliveryPhase": "verification",
+      "gate": 5,
+      "order": 13
+    },
+    "review": {
+      "deliveryPhase": "verification",
+      "gate": 5,
+      "order": 14
+    },
+    "delivery-risk": {
+      "deliveryPhase": "verification",
+      "gate": 5,
+      "order": 15
+    },
+    "handoff": {
+      "deliveryPhase": "delivery",
+      "gate": 5,
+      "order": 16
+    },
+    "release": {
+      "deliveryPhase": "delivery",
+      "gate": null,
+      "order": 17
+    },
+    "incident": {
+      "deliveryPhase": "operate",
+      "gate": null,
+      "order": 18
+    },
+    "adaptation": {
+      "deliveryPhase": "operate",
+      "gate": null,
+      "order": 19
+    }
   },
   "modules": [
     {
       "name": "project-memory",
       "category": "context",
       "order": 0,
+      "replaceable": true,
       "path": "project-memory/MODULE.md",
       "trigger": "Always when enabled.",
       "exitSignal": "The memory layout is canonical and conflict-free, or a trivial legacy-only task explicitly deferred migration; relevant current project memory was read and meaningful new knowledge was recorded.",
@@ -50,6 +131,7 @@
       "name": "project-standards",
       "category": "context",
       "order": 1,
+      "replaceable": true,
       "path": "project-standards/MODULE.md",
       "trigger": "Always when enabled.",
       "exitSignal": "Repository-specific engineering and delivery rules are identified.",
@@ -62,6 +144,7 @@
       "name": "change-contract",
       "category": "requirements",
       "order": 2,
+      "replaceable": false,
       "path": "change-contract/MODULE.md",
       "trigger": "Always when enabled to establish the change contract.",
       "exitSignal": "Repository findings, outcome, acceptance criteria, non-goals, impact, PR boundary, and costly open decisions are clear at the rigor required by the change.",
@@ -75,6 +158,7 @@
       "name": "prd",
       "category": "product-requirements",
       "order": 3,
+      "replaceable": true,
       "path": "prd/MODULE.md",
       "trigger": "A new project, a new user-facing or product-facing feature, or a Significant internal feature introduces a new capability.",
       "exitSignal": "A durable, identifiable, current PRD is complete, explicitly approved, and traceable through numbered requirements and acceptance criteria.",
@@ -89,6 +173,7 @@
       "name": "debugging",
       "category": "diagnosis",
       "order": 4,
+      "replaceable": true,
       "path": "debugging/MODULE.md",
       "trigger": "A bug or unexplained failure is in scope.",
       "exitSignal": "The root cause is supported by reproduction and a tested hypothesis.",
@@ -101,6 +186,7 @@
       "name": "incident-response",
       "category": "incident",
       "order": 5,
+      "replaceable": true,
       "path": "incident-response/MODULE.md",
       "trigger": "An active production incident, material service degradation, security event, or customer-impacting data integrity failure requires containment, recovery, or a post-incident follow-up.",
       "exitSignal": "Containment or recovery is verified, remaining impact and risk are explicit, root-cause status is honest, and follow-up actions have owners and observable completion criteria.",
@@ -114,6 +200,7 @@
       "name": "release-launch",
       "category": "release",
       "order": 6,
+      "replaceable": true,
       "path": "release-launch/MODULE.md",
       "trigger": "A completed change is being published, deployed, released, launched, rolled out, tagged, or otherwise made available to an external audience.",
       "exitSignal": "The release state is explicit and supported by current artifact, rollout, signal, and post-release validation evidence, with unresolved limitations visible to the owner.",
@@ -127,6 +214,7 @@
       "name": "planning",
       "category": "planning",
       "order": 7,
+      "replaceable": true,
       "path": "planning/MODULE.md",
       "trigger": "The change is Standard or Significant.",
       "exitSignal": "A current proportional implementation and verification plan exists, including dependency-aware execution for Significant work.",
@@ -141,6 +229,7 @@
       "name": "accessibility-browser",
       "category": "experience",
       "order": 8,
+      "replaceable": true,
       "path": "accessibility-browser/MODULE.md",
       "trigger": "A change creates or modifies rendered web or mobile UI, user interaction behavior, responsive layout, navigation or focus behavior, accessibility semantics, or browser-only runtime behavior.",
       "exitSignal": "Every affected user flow has current browser or app-runtime evidence at relevant viewport and input modes, applicable accessibility checks pass, and any unresolved usability or accessibility limitation is explicit.",
@@ -156,6 +245,7 @@
       "name": "performance-concurrency",
       "category": "performance",
       "order": 9,
+      "replaceable": true,
       "path": "performance-concurrency/MODULE.md",
       "trigger": "A change has an explicit latency, throughput, capacity, or resource objective; modifies an evidenced hot path; or introduces or changes concurrency, parallel work, batching, caching, streaming, queueing, rate control, or shared mutable state.",
       "exitSignal": "The relevant budget or baseline is explicit, representative current measurements meet it without correctness, contention, or resource regressions, and remaining capacity limits or measurement uncertainty are disclosed.",
@@ -171,6 +261,7 @@
       "name": "observability",
       "category": "observability",
       "order": 10,
+      "replaceable": true,
       "path": "observability/MODULE.md",
       "trigger": "A change adds, removes, or modifies logs, metrics, traces, dashboards, or alerts; introduces or changes a service, queue, scheduled-job, or other asynchronous production boundary; or has an accepted requirement for new diagnostic or operational signals.",
       "exitSignal": "Each affected production boundary and failure mode has current, queryable, privacy-safe diagnostic evidence with defined meaning and bounded cardinality or volume; applicable alerts have actionable thresholds and validated routing or are explicitly deferred as missing evidence.",
@@ -187,6 +278,7 @@
       "name": "api-compatibility",
       "category": "compatibility",
       "order": 11,
+      "replaceable": true,
       "path": "api-compatibility/MODULE.md",
       "trigger": "A change adds, removes, or modifies a consumer-visible request, response, command, event, schema, serialization, error, SDK, generated-client, or versioning contract, including behavior observable by an independently deployed or external consumer.",
       "exitSignal": "Affected consumers and contract deltas are explicit; compatible and breaking changes are classified; required versioning, deprecation, generated artifacts, and mixed-version behavior are implemented; and current contract plus representative consumer evidence passes.",
@@ -203,6 +295,7 @@
       "name": "data-migration",
       "category": "data",
       "order": 12,
+      "replaceable": true,
       "path": "data-migration/MODULE.md",
       "trigger": "A change transforms, backfills, moves, reinterprets, or deletes durable production data; changes a production schema in a way that requires old and new application or schema versions to coexist; or introduces a migration whose failure could leave persistent state partial or invalid.",
       "exitSignal": "The expand, backfill, switch, and contract sequence is explicit; current production-like rehearsal proves integrity, idempotency or resumability, mixed-version safety, and failure handling; rollback is tested where possible, otherwise a tested mitigation and irreversibility statement are present.",
@@ -219,6 +312,7 @@
       "name": "dependency-supply-chain",
       "category": "dependency",
       "order": 13,
+      "replaceable": true,
       "path": "dependency-supply-chain/MODULE.md",
       "trigger": "A change adds, removes, replaces, updates, pins, vendors, generates, downloads, or changes the resolution or execution of a third-party dependency, package manager, registry, lockfile, build plugin, action, container base, or fetched build artifact.",
       "exitSignal": "Each changed third-party component is necessary, resolves reproducibly from an approved provenance, has current advisory and license assessment, has reviewed transitive and build-script impact, and passes focused compatibility plus repository verification with residual risk disclosed.",
@@ -236,6 +330,7 @@
       "name": "tdd",
       "category": "implementation",
       "order": 14,
+      "replaceable": true,
       "path": "tdd/MODULE.md",
       "trigger": "New behavior or a bug fix changes executable behavior.",
       "exitSignal": "Each changed behavior has inspectable red-before-green evidence against real behavior, followed by minimal green and safe refactor, or a valid narrow technical exception.",
@@ -250,6 +345,7 @@
       "name": "implementation",
       "category": "implementation",
       "order": 15,
+      "replaceable": true,
       "path": "implementation/MODULE.md",
       "trigger": "Code or configuration changes are required.",
       "exitSignal": "The minimum complete implementation and authoritative design match the current contract through verified, safe, reversible slices.",
@@ -264,6 +360,7 @@
       "name": "testing",
       "category": "verification",
       "order": 16,
+      "replaceable": true,
       "path": "testing/MODULE.md",
       "trigger": "Behavior, bug, refactor, tests, or non-trivial verification are in scope.",
       "exitSignal": "Acceptance evidence is fresh and test sensitivity is known.",
@@ -277,6 +374,7 @@
       "name": "security-auth",
       "category": "risk",
       "order": 17,
+      "replaceable": true,
       "path": "security-auth/MODULE.md",
       "trigger": "External input, stored or sensitive data, network access, identity, permissions, secrets, dependencies, or user-visible output are affected.",
       "exitSignal": "Applicable security, authentication, and authorization risks are mitigated or disclosed.",
@@ -289,6 +387,7 @@
       "name": "operational-readiness",
       "category": "delivery-risk",
       "order": 18,
+      "replaceable": false,
       "path": "operational-readiness/MODULE.md",
       "trigger": "Production data, public contracts, runtime or deployment configuration, infrastructure, background processing, or rollout are affected.",
       "exitSignal": "Reversibility, compatibility, rollout, operational signals, and post-change checks are credible.",
@@ -301,6 +400,7 @@
       "name": "review",
       "category": "review",
       "order": 19,
+      "replaceable": false,
       "path": "review/MODULE.md",
       "trigger": "Always before completion when enabled.",
       "exitSignal": "Risk-scaled perspectives reviewed the current final diff and findings were triaged.",
@@ -313,6 +413,7 @@
       "name": "pr-handoff",
       "category": "handoff",
       "order": 20,
+      "replaceable": false,
       "path": "pr-handoff/MODULE.md",
       "trigger": "Always before completion when enabled to prepare PR handoff.",
       "exitSignal": "Final repository state and a human-readable handoff support a readiness decision.",
@@ -325,6 +426,7 @@
       "name": "continuous-improvement",
       "category": "adaptation",
       "order": 21,
+      "replaceable": true,
       "path": "continuous-improvement/MODULE.md",
       "trigger": "A task produces a correction, repeated merge step, recurring review finding or coverage gap, explicit learning request, or an SDLC core upgrade changes core responsibilities.",
       "exitSignal": "Learning signals and upgrade-driven extension overlap were classified and routed, recorded, proposed, accepted, rejected, or proposed for supersession with rationale.",
