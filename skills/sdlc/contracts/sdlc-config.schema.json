@@ -16,6 +16,8 @@
         "change-contract": {"$ref": "#/$defs/moduleState"},
         "prd": {"$ref": "#/$defs/moduleState"},
         "debugging": {"$ref": "#/$defs/moduleState"},
+        "incident-response": {"$ref": "#/$defs/moduleState"},
+        "release-launch": {"$ref": "#/$defs/moduleState"},
         "planning": {"$ref": "#/$defs/moduleState"},
         "accessibility-browser": {"$ref": "#/$defs/moduleState"},
         "performance-concurrency": {"$ref": "#/$defs/moduleState"},

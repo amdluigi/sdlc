@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:delivery-profile:1",
+  "title": "SDLC delivery profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "phases"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "gate", "capabilities"],
+        "properties": {
+          "name": {"$ref": "#/$defs/id"},
+          "gate": {
+            "oneOf": [
+              {"type": "integer", "minimum": 1, "maximum": 5},
+              {"type": "null"}
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {"$ref": "#/$defs/capability"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "category", "plugin", "source", "role", "enabled"],
+      "properties": {
+        "name": {"$ref": "#/$defs/id"},
+        "category": {"$ref": "#/$defs/id"},
+        "plugin": {"$ref": "#/$defs/id"},
+        "source": {"enum": ["bundled", "project", "global", "host"]},
+        "role": {"enum": ["default", "extend", "replace"]},
+        "enabled": {"type": "boolean"}
+      }
+    }
+  }
+}

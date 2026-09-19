@@ -170,6 +170,37 @@ their positive registry triggers from accepted scope and changed surfaces,
 not repository technology alone. Each remains independently triggerable and
 satisfiable.
 
+## Delivery profile
+
+Every module belongs to a category, and every category belongs to one phase
+of software development. `deliveryPhases` and `categories` in
+[modules/registry.json](modules/registry.json) declare that grouping. Phase
+is a grouping and presentation layer only. Resolution and replacement happen
+per module; a phase never binds a provider and never carries authority of
+its own.
+
+A phase gate is the entry gate: the earliest gate at which any of its
+categories participates. A phase with no gate lies outside the per-change
+state machine and cannot block progression.
+
+`scripts/delivery_profile.py` resolves the registry against project
+configuration and renders one map showing which provider serves each
+capability:
+
+```
+python skills/sdlc/scripts/delivery_profile.py render \
+  --registry skills/sdlc/modules/registry.json \
+  --output docs/DELIVERY-PROFILE.md
+```
+
+Pass `--config .sdlc/config.json` to see the resolved profile for a
+configured project. The generated file is committed so a configuration
+change that redirects a capability appears as a reviewable diff. Validation
+fails when it is stale.
+
+The profile reports resolution, not evidence. A provider named there has
+still produced nothing until its exit evidence exists.
+
 ## Replacement providers
 
 A schema-3 replacement changes only the instruction provider for one core

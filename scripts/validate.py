@@ -19,6 +19,7 @@ if str(SKILL_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SKILL_SCRIPTS))
 
 import adaptive_extensions
+import delivery_profile
 import qualify
 
 
@@ -77,6 +78,7 @@ REQUIRED_HELPERS = {
     "adaptive_extensions.py",
     "artifact_contracts.py",
     "config_contract.py",
+    "delivery_profile.py",
     "handoff_renderers.py",
     "manage_extensions.py",
     "manage_metrics.py",
@@ -86,6 +88,7 @@ REQUIRED_HELPERS = {
     "validate_artifacts.py",
 }
 REQUIRED_CONTRACTS = {
+    "delivery-profile.schema.json",
     "handoff-result.schema.json",
     "handoff.schema.json",
     "metrics.schema.json",
@@ -111,6 +114,7 @@ SECRET_LIKE_ASSIGNMENT = re.compile(
     re.IGNORECASE,
 )
 URL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
+SKILL_GATES = frozenset({1, 2, 3, 4, 5})
 PATH_TOKEN_SEPARATOR = re.compile(r"""[\s()\[\]{}<>,;"'`]+""")
 SLASH_COMMAND_PATTERN = re.compile(r"^/[A-Za-z][A-Za-z0-9-]*$")
 EXTENSION_BUNDLE_PATH = re.compile(
@@ -464,6 +468,73 @@ def validate_skill() -> None:
             "Module registry mismatch: "
             f"missing={sorted(available - registered)}, "
             f"unknown={sorted(registered - available)}"
+        )
+
+    config_schema = load_json_strict_path(
+        SKILL.parent / "contracts" / "sdlc-config.schema.json"
+    )
+    configurable = set(
+        config_schema.get("properties", {})
+        .get("modules", {})
+        .get("properties", {})
+    )
+    if configurable != registered:
+        fail(
+            "Configuration schema and registry disagree: "
+            f"missing={sorted(registered - configurable)}, "
+            f"unknown={sorted(configurable - registered)}"
+        )
+
+    phases = registry.get("deliveryPhases")
+    if not isinstance(phases, list) or not phases:
+        fail("Module registry must declare deliveryPhases")
+    if len(phases) != len(set(phases)):
+        fail("Delivery phase names must be unique")
+
+    categories = registry.get("categories")
+    if not isinstance(categories, dict) or not categories:
+        fail("Module registry must declare categories")
+
+    used_categories = {entry["category"] for entry in entries}
+    if set(categories) != used_categories:
+        fail(
+            "Category declarations and module categories disagree: "
+            f"missing={sorted(used_categories - set(categories))}, "
+            f"unknown={sorted(set(categories) - used_categories)}"
+        )
+
+    category_orders = [value.get("order") for value in categories.values()]
+    if sorted(category_orders) != list(range(len(categories))):
+        fail("Category order values must be contiguous from zero")
+
+    for name, value in categories.items():
+        if value.get("deliveryPhase") not in phases:
+            fail(f"Category declares an unknown deliveryPhase: {name}")
+        gate = value.get("gate", False)
+        if gate is not None and gate not in SKILL_GATES:
+            fail(f"Category declares an unknown gate: {name}")
+
+    covered = {
+        categories[entry["category"]]["deliveryPhase"] for entry in entries
+    }
+    if covered != set(phases):
+        fail(
+            "Every delivery phase must contain at least one module: "
+            f"empty={sorted(set(phases) - covered)}"
+        )
+
+    profile_path = ROOT / "docs" / "DELIVERY-PROFILE.md"
+    if not profile_path.is_file():
+        fail("Missing generated delivery profile: docs/DELIVERY-PROFILE.md")
+    expected_profile = delivery_profile.render_markdown(
+        delivery_profile.build_profile(registry, None)
+    )
+    if profile_path.read_text(encoding="utf-8") != expected_profile:
+        fail(
+            "docs/DELIVERY-PROFILE.md is stale. Regenerate it with: "
+            "python skills/sdlc/scripts/delivery_profile.py render "
+            "--registry skills/sdlc/modules/registry.json "
+            "--output docs/DELIVERY-PROFILE.md"
         )
     if "project-memory" in registered:
         memory_templates = (

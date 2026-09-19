@@ -13,6 +13,7 @@
       "scripts/adaptive_extensions.py",
       "scripts/artifact_contracts.py",
       "scripts/config_contract.py",
+      "scripts/delivery_profile.py",
       "scripts/handoff_renderers.py",
       "scripts/manage_extensions.py",
       "scripts/manage_metrics.py",
@@ -24,11 +25,15 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "5b5dd8c9c28f74d9aa615b86bfbd895ee2e1c73d2ec901a1d122aa366c097c0c"
+        "sha256": "76d7a24b89405da04e28eb3fb54636141a076cadd5f18ee78b0ad5b3af5a1992"
       },
       {
         "path": "assets/sdlc-config.template.json",
         "sha256": "25588e3fa5e8845ad5971567f8084840934149a41596893dd330b23bddf528af"
+      },
+      {
+        "path": "contracts/delivery-profile.schema.json",
+        "sha256": "ae4d61033e37389e735a2d5fa94435312383aab7a8118d7efa2a8cb0ad850897"
       },
       {
         "path": "contracts/handoff-result.schema.json",
@@ -84,7 +89,7 @@
       },
       {
         "path": "contracts/sdlc-config.schema.json",
-        "sha256": "96478ce3b172ca13e5756ff828ee2f8d94f546ef65f7e68ec4fe150598b76796"
+        "sha256": "57024135be096baec3109e004439c38fee166d20e808d36168e5cff508b15126"
       },
       {
         "path": "modules/accessibility-browser/MODULE.md",
@@ -200,7 +205,7 @@
       },
       {
         "path": "modules/registry.json",
-        "sha256": "432c1da6c885e16812c5e8165af9f4834443fc3e41a0437b2cd33bf29248e95f"
+        "sha256": "641f76c89332fbe5969a3cb5bb87edaa641faaa1661edb0ad501605838707048"
       },
       {
         "path": "modules/release-launch/MODULE.md",
@@ -235,6 +240,10 @@
         "sha256": "a24c698eed5c523db2f7a50578f5f209f09b933ef62239c24febdd4dd6ba6d74"
       },
       {
+        "path": "scripts/delivery_profile.py",
+        "sha256": "8cd04743e68c853baae892df7f227b5363edf99b3ebe2be6acaabd36e1dc63cf"
+      },
+      {
         "path": "scripts/handoff_renderers.py",
         "sha256": "f4d054e02784aa540ff6320bed4d620b278624ea02948885e134d4350db211f2"
       },
@@ -263,7 +272,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "aab17d97e93923dbe052481f4fe0c35732db0b98a640f59ecb74b849c5c01cdc"
+    "bundleSha256": "4660ae88612d2540a00acfa48628f570450a10f87ea4491b845660e453374a19"
   },
   "profiles": [
     {

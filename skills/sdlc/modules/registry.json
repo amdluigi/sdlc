@@ -1,5 +1,36 @@
 {
   "schemaVersion": 1,
+  "deliveryPhases": [
+    "inception",
+    "triage",
+    "design",
+    "implementation",
+    "verification",
+    "delivery",
+    "operate"
+  ],
+  "categories": {
+    "context": {"deliveryPhase": "inception", "gate": null, "order": 0},
+    "product-requirements": {"deliveryPhase": "inception", "gate": null, "order": 1},
+    "planning": {"deliveryPhase": "inception", "gate": null, "order": 2},
+    "requirements": {"deliveryPhase": "triage", "gate": 1, "order": 3},
+    "diagnosis": {"deliveryPhase": "triage", "gate": 1, "order": 4},
+    "compatibility": {"deliveryPhase": "design", "gate": 2, "order": 5},
+    "data": {"deliveryPhase": "design", "gate": 2, "order": 6},
+    "risk": {"deliveryPhase": "design", "gate": 2, "order": 7},
+    "performance": {"deliveryPhase": "design", "gate": 2, "order": 8},
+    "experience": {"deliveryPhase": "design", "gate": 2, "order": 9},
+    "dependency": {"deliveryPhase": "design", "gate": 2, "order": 10},
+    "observability": {"deliveryPhase": "design", "gate": 2, "order": 11},
+    "implementation": {"deliveryPhase": "implementation", "gate": 3, "order": 12},
+    "verification": {"deliveryPhase": "verification", "gate": 5, "order": 13},
+    "review": {"deliveryPhase": "verification", "gate": 5, "order": 14},
+    "delivery-risk": {"deliveryPhase": "verification", "gate": 5, "order": 15},
+    "handoff": {"deliveryPhase": "delivery", "gate": 5, "order": 16},
+    "release": {"deliveryPhase": "delivery", "gate": null, "order": 17},
+    "incident": {"deliveryPhase": "operate", "gate": null, "order": 18},
+    "adaptation": {"deliveryPhase": "operate", "gate": null, "order": 19}
+  },
   "modules": [
     {
       "name": "project-memory",
