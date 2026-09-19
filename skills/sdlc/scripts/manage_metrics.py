@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from adaptive_extensions import AdaptiveError, load_json_strict
+import config_contract
 from config_contract import ConfigError, normalize_config
 
 
@@ -187,14 +188,25 @@ def locate_store(project_root, require_safe=True):
     return root, _verify_existing_components(root, path), category
 
 
-def _registry_names():
+def _registry_value():
     path = Path(__file__).resolve().parent.parent / "modules" / "registry.json"
-    value = load_json_strict(path)
+    return load_json_strict(path)
+
+
+def _registry_names():
+    value = _registry_value()
     return {
         item["name"]
         for item in value.get("modules", [])
         if isinstance(item, dict) and isinstance(item.get("name"), str)
     }
+
+
+def _phase_index():
+    try:
+        return config_contract.phase_index(_registry_value())
+    except ConfigError:
+        return None
 
 
 def measurement_enabled(project_root):
@@ -205,7 +217,9 @@ def measurement_enabled(project_root):
     if _is_link_or_reparse(path):
         raise MetricsError("project config must not be a link or reparse point")
     try:
-        config = normalize_config(load_json_strict(path), _registry_names())
+        config = normalize_config(
+            load_json_strict(path), _registry_names(), _phase_index()
+        )
     except (AdaptiveError, ConfigError) as error:
         raise MetricsError(str(error)) from error
     return config["measurement"]["enabled"]
@@ -244,14 +258,18 @@ def configure_measurement(project_root, enabled):
     with _store_lock(store_path):
         try:
             original = load_json_strict(config_path)
-            normalized = normalize_config(original, _registry_names())
+            phase_of = _phase_index()
+            normalized = normalize_config(
+                original, _registry_names(), phase_of
+            )
         except (AdaptiveError, ConfigError) as error:
             raise MetricsError("config-invalid") from error
         current = normalized["measurement"]["enabled"]
         if current == enabled:
             return {"enabled": enabled, "changed": False}
         if original["schemaVersion"] == 1:
-            updated = normalized
+            normalized["measurement"] = {"enabled": enabled}
+            updated = config_contract.config_to_document(normalized, phase_of)
         else:
             updated = dict(original)
             updated["measurement"] = {"enabled": enabled}

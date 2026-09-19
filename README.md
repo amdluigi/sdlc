@@ -248,42 +248,50 @@ list of internal modules and their responsibilities.
 
 ### Module policy
 
-`.sdlc/config.json` is the file you edit. It lists every module in lifecycle
-order, so the file reads as the delivery phases: `inception` first,
-`operate` last.
+`.sdlc/config.json` is the file you edit, and it is shaped by the lifecycle.
+Every module sits under the delivery phase that invokes it, so the phase
+names are in the file itself:
 
 ```json
 {
-  "schemaVersion": 3,
-  "modules": {
-    "project-memory": true,
-    "project-standards": true,
-    "prd": true,
-    "planning": true,
-
-    "change-contract": true,
-    "debugging": true,
-
-    "api-compatibility": true,
-    "data-migration": true,
-    "security-auth": true,
-    "performance-concurrency": true,
-    "accessibility-browser": true,
-    "dependency-supply-chain": true,
-    "observability": true,
-
-    "tdd": true,
-    "implementation": true,
-
-    "testing": true,
-    "review": true,
-    "operational-readiness": true,
-
-    "pr-handoff": true,
-    "release-launch": true,
-
-    "incident-response": true,
-    "continuous-improvement": true
+  "schemaVersion": 4,
+  "phases": {
+    "inception": {
+      "project-memory": true,
+      "project-standards": true,
+      "prd": true,
+      "planning": true
+    },
+    "triage": {
+      "change-contract": true,
+      "debugging": true
+    },
+    "design": {
+      "api-compatibility": true,
+      "data-migration": true,
+      "security-auth": true,
+      "performance-concurrency": true,
+      "accessibility-browser": true,
+      "dependency-supply-chain": true,
+      "observability": true
+    },
+    "implementation": {
+      "tdd": true,
+      "implementation": true
+    },
+    "verification": {
+      "testing": true,
+      "review": true,
+      "operational-readiness": true
+    },
+    "delivery": {
+      "pr-handoff": true,
+      "release-launch": true
+    },
+    "operate": {
+      "incident-response": true,
+      "continuous-improvement": true
+    }
   },
   "extensions": {
     "project": {},
@@ -295,9 +303,23 @@ order, so the file reads as the delivery phases: `inception` first,
 }
 ```
 
-The blank lines separate the seven phases, in the order shown in the
-[delivery phases table](#what-sdlc-provides). JSON has no comments, so the
-grouping is the file's own documentation of which phase each module serves.
+These are the same seven phases as the
+[delivery phases table](#what-sdlc-provides) and the lifecycle diagram, in
+the same order. To change how a phase is served, find the phase and edit the
+module under it.
+
+Which phase a module belongs to is owned by the
+[module registry](skills/sdlc/modules/registry.json), not by this file.
+Moving a module to another phase is rejected:
+
+```text
+phases.operate.testing belongs to delivery phase verification; module
+placement is owned by the registry and may not be changed by configuration
+```
+
+Without that rule a module could be moved to a phase that is checked later
+or not gated at all, which would let configuration weaken a safeguard
+instead of turning it off in the open.
 
 Each module takes one of four values:
 
@@ -315,6 +337,11 @@ only in whether you have made a decision.
 only `true` or `false`. Each renders the judgment that permits a change to
 advance, so delegating one would let a provider authorize its own
 progression.
+
+If you already have a configuration written before this shape existed,
+SDLC upgrades it in place the next time it reads it. Schema versions 1
+through 3 are still accepted, your decisions are preserved, and the file is
+rewritten under `phases`. There is nothing to run.
 
 ### Replace a bundled module with an external skill
 
@@ -391,17 +418,22 @@ have not decided. `deliveryPhase` and `entryGate` come from the
 The full shape of an entry is
 [contracts/provider-survey.schema.json](skills/sdlc/contracts/provider-survey.schema.json).
 
-**Step 3. Record your decision** by editing that module's line in the
-`modules` block of `.sdlc/config.json`:
+**Step 3. Record your decision** by editing that module under its phase in
+`.sdlc/config.json`. `testing` runs in `verification`, which the survey just
+told you:
 
 ```json
-    "testing": { "replaceWith": "acme-testing" },
+    "verification": {
+      "testing": { "replaceWith": "acme-testing" },
+      "review": true,
+      "operational-readiness": true
+    },
 ```
 
 Or keep the bundled module and stop being asked:
 
 ```json
-    "testing": { "provider": "bundled" },
+      "testing": { "provider": "bundled" },
 ```
 
 Re-run the survey to confirm; `decision` becomes `settled`. Until you record

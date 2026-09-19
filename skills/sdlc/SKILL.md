@@ -139,15 +139,25 @@ project root.
   [assets/sdlc-config.template.json](assets/sdlc-config.template.json), tell
   the user, and continue with all modules enabled. Defer scaffolding for
   trivial work.
-- Accept `schemaVersion: 1` and `schemaVersion: 2` for backward compatibility.
-  Migrate either to schema 3 and persist the complete normalized configuration
-  atomically before provider or extension resolution. Preserve every explicit
-  boolean and extension flag. Missing `measurement` becomes
-  `{"enabled": false}`. Schema 3 requires `modules`, `extensions.project`,
-  `extensions.global`, and the strict `measurement.enabled` boolean.
-- Each schema-3 module value is exactly `true`, `false`, or
-  `{"replaceWith": "installed-skill-id"}`. Replacement objects contain only
-  that field. Provider IDs are lowercase kebab-case, unique across module
+- Accept `schemaVersion: 1`, `2`, and `3` for backward compatibility.
+  Migrate any of them to schema 4 and persist the complete normalized
+  configuration atomically before provider or extension resolution. Preserve
+  every explicit boolean, replacement decision, and extension flag. Missing
+  `measurement` becomes `{"enabled": false}`. Schema 4 requires `phases`,
+  `extensions.project`, `extensions.global`, and the strict
+  `measurement.enabled` boolean.
+- Schema 4 groups module states under the delivery phase that invokes them,
+  so the file names the lifecycle a developer is configuring. Phase
+  membership is owned by
+  [modules/registry.json](modules/registry.json). A module listed under any
+  phase other than its registered one is a configuration error: configuration
+  chooses how a phase is served, never where a module sits, because moving a
+  module to a less strictly gated phase would weaken a safeguard without
+  disabling it in the open.
+- Each schema-4 module value is exactly `true`, `false`,
+  `{"provider": "bundled"}`, or `{"replaceWith": "installed-skill-id"}`.
+  Replacement objects contain only that field. Provider IDs are lowercase
+  kebab-case, unique across module
   assignments, and cannot name `sdlc` or a core module. Unsupported versions,
   unknown fields or module names, duplicate keys or providers, and invalid
   union values are configuration errors: stop and identify the exact problem.

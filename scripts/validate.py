@@ -439,6 +439,13 @@ def validate_skill() -> None:
 
     registered = set(names)
 
+    module_phase = {
+        entry.get("name"): registry.get("categories", {})
+        .get(entry.get("category"), {})
+        .get("deliveryPhase")
+        for entry in entries
+    }
+
     if "continuous-improvement" not in registered:
         fail("Module registry must contain continuous-improvement")
     if "tdd" not in registered:
@@ -483,9 +490,20 @@ def validate_skill() -> None:
     config_schema = load_json_strict_path(
         SKILL.parent / "contracts" / "sdlc-config.schema.json"
     )
-    module_states = config_schema.get("properties", {}).get("modules", {}).get(
-        "properties", {}
+    schema_phases = (
+        config_schema.get("properties", {}).get("phases", {}).get("properties", {})
     )
+    if list(schema_phases) != list(registry.get("deliveryPhases", [])):
+        fail("Configuration schema must group modules by delivery phase")
+    module_states = {}
+    for phase, group in schema_phases.items():
+        for name, state in group.get("properties", {}).items():
+            if module_phase.get(name) != phase:
+                fail(
+                    f"Configuration schema lists {name} under {phase}; "
+                    "module placement is owned by the registry"
+                )
+            module_states[name] = state
     configurable = set(module_states)
     if configurable != registered:
         fail(
@@ -629,12 +647,25 @@ def validate_skill() -> None:
     )
     if (
         type(config_template.get("schemaVersion")) is not int
-        or config_template["schemaVersion"] != 3
+        or config_template["schemaVersion"] != 4
     ):
-        fail("SDLC config template must use schemaVersion 3")
-    configured_modules = config_template.get("modules")
-    if not isinstance(configured_modules, dict):
-        fail("SDLC config template modules must be an object")
+        fail("SDLC config template must use schemaVersion 4")
+    template_phases = config_template.get("phases")
+    if not isinstance(template_phases, dict):
+        fail("SDLC config template phases must be an object")
+    if list(template_phases) != list(registry.get("deliveryPhases", [])):
+        fail("SDLC config template must list every delivery phase in order")
+    configured_modules = {}
+    for phase, group in template_phases.items():
+        if not isinstance(group, dict):
+            fail(f"SDLC config template phase {phase} must be an object")
+        for name, value in group.items():
+            if module_phase.get(name) != phase:
+                fail(
+                    f"SDLC config template lists {name} under {phase}; "
+                    "module placement is owned by the registry"
+                )
+            configured_modules[name] = value
     if set(configured_modules) != registered:
         fail("SDLC config template must list every registered module")
     if any(value is not True for value in configured_modules.values()):

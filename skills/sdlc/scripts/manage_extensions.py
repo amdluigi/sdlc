@@ -11,6 +11,7 @@ from adaptive_extensions import (
     AdaptiveError,
     Observation,
     _core_module_names,
+    _phase_index,
     _load_candidates,
     _validate_kebab,
     activate_extension,
@@ -252,6 +253,7 @@ def main(argv=None) -> int:
             config = load_project_config(
                 arguments.project_root,
                 registry_names,
+                _phase_index(registry),
             )
             result = resolve_extensions(
                 arguments.project_root,

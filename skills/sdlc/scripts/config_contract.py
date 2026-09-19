@@ -28,6 +28,66 @@ drift apart.
 _ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _REPARSE_POINT_ATTRIBUTE = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 
+CURRENT_SCHEMA_VERSION = 4
+"""The version written to disk.
+
+Version 4 groups modules under the delivery phase that invokes them, so the
+file a developer opens names the lifecycle. Versions 1 through 3 are still
+read and are migrated on first load.
+"""
+
+
+def phase_index(registry):
+    """Map every module name to its delivery phase, in lifecycle order.
+
+    Placement belongs to the registry. Returning it as an ordered mapping
+    lets the configuration be grouped for a reader without letting the
+    configuration decide where a module sits.
+    """
+    if not isinstance(registry, dict):
+        raise ConfigError("registry must be an object")
+    phases = registry.get("deliveryPhases")
+    categories = registry.get("categories")
+    modules = registry.get("modules")
+    if not isinstance(phases, list) or not all(
+        isinstance(phase, str) for phase in phases
+    ):
+        raise ConfigError("registry deliveryPhases must be an array of strings")
+    if not isinstance(categories, dict):
+        raise ConfigError("registry categories must be an object")
+    if not isinstance(modules, list):
+        raise ConfigError("registry modules must be an array")
+
+    ordered = []
+    for module in modules:
+        if not isinstance(module, dict):
+            raise ConfigError("invalid registry module")
+        name = module.get("name")
+        category = categories.get(module.get("category"))
+        if not isinstance(name, str) or not isinstance(category, dict):
+            raise ConfigError("invalid registry module")
+        phase = category.get("deliveryPhase")
+        if phase not in phases:
+            raise ConfigError(f"unknown delivery phase: {phase}")
+        ordered.append(
+            (
+                phases.index(phase),
+                category.get("order", 0),
+                module.get("order", 0),
+                name,
+                phase,
+            )
+        )
+
+    ordered.sort(key=lambda item: item[:3] + (item[3],))
+    index = {}
+    for _, _, _, name, phase in ordered:
+        if name in index:
+            raise ConfigError(f"duplicate registry module: {name}")
+        index[name] = phase
+    return index
+
+
 
 def _duplicate_rejecting_object(pairs):
     result = {}
@@ -100,21 +160,57 @@ def _replacement(value, field):
     return {"replaceWith": provider}
 
 
-def normalize_config(config, registry_names):
+def _flatten_phases(phases, phase_of):
+    if phase_of is None:
+        raise ConfigError(
+            "schema version 4 requires a registry phase index"
+        )
+    if not isinstance(phases, dict):
+        raise ConfigError("phases must be an object")
+    known_phases = []
+    for phase in phase_of.values():
+        if phase not in known_phases:
+            known_phases.append(phase)
+    unknown = set(phases) - set(known_phases)
+    if unknown:
+        raise ConfigError(f"unknown delivery phase: {sorted(unknown)[0]}")
+
+    modules = {}
+    for phase in phases:
+        group = phases[phase]
+        if not isinstance(group, dict):
+            raise ConfigError(f"phases.{phase} must be an object")
+        for name, value in group.items():
+            if name not in phase_of:
+                raise ConfigError(f"unknown core module: {name}")
+            if phase_of[name] != phase:
+                raise ConfigError(
+                    f"phases.{phase}.{name} belongs to delivery phase "
+                    f"{phase_of[name]}; module placement is owned by the "
+                    "registry and may not be changed by configuration"
+                )
+            modules[name] = value
+    return modules
+
+
+def normalize_config(config, registry_names, phase_of=None):
     if not isinstance(config, dict):
         raise ConfigError("config must be an object")
     version = config.get("schemaVersion")
-    if type(version) is not int or version not in (1, 2, 3):
+    if type(version) is not int or version not in (1, 2, 3, 4):
         raise ConfigError(f"unsupported schema version: {version}")
 
-    allowed = {"schemaVersion", "modules"}
+    allowed = {"schemaVersion", "phases" if version >= 4 else "modules"}
     if version >= 2:
         allowed.update({"extensions", "measurement"})
     unknown = set(config) - allowed
     if unknown:
         raise ConfigError(f"unknown config field: {sorted(unknown)[0]}")
 
-    modules = config.get("modules")
+    if version >= 4:
+        modules = _flatten_phases(config.get("phases"), phase_of)
+    else:
+        modules = config.get("modules")
     if not isinstance(modules, dict):
         raise ConfigError("modules must be an object")
     known = set(registry_names)
@@ -130,7 +226,7 @@ def normalize_config(config, registry_names):
         value = modules.get(name, True)
         if type(value) is bool:
             normalized_modules[name] = value
-        elif version == 3:
+        elif version >= 3:
             if name in NON_DELEGATABLE:
                 raise ConfigError(
                     f"modules.{name} may not be replaced; it renders the "
@@ -192,6 +288,34 @@ def normalize_config(config, registry_names):
     }
 
 
+def config_to_document(normalized, phase_of=None):
+    """Render the on-disk document for an already normalized config.
+
+    With a phase index the modules are grouped under the phase that invokes
+    them, so the file reads as the lifecycle. Without one the flat shape is
+    kept, which is what callers that never load a registry still expect.
+    """
+    if phase_of is None:
+        return dict(normalized)
+
+    modules = normalized["modules"]
+    missing = set(modules) - set(phase_of)
+    if missing:
+        raise ConfigError(f"unknown core module: {sorted(missing)[0]}")
+
+    phases = {}
+    for name, phase in phase_of.items():
+        if name in modules:
+            phases.setdefault(phase, {})[name] = modules[name]
+
+    return {
+        "schemaVersion": CURRENT_SCHEMA_VERSION,
+        "phases": phases,
+        "extensions": normalized["extensions"],
+        "measurement": normalized["measurement"],
+    }
+
+
 def _is_link_or_reparse(path):
     metadata = path.lstat()
     return stat.S_ISLNK(metadata.st_mode) or bool(
@@ -243,18 +367,19 @@ def write_json_atomic(path, value):
             temporary_path.unlink(missing_ok=True)
 
 
-def load_project_config(project_root, registry_names):
+def load_project_config(project_root, registry_names, phase_of=None):
     root = Path(project_root)
     if not root.is_dir():
         raise ConfigError("project root must be an existing directory")
     path = root / ".sdlc" / "config.json"
     if not path.exists() and not path.is_symlink():
         return normalize_config(
-            {"schemaVersion": 1, "modules": {}}, registry_names
+            {"schemaVersion": 1, "modules": {}}, registry_names, phase_of
         )
     _validate_config_path(root, path)
     original = load_json_strict(path)
-    normalized = normalize_config(original, registry_names)
-    if normalized != original:
-        write_json_atomic(path, normalized)
+    normalized = normalize_config(original, registry_names, phase_of)
+    document = config_to_document(normalized, phase_of)
+    if document != original:
+        write_json_atomic(path, document)
     return normalized
