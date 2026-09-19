@@ -237,7 +237,11 @@ def normalize_config(config, registry_names, phase_of=None):
                 normalized_modules[name] = replacement
                 continue
             provider = replacement["replaceWith"]
-            if provider == "sdlc" or provider in known:
+            if (
+                provider == "sdlc"
+                or provider.startswith("sdlc-")
+                or provider in known
+            ):
                 raise ConfigError(
                     f"modules.{name}.replaceWith creates a provider cycle"
                 )

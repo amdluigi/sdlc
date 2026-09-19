@@ -99,6 +99,17 @@ signal, and acceptable evidence, using the same contract a third-party
 provider satisfies. A registry row carrying those fields is rejected, and a
 declaration carrying placement is rejected, so each field has one home.
 
+A module is an interface and the skill serving it is an implementation.
+Bundled implementations are named after the interface they serve, so
+`sdlc-testing` is the implementation of `testing`. Binding an interface to an
+implementation is a configuration decision, and
+[the delivery profile](DELIVERY-PROFILE.md) reports the current binding for
+every interface. The `sdlc-` prefix is reserved to the bundle, which is what
+keeps a bundled name unclaimable by an external skill.
+
+Named implementations are not separate release units. All of them ship in one
+qualified bundle at one version.
+
 It also declares the delivery phase layer:
 
 - `deliveryPhases`, the ordered phases of software development;

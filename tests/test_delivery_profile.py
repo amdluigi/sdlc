@@ -148,7 +148,7 @@ class BuildProfileTest(unittest.TestCase):
 
         capability = find(profile, "review")
 
-        self.assertEqual(capability["plugin"], "sdlc")
+        self.assertEqual(capability["plugin"], "sdlc-review")
         self.assertEqual(capability["source"], "bundled")
         self.assertEqual(capability["role"], "default")
 

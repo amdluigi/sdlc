@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-accessibility-browser",
   "capability": "accessibility-browser",
   "mode": "default",
   "instructions": "MODULE.md",

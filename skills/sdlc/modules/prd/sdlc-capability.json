@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-prd",
   "capability": "prd",
   "mode": "default",
   "instructions": "MODULE.md",

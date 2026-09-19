@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-observability",
   "capability": "observability",
   "mode": "default",
   "instructions": "MODULE.md",

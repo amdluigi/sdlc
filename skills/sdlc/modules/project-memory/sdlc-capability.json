@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-project-memory",
   "capability": "project-memory",
   "mode": "default",
   "instructions": "MODULE.md",

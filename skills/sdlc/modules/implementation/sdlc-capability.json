@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-implementation",
   "capability": "implementation",
   "mode": "default",
   "instructions": "MODULE.md",

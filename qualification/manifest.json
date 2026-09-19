@@ -26,7 +26,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "0d0b4188da6ad8fe597fde0d7149983a3f9931ffb2e48a8573d7f951c390be48"
+        "sha256": "2f8903ca27988ddea6be3352576fdeda47578b264239d5b22ae2903eb73f1c9a"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -34,7 +34,7 @@
       },
       {
         "path": "contracts/capability-provider.schema.json",
-        "sha256": "93306f316cf1e84dcaebb580e7b62de55be37dda378eaad190a63f8af20985aa"
+        "sha256": "e0e0735e7bbb8cbb543eec07ba55491a7975dfa240d94fb48d23d55f0c0f1221"
       },
       {
         "path": "contracts/delivery-profile.schema.json",
@@ -106,7 +106,7 @@
       },
       {
         "path": "modules/accessibility-browser/sdlc-capability.json",
-        "sha256": "0c4ae6678a9fa71d23e8ba5868594389acf89402d04b565de4e925891ec109b6"
+        "sha256": "c338b869ef317845369216bfbf1e0632bd265be1a7a254a5f25b34d7f1f0df95"
       },
       {
         "path": "modules/api-compatibility/MODULE.md",
@@ -114,7 +114,7 @@
       },
       {
         "path": "modules/api-compatibility/sdlc-capability.json",
-        "sha256": "2f98c2ef83df4198d2a8f6e6652fc3d599f477cb2b0d6830c68be32d01b689b2"
+        "sha256": "6c1173af169549d2a964afd6e8a8b468975b0311497aeda6d7bef216d235e8c6"
       },
       {
         "path": "modules/change-contract/MODULE.md",
@@ -122,7 +122,7 @@
       },
       {
         "path": "modules/change-contract/sdlc-capability.json",
-        "sha256": "56a07d4dc8761b0493e131cf7c3f8a8d4298c7b1bce2e56da30993c712784164"
+        "sha256": "c8a17ada20c734abeb1eafbf884c114ef0415cd423f0d712d9957e6aad484fba"
       },
       {
         "path": "modules/continuous-improvement/MODULE.md",
@@ -134,7 +134,7 @@
       },
       {
         "path": "modules/continuous-improvement/sdlc-capability.json",
-        "sha256": "a5eb87d8e2ee8e089441b1fbcc8362a2fa1b0b4d01f742a6a7413a9a4076c7fb"
+        "sha256": "7efcd75db5c0b7d0013d96dea9019cf12c33a6696d78d7ba61ab1fcc323abc70"
       },
       {
         "path": "modules/data-migration/MODULE.md",
@@ -142,7 +142,7 @@
       },
       {
         "path": "modules/data-migration/sdlc-capability.json",
-        "sha256": "a8876c928eeafeabb894f65e9cf15fc71ab30ddd6a9aed2afdb22e7fac1f4e0d"
+        "sha256": "0f2fc3687221850f15abd1c16f9724fb94dfabb2d4bfae8a723ea0ce6cb11603"
       },
       {
         "path": "modules/debugging/MODULE.md",
@@ -150,7 +150,7 @@
       },
       {
         "path": "modules/debugging/sdlc-capability.json",
-        "sha256": "d92a937266b85c10fa1c18719d9fa427cb9f1c1eae834be8231052e5a6547c3c"
+        "sha256": "7183a8ceab990b4c3672131f409eda9fb718739fa664df9d27246d69de92a83c"
       },
       {
         "path": "modules/dependency-supply-chain/MODULE.md",
@@ -158,7 +158,7 @@
       },
       {
         "path": "modules/dependency-supply-chain/sdlc-capability.json",
-        "sha256": "3dd23e877cfa0e883c83912dedf1013accfbdc8e2733ca2edba86be608784b48"
+        "sha256": "308e5be54d91a84220a46ca03272e87db0ba669faa99a4d54f2d9ad935bccf8c"
       },
       {
         "path": "modules/implementation/MODULE.md",
@@ -166,7 +166,7 @@
       },
       {
         "path": "modules/implementation/sdlc-capability.json",
-        "sha256": "cc38a4fda39e3d0fb7a4f1a7b91d01de155762b3a5e470497067ad4932cf5a77"
+        "sha256": "d1459deb3988d3f30a643a974d0514547bff5a7468992c4deaca51f2222995c4"
       },
       {
         "path": "modules/incident-response/MODULE.md",
@@ -174,7 +174,7 @@
       },
       {
         "path": "modules/incident-response/sdlc-capability.json",
-        "sha256": "e8fd13018ee601436a5ad033082d164c721d1ba705a78da9c01e2453fab2621e"
+        "sha256": "8273c0dbb70989d8447e785f30a45b502bbdcb790af2553ba54899f7374fdf3a"
       },
       {
         "path": "modules/observability/MODULE.md",
@@ -182,7 +182,7 @@
       },
       {
         "path": "modules/observability/sdlc-capability.json",
-        "sha256": "df1ad08e89376f98504340670981ac01a6151b631d0b16be89ade53557deb377"
+        "sha256": "36edfbcb3e1bce0c927386a6c9144a27e74024b68cce46aa3c8820a05a0f9d19"
       },
       {
         "path": "modules/operational-readiness/MODULE.md",
@@ -190,7 +190,7 @@
       },
       {
         "path": "modules/operational-readiness/sdlc-capability.json",
-        "sha256": "c6aae6674f48eb3c3b8d4ecce8107d56c6243cf29761f29a022e730bdd283453"
+        "sha256": "2d67117bb2368d95b6782377fa0afae6f9cc07ac3cea9035a8eec2bcc18e7401"
       },
       {
         "path": "modules/performance-concurrency/MODULE.md",
@@ -198,7 +198,7 @@
       },
       {
         "path": "modules/performance-concurrency/sdlc-capability.json",
-        "sha256": "5a6101900ed0082f0c477d295c36c8a6353ee8448cb9f6fe5ed9028bdb86d3fe"
+        "sha256": "9f628c5f98a33c20636b73bbbba846457e6508423acebea8cf6e298495c4abe6"
       },
       {
         "path": "modules/planning/MODULE.md",
@@ -206,7 +206,7 @@
       },
       {
         "path": "modules/planning/sdlc-capability.json",
-        "sha256": "ccdf08d35cc9e938d0a933b297e09b294659b895b8e04b29c2f5ce4322a76763"
+        "sha256": "9d4696644318b383fcabc555a2c549ead2285f37f2c906a20c8e6e5a7dacac8b"
       },
       {
         "path": "modules/pr-handoff/MODULE.md",
@@ -214,7 +214,7 @@
       },
       {
         "path": "modules/pr-handoff/sdlc-capability.json",
-        "sha256": "d7d708640952d1a9aeb3eb3f2245dc32a1362b40a017cd7a5381a82a6a56d76a"
+        "sha256": "23840c036a6873ff0cc8f8fda1c644645215379eb89e16db2a274c6a0a4002da"
       },
       {
         "path": "modules/prd/MODULE.md",
@@ -230,7 +230,7 @@
       },
       {
         "path": "modules/prd/sdlc-capability.json",
-        "sha256": "ff12331be06a30bf67fc9a97ac11f3b6f3f5bc9b29b1416f64bd8dfae8d4571b"
+        "sha256": "93368bc0c6c4635ad949fbc7fcefdea9efca9e170c89c0f48ac4cbb83b7b08cd"
       },
       {
         "path": "modules/project-memory/MODULE.md",
@@ -266,7 +266,7 @@
       },
       {
         "path": "modules/project-memory/sdlc-capability.json",
-        "sha256": "4058923151e790155cc7a6c8de4d39672e080fe71b80d07eca634d0dbd187510"
+        "sha256": "438d7fdbc33c65eb51adcc2e2303a297bb3342a72a06175380b72ed3471e56d2"
       },
       {
         "path": "modules/project-standards/MODULE.md",
@@ -278,7 +278,7 @@
       },
       {
         "path": "modules/project-standards/sdlc-capability.json",
-        "sha256": "489acb562a2699ffee63faf175c165085f164d4a1bd571e85b922e6ec1c0a711"
+        "sha256": "6dc55b83d45cd3b142308f2cea98c5426609f07c1171e944d981741d06b3d254"
       },
       {
         "path": "modules/registry.json",
@@ -290,7 +290,7 @@
       },
       {
         "path": "modules/release-launch/sdlc-capability.json",
-        "sha256": "9f40815cf888db5c927b43f79df4bd91d30641bdf422f1f176e7ee3e66ba733c"
+        "sha256": "40a48704cf6d5cda38bdbf2b3adf20d2dc72bca1c229c963bfe14fded65d5613"
       },
       {
         "path": "modules/review/MODULE.md",
@@ -298,7 +298,7 @@
       },
       {
         "path": "modules/review/sdlc-capability.json",
-        "sha256": "8400b32a802c1527b247399cc9f501675cc62d6dbabe24515d07196399c6bc99"
+        "sha256": "efd56db7da2983bc6e9287c9fe1e33c8d367bdab46c743281b807fc6c5a0d3f4"
       },
       {
         "path": "modules/security-auth/MODULE.md",
@@ -306,7 +306,7 @@
       },
       {
         "path": "modules/security-auth/sdlc-capability.json",
-        "sha256": "ae69879550f0eca5320da93386e83fd62327b870aa0d98dcc8281fc9cc986572"
+        "sha256": "a3b983a7b4fd18206dc128698db33dd2498e0100fbb3dc02d07e3342169f4871"
       },
       {
         "path": "modules/tdd/MODULE.md",
@@ -314,7 +314,7 @@
       },
       {
         "path": "modules/tdd/sdlc-capability.json",
-        "sha256": "d0960a08a174511635865ac71a694fdb1e1037d7191a6c2b09e9db45cc17bd0d"
+        "sha256": "b9acaa8d4581d6166b65969b6420c731ea34b02bf5e72eb2922216af1770bec7"
       },
       {
         "path": "modules/testing/MODULE.md",
@@ -322,7 +322,7 @@
       },
       {
         "path": "modules/testing/sdlc-capability.json",
-        "sha256": "c3985c10eca3864fe138fb453c0ad9e886a1a86123270cab1ae16372e6b2072e"
+        "sha256": "1a60bb931d55af29172acfe96b702b4ba14e7b15c257b059d4604590e95d714d"
       },
       {
         "path": "scripts/adaptive_extensions.py",
@@ -334,15 +334,15 @@
       },
       {
         "path": "scripts/capability_contract.py",
-        "sha256": "b99182cc8e6748effcd151b2649dcaf6ba8245fc7b4c3fd70c729d3c66576f97"
+        "sha256": "253eb30b54d23ac638bbccc9ac70efafc4ab3d59a58663c74deb322bcadda037"
       },
       {
         "path": "scripts/config_contract.py",
-        "sha256": "461ad9707ba37771b4b11f8476baeeb5749781bd48dd703f9b3bc50ca5659d41"
+        "sha256": "c94976fa95fca8f2c84d93c66176813169bbf46281daaf3f938cd2fa7bf6cc8a"
       },
       {
         "path": "scripts/delivery_profile.py",
-        "sha256": "ffd22fbfb1c863acbbff7484051f690f1097e277989cb80067799cb38e35e484"
+        "sha256": "84c3169318b582d0a0299a0c31552939800098ea48c28abb33ad8399ed1946ba"
       },
       {
         "path": "scripts/handoff_renderers.py",
@@ -373,7 +373,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "81693c8c0aab87a65856effa1114f0a81fdb6c41b9b6b22e972b04265f44087c"
+    "bundleSha256": "a82ea9cf3d39ac0c2d896ed219128e3d4d52223bd8ed5b19a8eef07940c51433"
   },
   "profiles": [
     {

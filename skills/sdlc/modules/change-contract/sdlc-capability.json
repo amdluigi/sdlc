@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "sdlc",
+  "id": "sdlc-change-contract",
   "capability": "change-contract",
   "mode": "default",
   "instructions": "MODULE.md",

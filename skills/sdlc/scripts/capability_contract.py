@@ -27,7 +27,19 @@ from pathlib import Path
 
 SCHEMA_VERSION = 1
 DECLARATION_FILENAME = "sdlc-capability.json"
-BUNDLED_PROVIDER_ID = "sdlc"
+CONTROL_PLANE_ID = "sdlc"
+BUNDLED_ID_PREFIX = "sdlc-"
+
+
+def bundled_provider_id(capability):
+    """Return the identity of the implementation the bundle ships.
+
+    A module is an interface and the skill serving it is an implementation.
+    Bundled implementations are named rather than anonymous, so a reader can
+    see which one is bound.
+    """
+
+    return BUNDLED_ID_PREFIX + capability
 
 MODES = ("default", "augment", "replace")
 
@@ -127,8 +139,15 @@ def validate_declaration(declaration, *, capabilities=None, reserved=None):
     if mode not in MODES:
         raise ContractError(f"unknown mode: {mode!r}")
 
-    if reserved is not None and identifier in reserved:
-        raise ContractError(f"provider id is reserved: {identifier}")
+    if reserved is not None:
+        if identifier == CONTROL_PLANE_ID or identifier.startswith(
+            BUNDLED_ID_PREFIX
+        ):
+            raise ContractError(
+                f"provider id is reserved to the bundle: {identifier}"
+            )
+        if identifier in reserved:
+            raise ContractError(f"provider id is reserved: {identifier}")
 
     normalized = {
         "schemaVersion": SCHEMA_VERSION,
@@ -217,10 +236,10 @@ def load_bundled_declaration(modules_root, entry, capabilities=None):
             f"capability directory {name} declares capability "
             f"{normalized['capability']}"
         )
-    if normalized["id"] != BUNDLED_PROVIDER_ID:
+    if normalized["id"] != bundled_provider_id(name):
         raise ContractError(
-            f"{name} claims provider id {normalized['id']}; a bundled "
-            f"declaration is the {BUNDLED_PROVIDER_ID} provider"
+            f"{name} claims provider id {normalized['id']}; the bundled "
+            f"implementation of {name} is {bundled_provider_id(name)}"
         )
     if normalized["mode"] != "default":
         raise ContractError(
