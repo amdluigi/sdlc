@@ -208,19 +208,29 @@ module. The core registry still controls its category, order, trigger, exit
 signal, evidence clauses, freshness, and readiness. Never treat provider
 selection, loading, output, or self-certification as evidence.
 
-After configuration migration, the active host embeds the provider helper and
-injects its trusted adapter object through the library API, outside
-caller-controlled CLI arguments. The adapter's
-`enumerate_providers(host_profile)` method returns metadata-only installed
-skill candidates. Each
+`change-contract`, `review`, `operational-readiness`, and `pr-handoff` may
+never be replaced. Each renders the judgment that permits a change to
+advance, so delegating one would let a provider authorize its own
+progression. The registry declares this as `replaceable: false`, the
+configuration schema accepts only a boolean for them, and configuration
+normalization refuses a replacement. They may still be disabled.
+
+A provider is enumerated one of two ways. Either the active host embeds the
+provider helper and injects its trusted adapter object through the library
+API, outside caller-controlled CLI arguments, or the provider declares
+itself on disk under an explicitly supplied provider root. Both produce the
+same candidate metadata and go through the same resolution.
+
+The adapter's `enumerate_providers(host_profile)` method returns
+metadata-only installed skill candidates. Each
 candidate supplies its exact declared Agent Skill `name`, provider metadata,
 content digest, and opaque load token without exposing or reading instruction
 content. Resolve every configured provider by that exact declared identity.
 Zero matches, duplicate candidates in any scopes, incompatible or malformed
 provider metadata, and hosts unable to enumerate exact IDs and bind a stable
 load target are blocking configuration errors. Never use fuzzy identity,
-scope precedence, directory scanning, remote installation, or bundled
-fallback.
+scope precedence, implicit discovery of unconfigured providers, remote
+installation, or bundled fallback.
 
 An eligible provider declares string metadata:
 
@@ -234,6 +244,25 @@ metadata:
 Unknown `sdlc-*` fields block provider use. Preserve the returned digest,
 provider metadata, and opaque load token.
 
+### Filesystem provider declarations
+
+A third-party skill may serve a capability without any host adapter by
+shipping `sdlc-capability.json` beside its skill document, in a directory
+passed explicitly with `--provider-root`. The declaration states
+`schemaVersion`, `id`, `capability`, `mode`, `instructions`, `trigger`,
+`exitSignal`, `evidence`, `compatibleSdlc`, and, when `mode` is `replace`,
+`evaluations` demonstrating parity with the capability it displaces. See
+`contracts/capability-provider.schema.json`.
+
+Enumerating a provider root is not implicit discovery. Only configured
+identities resolve, matching stays exact, duplicate identities across roots
+are ambiguous and blocking, and a declaration claiming `sdlc` or a core
+capability name is refused. A declaration that cannot be validated is
+skipped and reported rather than raised, so one malformed directory cannot
+disable the lifecycle. The declared instruction document is the provider's
+own skill document, so its frontmatter name and `sdlc-*` metadata must match
+its declaration; a mismatch is refused at load.
+
 Evaluate the unchanged core trigger and evidence contract before loading
 instructions. If the module is not applicable or existing evidence satisfies
 the contract, load neither provider. For `partial`, `missing`, or
@@ -241,7 +270,11 @@ the contract, load neither provider. For `partial`, `missing`, or
 adapter to consume the exact opaque token through the same host-controlled
 embedding boundary. The library calls `load_provider(load_token)` directly
 and does not accept an adapter import path or caller-supplied load response.
-Standalone CLI resolution or loading that needs a provider reports
+For a filesystem provider, pass the same `--provider-root` values to
+`resolve_providers.py load-module`, which re-reads and re-digests the
+declared document and refuses any change since resolution.
+Standalone CLI resolution or loading that needs a provider and has neither a
+host adapter nor a provider root reports
 `provider-resolution-unsupported`; it never imports a caller-named adapter or
 reads provider instructions directly. The adapter must atomically validate
 and consume the token against current host state, then return the bound
@@ -449,9 +482,15 @@ reported honestly and cannot block otherwise satisfied lifecycle work.
 7. Do not load `MODULE.md` instructions for `satisfied`,
    `configured-disabled`, or
    `not-applicable` entries. Do not repeat their work.
-8. For `partial`, `missing`, or `stale/unverified` entries, use the
-   digest-bound loader to read the module and perform only the unresolved
-   work. Preserve core registry order, then resolved extension order.
+8. For `partial`, `missing`, or `stale/unverified` entries, read the
+   instructions and perform only the unresolved work. Read a bundled
+   `MODULE.md` at its registry path; its integrity is bound at the bundle
+   level by `qualification/manifest.json`, verified with
+   `qualify.py verify-manifest`, not per module at load time. Load a
+   replacement provider through `resolve_providers.py load-module` and an
+   extension through `manage_extensions.py load-module`, both of which are
+   digest-bound per load. Preserve core registry order, then resolved
+   extension order.
 9. Do not load a conditional module or extension merely to investigate
    whether it might apply. If later evidence triggers it, add it to the
    ledger then.

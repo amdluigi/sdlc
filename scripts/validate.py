@@ -19,6 +19,8 @@ if str(SKILL_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SKILL_SCRIPTS))
 
 import adaptive_extensions
+import capability_contract
+import config_contract
 import delivery_profile
 import qualify
 
@@ -77,6 +79,7 @@ DOMAIN_MODULE_SECTIONS = (
 REQUIRED_HELPERS = {
     "adaptive_extensions.py",
     "artifact_contracts.py",
+    "capability_contract.py",
     "config_contract.py",
     "delivery_profile.py",
     "handoff_renderers.py",
@@ -88,6 +91,7 @@ REQUIRED_HELPERS = {
     "validate_artifacts.py",
 }
 REQUIRED_CONTRACTS = {
+    "capability-provider.schema.json",
     "delivery-profile.schema.json",
     "handoff-result.schema.json",
     "handoff.schema.json",
@@ -444,6 +448,11 @@ def validate_skill() -> None:
         for field in ("name", "category", "path", "trigger", "exitSignal"):
             if not entry.get(field):
                 fail(f"Module registry entry is missing {field}: {entry}")
+        if type(entry.get("replaceable")) is not bool:
+            fail(
+                "Module registry entry must declare replaceable: "
+                f"{entry.get('name')}"
+            )
         if not isinstance(entry.get("evidence"), list) or not entry["evidence"]:
             fail(f"Module evidence contract is missing: {entry['name']}")
         validate_fixture_path(entry["path"], f"module {entry['name']}")
@@ -473,17 +482,37 @@ def validate_skill() -> None:
     config_schema = load_json_strict_path(
         SKILL.parent / "contracts" / "sdlc-config.schema.json"
     )
-    configurable = set(
-        config_schema.get("properties", {})
-        .get("modules", {})
-        .get("properties", {})
+    module_states = config_schema.get("properties", {}).get("modules", {}).get(
+        "properties", {}
     )
+    configurable = set(module_states)
     if configurable != registered:
         fail(
             "Configuration schema and registry disagree: "
             f"missing={sorted(registered - configurable)}, "
             f"unknown={sorted(configurable - registered)}"
         )
+
+    non_replaceable = {
+        entry["name"] for entry in entries if not entry["replaceable"]
+    }
+    if non_replaceable != set(config_contract.NON_DELEGATABLE):
+        fail(
+            "Registry replaceable flags and the non-delegatable set "
+            f"disagree: registry={sorted(non_replaceable)}, "
+            f"code={sorted(config_contract.NON_DELEGATABLE)}"
+        )
+    for name, state in module_states.items():
+        expected = (
+            "#/$defs/nonDelegatableState"
+            if name in non_replaceable
+            else "#/$defs/moduleState"
+        )
+        if state.get("$ref") != expected:
+            fail(
+                "Configuration schema does not declare the replaceability "
+                f"of {name}; expected {expected}"
+            )
 
     phases = registry.get("deliveryPhases")
     if not isinstance(phases, list) or not phases:
@@ -522,6 +551,18 @@ def validate_skill() -> None:
             "Every delivery phase must contain at least one module: "
             f"empty={sorted(set(phases) - covered)}"
         )
+
+    version = skill_version()
+    for entry in entries:
+        try:
+            capability_contract.declaration_from_registry_entry(
+                entry, version, registered
+            )
+        except capability_contract.ContractError as error:
+            fail(
+                "Bundled module does not satisfy the capability provider "
+                f"contract: {entry['name']}: {error}"
+            )
 
     profile_path = ROOT / "docs" / "DELIVERY-PROFILE.md"
     if not profile_path.is_file():
@@ -772,6 +813,17 @@ def validate_manifests() -> None:
         qualify.validate_result(
             qualify.load_json_strict(result_path), qualification_manifest
         )
+
+
+def skill_version() -> str:
+    match = re.search(
+        r'^  version:\s+"([^"]+)"$',
+        SKILL.read_text(encoding="utf-8"),
+        re.MULTILINE,
+    )
+    if not match:
+        fail("SKILL.md must declare a metadata version")
+    return match.group(1)
 
 
 def validate_domain_module_contract(

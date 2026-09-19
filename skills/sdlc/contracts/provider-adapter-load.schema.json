@@ -9,7 +9,7 @@
   "properties": {
     "schemaVersion": {"const": 1},
     "hostProfile": {
-      "enum": ["copilot-vscode", "claude-code", "generic-agent-skills"]
+      "enum": ["copilot-vscode", "claude-code", "generic-agent-skills", "filesystem"]
     },
     "status": {
       "enum": [
