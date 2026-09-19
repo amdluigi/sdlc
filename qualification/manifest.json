@@ -26,7 +26,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "76d7a24b89405da04e28eb3fb54636141a076cadd5f18ee78b0ad5b3af5a1992"
+        "sha256": "4fcc8656382db9916f515c189e31a42dd4e6d7c97338d8cc537f0c4a5ecdd52c"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -34,7 +34,7 @@
       },
       {
         "path": "contracts/capability-provider.schema.json",
-        "sha256": "bef9c5987115101b0cd645bbf3120da1c47c6258115ef6f51f6788de7931980e"
+        "sha256": "93306f316cf1e84dcaebb580e7b62de55be37dda378eaad190a63f8af20985aa"
       },
       {
         "path": "contracts/delivery-profile.schema.json",
@@ -70,11 +70,11 @@
       },
       {
         "path": "contracts/provider-adapter-load.schema.json",
-        "sha256": "c9a22b7f39622adb361cdb6b8306e01bb1966fabf9297aa036f7e8fafa0a090e"
+        "sha256": "a69a144da51254807e2f5a1a629d442dd2d716018e30676d8c1148e7842dd9ef"
       },
       {
         "path": "contracts/provider-adapter.schema.json",
-        "sha256": "665010bac13aa4a41ff83a0d280eece0fe96a2b2b96790d8cac1fab266211106"
+        "sha256": "bfb141006a766c05f98347ed9c04c54ecd05bd24a0c89965721a16e0f4556ef8"
       },
       {
         "path": "contracts/provider-inspection.schema.json",
@@ -86,7 +86,7 @@
       },
       {
         "path": "contracts/provider-resolution.schema.json",
-        "sha256": "1a5325c3a20c428cda0406e5e32de2c6be2ee3ed923589b0a676f223f69fd17c"
+        "sha256": "27bae4ed2671d782ac4d030ce92981a5b2f6a8c98046f8287a690d56cfd1ff69"
       },
       {
         "path": "contracts/reconciliation-report.schema.json",
@@ -242,7 +242,7 @@
       },
       {
         "path": "scripts/capability_contract.py",
-        "sha256": "0fb00e116ea31d56c92e6f95dddb740af122d46ba5174b4900d5a1b6a1b82311"
+        "sha256": "c6722156a4cbe50c3841266770e6e409995a26663801e9a2e874fe4f127cb4d6"
       },
       {
         "path": "scripts/config_contract.py",
@@ -274,14 +274,14 @@
       },
       {
         "path": "scripts/resolve_providers.py",
-        "sha256": "0e7078cd68f47e7a654682b92d88c55b22f660d9e3c19426edc67f69be810a9f"
+        "sha256": "b5935e6237aa7f446be2d053f142929970d79aacc8aa2310942c04db706792fd"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "f4d8c85f7ba2dff99fb40ddf4de071e8ec77cb6d78773fe89f0429e8edb848bc"
+    "bundleSha256": "3b62824d3b00921ec009cb13c3c609fa9c73f8d5d8a23cdce069b311b5638b83"
   },
   "profiles": [
     {

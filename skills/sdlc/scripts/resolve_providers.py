@@ -14,6 +14,7 @@ from config_contract import (
     load_project_config,
 )
 from adaptive_extensions import version_satisfies
+from capability_contract import FilesystemProviders
 
 
 class ProviderError(ValueError):
@@ -22,7 +23,12 @@ class ProviderError(ValueError):
 
 _ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
-_PROFILE_IDS = {"copilot-vscode", "claude-code", "generic-agent-skills"}
+_PROFILE_IDS = {
+    "copilot-vscode",
+    "claude-code",
+    "generic-agent-skills",
+    "filesystem",
+}
 _PROVIDER_METADATA = {
     "sdlc-provider-schema",
     "sdlc-compatible",
@@ -551,6 +557,17 @@ def main(argv=None, *, host_adapter=None):
     resolve_parser.add_argument("--registry", type=Path, required=True)
     resolve_parser.add_argument("--host-profile", required=True)
     resolve_parser.add_argument("--sdlc-version", required=True)
+    resolve_parser.add_argument(
+        "--provider-root",
+        type=Path,
+        action="append",
+        default=[],
+        help=(
+            "Directory containing third-party provider directories, each "
+            "declaring itself in sdlc-capability.json. Requires "
+            "--host-profile filesystem."
+        ),
+    )
 
     inspect_parser = subparsers.add_parser("inspect")
     inspect_parser.add_argument("--resolution", type=Path, required=True)
@@ -566,6 +583,13 @@ def main(argv=None, *, host_adapter=None):
     load_parser.add_argument("--registry", type=Path, required=True)
     load_parser.add_argument("--module", required=True)
     load_parser.add_argument("--provider-context", type=Path, required=True)
+    load_parser.add_argument(
+        "--provider-root",
+        type=Path,
+        action="append",
+        default=[],
+        help="Provider roots used to resolve, repeated identically here.",
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve":
@@ -577,6 +601,14 @@ def main(argv=None, *, host_adapter=None):
                 adapter = _host_adapter_method(
                     host_adapter, "enumerate_providers"
                 )(args.host_profile)
+            elif args.provider_root:
+                if args.host_profile != "filesystem":
+                    raise ProviderError("provider-adapter-invalid")
+                adapter = FilesystemProviders(
+                    args.provider_root,
+                    capabilities=names,
+                    reserved=names | {"sdlc"},
+                ).adapter()
             output = resolve(
                 config, registry["modules"], adapter,
                 args.sdlc_version, args.host_profile,
@@ -603,13 +635,23 @@ def main(argv=None, *, host_adapter=None):
             )
             if registry_module is None:
                 raise ProviderError("provider-registry-invalid")
+            if host_adapter is not None:
+                adapter_load = _host_adapter_method(
+                    host_adapter, "load_provider"
+                )
+            elif args.provider_root:
+                names = _registry_names(registry)
+                adapter_load = FilesystemProviders(
+                    args.provider_root,
+                    capabilities=names,
+                    reserved=names | {"sdlc"},
+                ).load
+            else:
+                adapter_load = None
             output = load_module(
                 resolution["providers"][args.module], inspection,
                 registry_module,
-                (
-                    _host_adapter_method(host_adapter, "load_provider")
-                    if host_adapter is not None else None
-                ),
+                adapter_load,
                 load_json_strict(args.provider_context),
             )
         _emit(output)

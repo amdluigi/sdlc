@@ -35,7 +35,7 @@
       "enum": ["default", "augment", "replace"]
     },
     "instructions": {
-      "description": "Relative path to the instruction document, confined to the provider directory.",
+      "description": "Relative path to the instruction document, confined to the provider directory. For a third-party provider this is its own Agent Skill document, whose frontmatter name and sdlc metadata must match this declaration.",
       "type": "string",
       "minLength": 1,
       "maxLength": 256,

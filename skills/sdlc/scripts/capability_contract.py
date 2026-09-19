@@ -18,8 +18,11 @@ poor trade for idiom.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import stat
+from pathlib import Path
 
 
 SCHEMA_VERSION = 1
@@ -253,3 +256,194 @@ def parse_declaration(text):
         if isinstance(error, ContractError):
             raise
         raise ContractError(f"invalid declaration JSON: {error}")
+
+
+HOST_PROFILE = "filesystem"
+MAX_INSTRUCTION_BYTES = 2 * 1024 * 1024
+_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+
+
+def _rejects_link(path, label):
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise ContractError(f"{label} is unreadable: {error}")
+    if stat.S_ISLNK(metadata.st_mode) or bool(
+        getattr(metadata, "st_file_attributes", 0) & _REPARSE_POINT
+    ):
+        raise ContractError(f"{label} must not be a link or reparse point")
+    return metadata
+
+
+class FilesystemProviders:
+    """Discover third-party providers that declare themselves on disk.
+
+    Replacement has been unreachable because resolution required a host
+    adapter enumerating installed skills, and no host has recorded evidence
+    of implementing that interface. A declaration on disk needs no adapter:
+    the control plane reads a file, digests it, and resolves it.
+
+    This produces exactly the adapter and adapter-load documents the
+    existing resolver already validates, so identity matching, compatibility
+    checks, digest binding, and the no-fallback rule are unchanged.
+
+    A malformed provider is skipped and reported rather than raised, so one
+    bad directory cannot take the lifecycle down; read ``skipped`` to see
+    what was refused and why.
+
+    The declared instruction document is the provider's own Agent Skill
+    document, so it must carry frontmatter whose name and sdlc metadata
+    match this declaration. Discovery does not check that; loading does,
+    and refuses a mismatch as an identity or metadata error.
+    """
+
+    def __init__(self, roots, capabilities=None, reserved=None):
+        self.roots = [Path(root) for root in roots]
+        self.capabilities = capabilities
+        self.reserved = reserved
+        self.skipped = []
+        self._candidates = None
+        self._tokens = {}
+
+    def adapter(self):
+        """Return the provider enumeration document."""
+
+        if self._candidates is None:
+            self._scan()
+        return {
+            "schemaVersion": 1,
+            "hostProfile": HOST_PROFILE,
+            "candidates": list(self._candidates),
+        }
+
+    def load(self, token):
+        """Return the adapter-load document for an enumerated token."""
+
+        if self._candidates is None:
+            self._scan()
+        record = self._tokens.get(token)
+        if record is None:
+            return {
+                "schemaVersion": 1,
+                "hostProfile": HOST_PROFILE,
+                "status": "token-unknown",
+            }
+        path, declaration = record
+        try:
+            _rejects_link(path, "instructions")
+            content = path.read_bytes()
+        except (ContractError, OSError):
+            return {
+                "schemaVersion": 1,
+                "hostProfile": HOST_PROFILE,
+                "status": "unloadable",
+            }
+        if len(content) > MAX_INSTRUCTION_BYTES:
+            return {
+                "schemaVersion": 1,
+                "hostProfile": HOST_PROFILE,
+                "status": "unloadable",
+            }
+        try:
+            text = content.decode("utf-8")
+        except UnicodeError:
+            return {
+                "schemaVersion": 1,
+                "hostProfile": HOST_PROFILE,
+                "status": "unloadable",
+            }
+        return {
+            "schemaVersion": 1,
+            "hostProfile": HOST_PROFILE,
+            "status": "loaded",
+            "snapshot": {
+                "declaredName": declaration["id"],
+                "providerMetadata": _provider_metadata(declaration),
+                "contentDigest": _digest(content),
+                "content": text,
+            },
+        }
+
+    def _scan(self):
+        candidates = []
+        self._tokens = {}
+        for index, root in enumerate(self.roots):
+            if not root.is_dir():
+                self.skipped.append(
+                    {
+                        "path": str(root),
+                        "reason": "provider root is not a directory",
+                    }
+                )
+                continue
+            for entry in sorted(root.iterdir(), key=lambda item: item.name):
+                declaration_path = entry / DECLARATION_FILENAME
+                if not entry.is_dir() or not declaration_path.is_file():
+                    continue
+                try:
+                    candidate, record = self._candidate(
+                        entry, declaration_path, index
+                    )
+                except ContractError as error:
+                    self.skipped.append(
+                        {"path": str(entry), "reason": str(error)}
+                    )
+                    continue
+                candidates.append(candidate)
+                self._tokens[candidate["loadToken"]] = record
+        self._candidates = candidates
+
+    def _candidate(self, entry, declaration_path, root_index):
+        _rejects_link(entry, "provider directory")
+        _rejects_link(declaration_path, DECLARATION_FILENAME)
+        declaration = validate_declaration(
+            parse_declaration(declaration_path.read_bytes()),
+            capabilities=self.capabilities,
+            reserved=self.reserved,
+        )
+        if declaration["mode"] == "default":
+            raise ContractError(
+                "only the bundle may declare mode default"
+            )
+        instructions = _confined(entry, declaration["instructions"])
+        _rejects_link(instructions, "instructions")
+        if not instructions.is_file():
+            raise ContractError("declared instructions do not exist")
+        content = instructions.read_bytes()
+        if len(content) > MAX_INSTRUCTION_BYTES:
+            raise ContractError("declared instructions are too large")
+        if declaration["mode"] == "replace":
+            evaluations = _confined(entry, declaration["evaluations"])
+            _rejects_link(evaluations, "evaluations")
+            if not evaluations.is_file():
+                raise ContractError(
+                    "a replacing provider must ship the evaluations it "
+                    "declares"
+                )
+        digest = _digest(content)
+        candidate = {
+            "declaredName": declaration["id"],
+            "providerMetadata": _provider_metadata(declaration),
+            "contentDigest": digest,
+            "loadToken": f"{declaration['id']}@{root_index}",
+        }
+        return candidate, (instructions, declaration)
+
+
+def _confined(base, relative):
+    resolved = (base / relative).resolve()
+    if not resolved.is_relative_to(base.resolve()):
+        raise ContractError(f"path escapes the provider directory: {relative}")
+    return resolved
+
+
+def _digest(content):
+    return "sha256:" + hashlib.sha256(content).hexdigest()
+
+
+def _provider_metadata(declaration):
+    return {
+        "sdlc-provider-schema": "1",
+        "sdlc-compatible": declaration["compatibleSdlc"],
+        "sdlc-modules": declaration["capability"],
+    }
