@@ -624,18 +624,22 @@ python .agents\skills\sdlc\scripts\validate_artifacts.py render-handoff .sdlc\ha
 
 ## Install SDLC
 
+`sdlc` requires its implementations. They do not require `sdlc`. The Agent
+Skills format has no field for declaring that, and no installer resolves skill
+dependencies, so the suite has to be installed as a suite. The plugin and the
+repository installers do that for you. With the Skills CLI, ask for it.
+
 ### Skills CLI
 
 ```bash
-# Install the whole suite into the current project.
-npx skills add amdluigi/sdlc
+# Install the whole suite. This is the one you want.
+npx skills add amdluigi/sdlc --skill '*'
 
-# Install only the control plane, then add implementations as needed.
-npx skills add amdluigi/sdlc --skill sdlc
+# Install a single implementation, standalone and without the control plane.
 npx skills add amdluigi/sdlc --skill sdlc-testing
 
 # Install globally for selected agents.
-npx skills add amdluigi/sdlc -g -a claude-code -a codex
+npx skills add amdluigi/sdlc --skill '*' -g -a claude-code -a codex
 
 # Inspect the repository without installing.
 npx skills add amdluigi/sdlc --list
@@ -643,6 +647,10 @@ npx skills add amdluigi/sdlc --list
 # Update an existing installation.
 npx skills update amdluigi/sdlc
 ```
+
+Installing `--skill sdlc` on its own gives you a control plane with no
+implementations. It runs, reports every capability as missing, and offers the
+command that restores them, but it cannot deliver any phase until you accept.
 
 To generate a one-off prompt or launch an agent:
 
@@ -657,8 +665,8 @@ npx skills use amdluigi/sdlc --skill sdlc --agent claude-code
 /plugin install amdluigi-sdlc@amdluigi
 ```
 
-The plugin installs the full suite: the `sdlc` control plane and every
-`sdlc-*` implementation.
+The plugin installs the full suite in one step: the `sdlc` control plane and
+every `sdlc-*` implementation.
 
 ### Manual installation
 
@@ -669,9 +677,14 @@ finds implementations through the host by name.
 
 You may install a single implementation on its own. It will run as an
 ordinary skill, without the control plane's phase ordering, gates, or
-evidence contracts. When the control plane is installed and an
-implementation is not, SDLC reports that capability as missing, names the
-skill that would restore it, and continues without that phase.
+evidence contracts.
+
+When the control plane is installed and an implementation is not, SDLC
+reports that capability as missing, shows the single command that restores
+everything missing, and asks whether to run it. It runs that command only if
+you say yes. If you decline, it continues without that phase and tells you
+which gate is no longer enforced. SDLC never installs anything without
+asking.
 
 Common project-local locations are:
 

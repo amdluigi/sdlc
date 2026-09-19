@@ -18,6 +18,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import capability_contract  # noqa: E402
+import resolve_providers  # noqa: E402
 
 
 PLACEMENT_FIELDS = ("name", "category", "order", "replaceable")
@@ -246,6 +247,28 @@ class LoadRegistryTest(unittest.TestCase):
             path, on_missing="report"
         )
         self.assertEqual(registry["missing"], [])
+
+    def test_missing_implementations_produce_one_repair_command(self):
+        """The remedy is a command to run, not a description of one.
+
+        No host resolves skill dependencies, so the control plane cannot
+        have its requirements installed for it. Naming them is not enough;
+        the developer needs the exact line.
+        """
+
+        missing = [
+            {"capability": "testing", "install": "sdlc-testing"},
+            {"capability": "review", "install": "sdlc-review"},
+        ]
+        self.assertEqual(
+            resolve_providers.repair_command(missing),
+            "npx skills add amdluigi/sdlc "
+            "--skill sdlc-review --skill sdlc-testing",
+        )
+
+    def test_nothing_missing_produces_no_repair_command(self):
+        self.assertIsNone(resolve_providers.repair_command([]))
+        self.assertIsNone(resolve_providers.repair_command(None))
 
     def test_a_declaration_may_not_serve_another_capability(self):
         path = write_registry(self.dir, [

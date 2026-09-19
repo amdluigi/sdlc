@@ -24,6 +24,7 @@ class ProviderError(ValueError):
 
 _ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+SUITE_SOURCE = "amdluigi/sdlc"
 _PROFILE_IDS = {
     "copilot-vscode",
     "claude-code",
@@ -277,6 +278,31 @@ def _validate_provider_metadata(
     _error(problem, module, provider, profile, remedy)
 
 
+def repair_command(missing, source=SUITE_SOURCE):
+    """Build the single command that reinstalls every missing implementation.
+
+    The control plane depends on its implementations; they do not depend on
+    it. That direction is one way, so the remedy is always the same shape:
+    install the absent skills beside the control plane. No host resolves
+    dependencies for us, because the Agent Skills format has no field for
+    them, so the control plane has to hand the developer the exact command
+    rather than a description of one.
+
+    Returns ``None`` when nothing is missing, which is what lets a caller
+    treat "no repair" and "nothing to say" as the same case.
+    """
+
+    names = sorted(
+        item["install"]
+        for item in missing or []
+        if isinstance(item, dict) and item.get("install")
+    )
+    if not names:
+        return None
+    flags = " ".join(f"--skill {name}" for name in names)
+    return f"npx skills add {source} {flags}"
+
+
 def survey(
     config,
     registry_modules,
@@ -400,6 +426,7 @@ def survey(
         "choicesRequired": choices,
         "skipped": list(skipped or []),
         "missing": list(missing or []),
+        "repair": repair_command(missing),
     }
 
 

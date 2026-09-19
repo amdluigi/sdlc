@@ -89,9 +89,17 @@ same way it reaches a third-party provider: through the host, by declared
 name. Nothing about a bundled implementation is privileged by its location.
 
 The suite is the default install, because the control plane binds interfaces
-to implementations it does not contain. When an implementation is absent,
-SDLC reports the capability as missing, names the skill that would restore
-it, and continues without that phase rather than failing.
+to implementations it does not contain. The dependency runs one way: `sdlc`
+requires its implementations, declared in its `sdlc-requires` metadata and
+validated against the registry; no implementation requires `sdlc`.
+
+The Agent Skills format has no dependency field, and no installer resolves
+one, so the requirement cannot be satisfied automatically at install time.
+The plugin manifest and the repository installers close that gap by shipping
+the suite together. Where they cannot, the control plane closes it at
+runtime: a missing implementation is reported with the single command that
+restores every absent skill, offered to the developer, and run only with
+their consent.
 
 ## Module Registry
 

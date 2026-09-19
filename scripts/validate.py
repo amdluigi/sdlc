@@ -457,6 +457,30 @@ def validate_implementation_skills(paths) -> None:
             fail(f"{directory} must declare license MIT")
 
 
+def _validate_declared_requirements(frontmatter, placement_entries) -> None:
+    """The control plane's declared requirements match the registry exactly.
+
+    The dependency runs one way: the control plane requires its
+    implementations and none of them requires it. Nothing in the Agent
+    Skills format records that, so the claim lives in ``sdlc-requires`` and
+    would drift the first time a capability was added if it were not
+    checked here against the registry that defines it.
+    """
+
+    match = re.search(
+        r"^  sdlc-requires:\s+\"([^\"]+)\"$", frontmatter, re.MULTILINE
+    )
+    if match is None:
+        fail("SKILL.md must declare sdlc-requires")
+    declared = [name for name in match.group(1).split(",") if name]
+    expected = [entry["name"] for entry in placement_entries]
+    if declared != expected:
+        fail(
+            "SKILL.md sdlc-requires must list every registry capability in "
+            f"registry order; expected {','.join(expected)}"
+        )
+
+
 def validate_skill() -> None:
     skill_files = list(SKILLS.glob("**/SKILL.md"))
     implementations = sorted(
@@ -491,6 +515,8 @@ def validate_skill() -> None:
     placement_entries = registry.get("modules")
     if not isinstance(placement_entries, list) or not placement_entries:
         fail("Module registry must contain modules")
+
+    _validate_declared_requirements(frontmatter, placement_entries)
 
     for entry in placement_entries:
         declared = set(entry) - set(capability_contract.PLACEMENT_FIELDS)
