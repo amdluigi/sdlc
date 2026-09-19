@@ -146,8 +146,12 @@ Projects control activation through `.sdlc/config.json`.
 
 Core modules default to enabled when a known key is omitted. Project and
 global extensions default to disabled and require explicit project opt-in.
-Schema 3 gives each core module exactly one state: bundled instructions,
-disabled, or one exact installed replacement provider. Schema 1 and schema 2
+Schema 3 gives each core module exactly one state: bundled instructions by
+default, bundled instructions by explicit decision, disabled, or one exact
+installed replacement provider. The two bundled states resolve identically
+and differ only in whether the developer has decided. An undecided
+capability with an eligible installed alternative is a question for the
+developer; a decided one is not. Schema 1 and schema 2
 booleans migrate to schema 3 without changing behavior. Migration is persisted
 atomically before any provider or extension resolution.
 
@@ -164,16 +168,42 @@ first-party and continues to control category, order, trigger, exit signal,
 evidence clauses, freshness, and readiness. The provider cannot alter or
 self-certify those contracts.
 
-The host embeds `resolve_providers.py` and injects a trusted adapter object
+Four capabilities are never delegated. `change-contract`, `review`,
+`operational-readiness`, and `pr-handoff` each render the judgment that
+permits a change to advance, so serving one would let a provider authorize
+its own progression. The registry declares this as `replaceable: false`, the
+configuration schema accepts only a boolean for them, and normalization
+refuses a replacement. They may still be disabled.
+
+A provider is enumerated one of two ways, and both produce the same candidate
+metadata for the same resolution.
+
+The host may embed `resolve_providers.py` and inject a trusted adapter object
 through the library API, outside caller-controlled CLI arguments. Its
 `enumerate_providers(host_profile)` method performs metadata-only enumeration.
+
+Alternatively a provider declares itself on disk in `sdlc-capability.json`
+beside its own skill document, inside a directory supplied explicitly with
+`--provider-root`. This needs no host support, which is what makes
+replacement reachable in practice. Enumerating an explicit root is not
+implicit discovery: only configured identities resolve, matching stays exact,
+duplicate identities across roots block, a declaration claiming a core
+capability name is refused, and an invalid declaration is skipped and
+reported so one malformed directory cannot disable the lifecycle.
+
 Each entry exposes exact declared Agent Skill identity, provider metadata, a
 SHA-256 content digest, and an opaque load token independently of instruction
 content. Resolution compares identity exactly, rejects zero or multiple
 installed candidates, and validates provider metadata and compatibility
 without reading the instruction body. A host that cannot enumerate exact IDs,
-distinguish duplicates, or bind loading reports
+distinguish duplicates, or bind loading, and has no provider root, reports
 `provider-resolution-unsupported`.
+
+`resolve_providers.py survey` reports which provider serves each capability,
+whether that is a decision or the default, and which installed alternatives
+declare the same capability. It is read-only and adopts nothing. Its
+eligibility check is the one resolution raises on, so it cannot offer a
+choice resolution would refuse.
 
 The runtime evaluates the core trigger and evidence before loading provider
 instructions. Satisfied and not-applicable modules load nothing. Only partial,
@@ -181,9 +211,12 @@ missing, or stale modules can authorize a load. The embedded library calls the
 same trusted adapter's `load_provider(load_token)` method, which atomically
 validates and consumes the token against current host state. Neither an
 adapter import path nor a load-result document is accepted from CLI callers.
-Standalone provider resolution and loading fail closed as
-`provider-resolution-unsupported`; they never import caller-named code or
-read provider instructions directly. The adapter returns either the bound
+For a filesystem provider, the same `--provider-root` values re-read and
+re-digest the declared document and refuse any change since resolution.
+Provider resolution and loading that has neither a host adapter nor a
+provider root fails closed as
+`provider-resolution-unsupported`; it never imports caller-named code or
+reads provider instructions directly. The adapter returns either the bound
 snapshot or an explicit revoked, unknown-token, replayed-token, or unloadable
 result. The orchestrator verifies the returned digest, exact identity, and
 metadata, rejects an empty body, then gives the provider recognized evidence
@@ -211,7 +244,12 @@ module or enabled extension receives one status:
 
 Evidence is judged by capability rather than producer identity. Current
 specifications, plans, diffs, command results, CI results, and reviews can
-satisfy a module regardless of who or what produced them.
+satisfy a module regardless of who or what produced them, including a
+provider this configuration did not select. Producing an artifact grants no
+authority: it satisfies a capability only when it meets the registry
+contract and does not provably contradict evidence already accepted for
+another enabled module. A contradiction is resolved as a gap naming the
+conflicting artifacts, never by preferring one producer over another.
 
 Scope changes and implementation changes invalidate only dependent evidence.
 This avoids rerunning unrelated lifecycle work.
