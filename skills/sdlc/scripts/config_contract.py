@@ -68,9 +68,25 @@ def _boolean_map(value, field):
 
 
 def _replacement(value, field):
+    """Normalize an explicit provider decision for one capability.
+
+    ``{"replaceWith": id}`` selects an external provider.
+    ``{"provider": "bundled"}`` records a deliberate choice to keep the
+    bundled module, which is not the same as the default ``true``. The
+    control plane raises a competing installed provider as a question only
+    when no explicit decision exists, so recording one settles it.
+    """
+
+    if isinstance(value, dict) and set(value) == {"provider"}:
+        if value["provider"] != "bundled":
+            raise ConfigError(
+                f"{field}.provider must be \"bundled\""
+            )
+        return {"provider": "bundled"}
     if not isinstance(value, dict) or set(value) != {"replaceWith"}:
         raise ConfigError(
-            f"{field} must be boolean or an object containing only replaceWith"
+            f"{field} must be boolean, an object containing only "
+            "replaceWith, or an object containing only provider"
         )
     provider = value["replaceWith"]
     if (
@@ -121,6 +137,9 @@ def normalize_config(config, registry_names):
                     "judgment that permits progression"
                 )
             replacement = _replacement(value, f"modules.{name}")
+            if "provider" in replacement:
+                normalized_modules[name] = replacement
+                continue
             provider = replacement["replaceWith"]
             if provider == "sdlc" or provider in known:
                 raise ConfigError(

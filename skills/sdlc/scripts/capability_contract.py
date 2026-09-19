@@ -316,6 +316,20 @@ class FilesystemProviders:
             "candidates": list(self._candidates),
         }
 
+    def declared_modes(self):
+        """Return each discovered provider ID mapped to its declared mode.
+
+        The adapter document carries only the fields resolution validates,
+        so mode travels beside it for reporting rather than inside it.
+        """
+
+        if self._candidates is None:
+            self._scan()
+        return {
+            declaration["id"]: declaration["mode"]
+            for _, declaration in self._tokens.values()
+        }
+
     def load(self, token):
         """Return the adapter-load document for an enumerated token."""
 

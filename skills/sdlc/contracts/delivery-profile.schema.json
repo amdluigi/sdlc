@@ -45,8 +45,8 @@
         "name": {"$ref": "#/$defs/id"},
         "category": {"$ref": "#/$defs/id"},
         "plugin": {"$ref": "#/$defs/id"},
-        "source": {"enum": ["bundled", "project", "global", "host"]},
-        "role": {"enum": ["default", "extend", "replace"]},
+        "source": {"enum": ["bundled", "project", "global", "external"]},
+        "role": {"enum": ["default", "chosen", "extend", "replace"]},
         "enabled": {"type": "boolean"}
       }
     }
