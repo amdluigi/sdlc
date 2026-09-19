@@ -309,9 +309,40 @@ decision or the default, which installed alternatives declare the same
 capability, and which declarations were skipped as malformed. Each capability
 also reports its category, the delivery phase it is invoked in, and that
 phase's entry gate, so you can tell whether a skill you already trust covers
-the same ground. Placement comes from the module registry, never from a
-declaration: a provider names the capability it serves and does not get to
-choose which phase governs it. The survey is read-only and adopts nothing.
+the same ground. The survey is read-only and adopts nothing.
+
+One entry, with a competing skill installed but not yet chosen:
+
+```json
+{
+  "active": {
+    "type": "bundled"
+  },
+  "alternatives": [
+    {
+      "eligible": true,
+      "id": "acme-testing",
+      "mode": "replace"
+    }
+  ],
+  "capability": "testing",
+  "category": "verification",
+  "decision": "developer-choice-required",
+  "deliveryPhase": "verification",
+  "entryGate": 5,
+  "explicit": false,
+  "replaceable": true,
+  "state": "enabled"
+}
+```
+
+`deliveryPhase` and `entryGate` come from the
+[module registry](skills/sdlc/modules/registry.json), never from a
+declaration. A provider names the capability it serves and does not choose
+which phase governs it, because a provider that could claim an ungated phase
+would escape the evidence gate covering the capability it replaces. The full
+shape is
+[contracts/provider-survey.schema.json](skills/sdlc/contracts/provider-survey.schema.json).
 
 When an eligible alternative meets a capability you have not decided on,
 SDLC keeps using its own module and raises the choice with you rather than
