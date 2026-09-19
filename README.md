@@ -245,13 +245,16 @@ list of internal modules and their responsibilities.
 ### Module policy and replacement providers
 
 The generated configuration lists every core module. Set a module to `false`
-to disable it, leave it `true` to use the bundled instructions, or replace
-its instructions with one exact installed skill:
+to disable it, leave it `true` to use the bundled instructions, or record an
+explicit decision:
 
 ```json
 {
   "schemaVersion": 3,
   "modules": {
+    "prd": {
+      "provider": "bundled"
+    },
     "testing": {
       "replaceWith": "organization-testing-provider"
     }
@@ -266,12 +269,56 @@ its instructions with one exact installed skill:
 }
 ```
 
+`true` enables the bundled module as the default and leaves the choice open.
+`{"provider": "bundled"}` records a decision to keep it. Both run the same
+instructions and differ only in whether you have decided, which controls
+whether SDLC raises a competing installed skill with you.
+
 A replacement provider changes only the instructions for that module. The
 SDLC registry still owns its trigger, evidence contract, freshness, and
-readiness decision. A compatible host must resolve the provider by its exact
-declared identity and bind an immutable instruction snapshot; ambiguous,
-unavailable, or incompatible providers block rather than silently falling
-back to different instructions.
+readiness decision. Providers are resolved by exact declared identity and
+bound to an immutable instruction snapshot; ambiguous, unavailable, or
+incompatible providers block rather than silently falling back to different
+instructions.
+
+`change-contract`, `review`, `operational-readiness`, and `pr-handoff` may
+never be replaced. Each renders the judgment that permits a change to
+advance, so delegating one would let a provider authorize its own
+progression. They may still be disabled.
+
+### Using SDLC alongside other skills
+
+SDLC works standalone and depends on no external skill. Installing other
+workflow skills changes nothing on its own: they are not candidates to serve
+a capability unless they declare themselves, so no configuration, prompting,
+or conflict arises from their presence.
+
+A skill offers to serve a capability by shipping `sdlc-capability.json`
+beside its own skill document, in a directory you name explicitly:
+
+```bash
+python skills/sdlc/scripts/resolve_providers.py survey \
+  --project-root . \
+  --registry skills/sdlc/modules/registry.json \
+  --sdlc-version 1.0.0 \
+  --provider-root ~/.agent-skills
+```
+
+The survey reports which provider serves each capability, whether that is a
+decision or the default, which installed alternatives declare the same
+capability, and which declarations were skipped as malformed. It is
+read-only and adopts nothing.
+
+When an eligible alternative meets a capability you have not decided on,
+SDLC keeps using its own module and raises the choice with you rather than
+switching by itself. Recording either decision settles it, and the question
+is not asked again.
+
+Work produced by any other skill is assessed on its merits regardless of
+whether it was selected as a provider. An artifact satisfies a capability
+when it meets that capability's evidence contract and does not contradict
+evidence already accepted for another enabled module. Producing an artifact
+never grants authority over whether a change may advance.
 
 ## Advanced usage
 
