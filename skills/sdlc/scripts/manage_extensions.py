@@ -1,4 +1,5 @@
 import argparse
+import capability_contract
 import json
 import sys
 from pathlib import Path
@@ -145,7 +146,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _installed_context():
     skill_root = SCRIPT_DIR.parent
-    registry = load_json_strict(skill_root / "modules" / "registry.json")
+    registry = capability_contract.load_registry(
+        skill_root / "modules" / "registry.json"
+    )
     skill_text = (skill_root / "SKILL.md").read_text(encoding="utf-8")
     for line in skill_text.splitlines():
         if line.strip().startswith("version:"):

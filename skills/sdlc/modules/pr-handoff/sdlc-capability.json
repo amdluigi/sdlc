@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "pr-handoff",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "Always before completion when enabled to prepare PR handoff.",
+  "exitSignal": "Final repository state and a human-readable handoff support a readiness decision.",
+  "evidence": [
+    "Current repository status and complete diff were inspected against the coherent boundary.",
+    "The handoff maps outcome, PRD path/ID/version and delivered FR/AC identifiers when selected, scope, acceptance evidence, review, compatibility, rollout or rollback, limitations, deferred work, and risk."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

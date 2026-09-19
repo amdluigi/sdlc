@@ -15,7 +15,7 @@ from config_contract import (
     load_project_config,
 )
 from adaptive_extensions import version_satisfies
-from capability_contract import FilesystemProviders
+from capability_contract import FilesystemProviders, load_registry
 
 
 class ProviderError(ValueError):
@@ -754,7 +754,7 @@ def main(argv=None, *, host_adapter=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "resolve":
-            registry = load_json_strict(args.registry)
+            registry = load_registry(args.registry)
             names = _registry_names(registry)
             config = load_project_config(
                 args.project_root, names, _phase_of(registry)
@@ -777,7 +777,7 @@ def main(argv=None, *, host_adapter=None):
                 args.sdlc_version, args.host_profile,
             )
         elif args.command == "survey":
-            registry = load_json_strict(args.registry)
+            registry = load_registry(args.registry)
             names = _registry_names(registry)
             config = load_project_config(
                 args.project_root, names, _phase_of(registry)
@@ -815,7 +815,7 @@ def main(argv=None, *, host_adapter=None):
         else:
             resolution = load_json_strict(args.resolution)
             inspection = load_json_strict(args.inspection)
-            registry = load_json_strict(args.registry)
+            registry = load_registry(args.registry)
             registry_module = next(
                 (
                     row for row in registry["modules"]

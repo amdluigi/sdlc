@@ -426,9 +426,24 @@ def validate_skill() -> None:
         or registry["schemaVersion"] != 1
     ):
         fail("Module registry must use schemaVersion 1")
-    entries = registry.get("modules")
-    if not isinstance(entries, list) or not entries:
+    placement_entries = registry.get("modules")
+    if not isinstance(placement_entries, list) or not placement_entries:
         fail("Module registry must contain modules")
+
+    for entry in placement_entries:
+        declared = set(entry) - set(capability_contract.PLACEMENT_FIELDS)
+        if declared:
+            fail(
+                f"Module registry entry {entry.get('name')} declares "
+                f"{sorted(declared)[0]}, which belongs to its "
+                "sdlc-capability.json; the registry owns placement only"
+            )
+
+    try:
+        registry = capability_contract.load_registry(MODULES / "registry.json")
+    except capability_contract.ContractError as error:
+        fail(f"Bundled capability declarations are invalid: {error}")
+    entries = registry["modules"]
 
     names = [entry.get("name") for entry in entries]
     orders = [entry.get("order") for entry in entries]
@@ -572,10 +587,10 @@ def validate_skill() -> None:
         )
 
     version = skill_version()
-    for entry in entries:
+    for entry in placement_entries:
         try:
-            capability_contract.declaration_from_registry_entry(
-                entry, version, registered
+            capability_contract.load_bundled_declaration(
+                MODULES, entry, registered
             )
         except capability_contract.ContractError as error:
             fail(

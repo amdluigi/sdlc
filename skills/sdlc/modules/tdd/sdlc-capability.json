@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "tdd",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "New behavior or a bug fix changes executable behavior.",
+  "exitSignal": "Each changed behavior has inspectable red-before-green evidence against real behavior, followed by minimal green and safe refactor, or a valid narrow technical exception.",
+  "evidence": [
+    "A focused test was written before production implementation and failed for the expected missing or defective behavior.",
+    "The minimum implementation made the focused test pass, and any refactor preserved the green state.",
+    "Tests exercise real behavior, with mocks limited to genuine external seams.",
+    "Generated output, configuration-only behavior, or unsafe reproduction exceptions identify the category, technical reason, and strongest safe alternative evidence."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

@@ -264,6 +264,14 @@ passed explicitly with `--provider-root`. The declaration states
 `evaluations` demonstrating parity with the capability it displaces. See
 `contracts/capability-provider.schema.json`.
 
+Every bundled capability satisfies this same contract on disk: each
+`modules/<name>/` directory ships its own `sdlc-capability.json` declaring
+`id: sdlc` and `mode: default`. The registry retains placement only, meaning
+`name`, `category`, `order`, and `replaceable`. A bundled declaration may not
+claim placement, may not claim another identity, and may not serve a
+capability other than its own directory. A provider author copies a shipped
+declaration rather than reconstructing one from prose.
+
 Enumerating a provider root is not implicit discovery. Only configured
 identities resolve, matching stays exact, duplicate identities across roots
 are ambiguous and blocking, and a declaration claiming `sdlc` or a core

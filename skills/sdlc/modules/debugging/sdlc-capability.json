@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "debugging",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "A bug or unexplained failure is in scope.",
+  "exitSignal": "The root cause is supported by reproduction and a tested hypothesis.",
+  "evidence": [
+    "A deterministic reproduction or current diagnostic evidence localizes the failure.",
+    "A falsifiable root-cause hypothesis was tested, and regression sensitivity is demonstrated or its limitation is explicit."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

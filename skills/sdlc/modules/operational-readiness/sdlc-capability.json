@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "operational-readiness",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "Production data, public contracts, runtime or deployment configuration, infrastructure, background processing, or rollout are affected.",
+  "exitSignal": "Reversibility, compatibility, rollout, operational signals, and post-change checks are credible.",
+  "evidence": [
+    "A current plan defines compatibility sequencing, rollout, rollback or mitigation, measurable signals, and post-change validation.",
+    "Required rehearsal, restore, dry-run, or production-like evidence is current and inspectable."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

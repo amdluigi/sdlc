@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "security-auth",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "External input, stored or sensitive data, network access, identity, permissions, secrets, dependencies, or user-visible output are affected.",
+  "exitSignal": "Applicable security, authentication, and authorization risks are mitigated or disclosed.",
+  "evidence": [
+    "A current analysis identifies applicable trust, input, auth, data, secret, dependency, and abuse risks for the actual diff.",
+    "Mitigations, tests, and any accepted residual risk are inspectable and scope-aligned."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

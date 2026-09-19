@@ -2660,13 +2660,14 @@ class DiscoveryTests(unittest.TestCase):
 class ContinuousImprovementContractTests(unittest.TestCase):
     def test_core_update_triggers_approval_only_supersession_assessment(self):
         repository_root = Path(__file__).resolve().parents[1]
-        registry = json.loads(
+        declaration = json.loads(
             (
                 repository_root
                 / "skills"
                 / "sdlc"
                 / "modules"
-                / "registry.json"
+                / "continuous-improvement"
+                / "sdlc-capability.json"
             ).read_text(encoding="utf-8")
         )
         module = (
@@ -2677,11 +2678,7 @@ class ContinuousImprovementContractTests(unittest.TestCase):
             / "continuous-improvement"
             / "MODULE.md"
         ).read_text(encoding="utf-8")
-        trigger = next(
-            item["trigger"]
-            for item in registry["modules"]
-            if item["name"] == "continuous-improvement"
-        )
+        trigger = declaration["trigger"]
 
         self.assertIn("upgrade", trigger.casefold())
         for required in (

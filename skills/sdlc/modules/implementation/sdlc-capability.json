@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "implementation",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "Code or configuration changes are required.",
+  "exitSignal": "The minimum complete implementation and authoritative design match the current contract through verified, safe, reversible slices.",
+  "evidence": [
+    "The slice sequence identifies each increment's outcome, scope, verification checkpoint, exposure strategy, and reversal path.",
+    "Each completed slice left the repository coherent and has fresh affected checks tied to its resulting work product.",
+    "The inspectable final diff implements every acceptance criterion within the agreed boundary, including necessary tests, documentation, migrations, configuration, compatibility handling, and generated artifacts.",
+    "Any accepted requirement, public-contract, or architecture change discovered during implementation is synchronized to the PRD and renewed approval when selected, authoritative design, project memory when selected, plan, and dependent evidence."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

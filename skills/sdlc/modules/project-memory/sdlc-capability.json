@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "project-memory",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "Always when enabled.",
+  "exitSignal": "The memory layout is canonical and conflict-free, or a trivial legacy-only task explicitly deferred migration; relevant current project memory was read and meaningful new knowledge was recorded.",
+  "evidence": [
+    "Current-task trace or report identifies the memory layout state and the relevant canonical .sdlc/memory or deferred legacy project-memory files inspected.",
+    "A legacy-only project-memory directory was migrated intact for non-trivial work; trivial work may read it only when migration is explicitly deferred and reported.",
+    "A dual-path or linked-path conflict blocked progress without merging, following, or deleting data.",
+    "Any durable decision, correction, constraint, architecture change, or active-context change is reflected in .sdlc/memory files."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

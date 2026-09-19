@@ -26,7 +26,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "b81084a732246de765992cddc489fd9d51753562052acfc2c636fc1fcfe54188"
+        "sha256": "0d0b4188da6ad8fe597fde0d7149983a3f9931ffb2e48a8573d7f951c390be48"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -105,12 +105,24 @@
         "sha256": "5228cd6c1f0628eba15c980569d41f5628012002c62ff607cfce873aae337e49"
       },
       {
+        "path": "modules/accessibility-browser/sdlc-capability.json",
+        "sha256": "0c4ae6678a9fa71d23e8ba5868594389acf89402d04b565de4e925891ec109b6"
+      },
+      {
         "path": "modules/api-compatibility/MODULE.md",
         "sha256": "94b8bfd8bf5353de3427865523c399bfe9530364776f586052df37b56a9ef30a"
       },
       {
+        "path": "modules/api-compatibility/sdlc-capability.json",
+        "sha256": "2f98c2ef83df4198d2a8f6e6652fc3d599f477cb2b0d6830c68be32d01b689b2"
+      },
+      {
         "path": "modules/change-contract/MODULE.md",
         "sha256": "8eb635cd450ff7e675179eae3d96cea3dbdaaf02ff7f6cdafdf98b885f7df011"
+      },
+      {
+        "path": "modules/change-contract/sdlc-capability.json",
+        "sha256": "56a07d4dc8761b0493e131cf7c3f8a8d4298c7b1bce2e56da30993c712784164"
       },
       {
         "path": "modules/continuous-improvement/MODULE.md",
@@ -121,44 +133,88 @@
         "sha256": "b167036dcbbbf276769705e8e53a3acc11ae4b89871ccb3f9a1ae6ee7238f7e0"
       },
       {
+        "path": "modules/continuous-improvement/sdlc-capability.json",
+        "sha256": "a5eb87d8e2ee8e089441b1fbcc8362a2fa1b0b4d01f742a6a7413a9a4076c7fb"
+      },
+      {
         "path": "modules/data-migration/MODULE.md",
         "sha256": "72c26150dc988cb8a64ac689f228ba39cc329a7f1c0dc83fae9f02dc9ececeb6"
+      },
+      {
+        "path": "modules/data-migration/sdlc-capability.json",
+        "sha256": "a8876c928eeafeabb894f65e9cf15fc71ab30ddd6a9aed2afdb22e7fac1f4e0d"
       },
       {
         "path": "modules/debugging/MODULE.md",
         "sha256": "668e839bb4fbfee8c7543e39f917b7828ecce297885f2002102d60be9bf2aa3d"
       },
       {
+        "path": "modules/debugging/sdlc-capability.json",
+        "sha256": "d92a937266b85c10fa1c18719d9fa427cb9f1c1eae834be8231052e5a6547c3c"
+      },
+      {
         "path": "modules/dependency-supply-chain/MODULE.md",
         "sha256": "b68f810aea94d4af0ab71bc3a89cb747d8a6aad6531656572352c08a8866187c"
+      },
+      {
+        "path": "modules/dependency-supply-chain/sdlc-capability.json",
+        "sha256": "3dd23e877cfa0e883c83912dedf1013accfbdc8e2733ca2edba86be608784b48"
       },
       {
         "path": "modules/implementation/MODULE.md",
         "sha256": "c5ab1fbf886a12f7cb165d3586e28477056107296f8cc8062b10dc323e1bb21e"
       },
       {
+        "path": "modules/implementation/sdlc-capability.json",
+        "sha256": "cc38a4fda39e3d0fb7a4f1a7b91d01de155762b3a5e470497067ad4932cf5a77"
+      },
+      {
         "path": "modules/incident-response/MODULE.md",
         "sha256": "c5058645e3724028e3aeb39e0a9e5f6dee082d629ca4350720f2a9b7aa77a671"
+      },
+      {
+        "path": "modules/incident-response/sdlc-capability.json",
+        "sha256": "e8fd13018ee601436a5ad033082d164c721d1ba705a78da9c01e2453fab2621e"
       },
       {
         "path": "modules/observability/MODULE.md",
         "sha256": "1f3bc91c3bd2bce4c3cb5d83516df6d5153f895322e47407c98db09dab4a6a32"
       },
       {
+        "path": "modules/observability/sdlc-capability.json",
+        "sha256": "df1ad08e89376f98504340670981ac01a6151b631d0b16be89ade53557deb377"
+      },
+      {
         "path": "modules/operational-readiness/MODULE.md",
         "sha256": "b44048ad0ab0417dd753cff7e138f831f450efb6ff5f9aaaca58271061edf1ce"
+      },
+      {
+        "path": "modules/operational-readiness/sdlc-capability.json",
+        "sha256": "c6aae6674f48eb3c3b8d4ecce8107d56c6243cf29761f29a022e730bdd283453"
       },
       {
         "path": "modules/performance-concurrency/MODULE.md",
         "sha256": "f838701706e32a81f2ea369ff88b30dbfe3cd04935b4ad73166294ab0ec1658b"
       },
       {
+        "path": "modules/performance-concurrency/sdlc-capability.json",
+        "sha256": "5a6101900ed0082f0c477d295c36c8a6353ee8448cb9f6fe5ed9028bdb86d3fe"
+      },
+      {
         "path": "modules/planning/MODULE.md",
         "sha256": "f3383ea451d30a643f75ce5b8bb1f19928ef2958ecb40fde4f6cb3ad0d071bb9"
       },
       {
+        "path": "modules/planning/sdlc-capability.json",
+        "sha256": "ccdf08d35cc9e938d0a933b297e09b294659b895b8e04b29c2f5ce4322a76763"
+      },
+      {
         "path": "modules/pr-handoff/MODULE.md",
         "sha256": "0955e48985ef0ee0df291ee6f1cdbda1425eb47485db90d710c51db7e599b7f4"
+      },
+      {
+        "path": "modules/pr-handoff/sdlc-capability.json",
+        "sha256": "d7d708640952d1a9aeb3eb3f2245dc32a1362b40a017cd7a5381a82a6a56d76a"
       },
       {
         "path": "modules/prd/MODULE.md",
@@ -171,6 +227,10 @@
       {
         "path": "modules/prd/references/external-reconciliation.md",
         "sha256": "d63469e869ef78538619392dcedc484c32e5617efc69bf46197c6cc9191fc9a5"
+      },
+      {
+        "path": "modules/prd/sdlc-capability.json",
+        "sha256": "ff12331be06a30bf67fc9a97ac11f3b6f3f5bc9b29b1416f64bd8dfae8d4571b"
       },
       {
         "path": "modules/project-memory/MODULE.md",
@@ -205,6 +265,10 @@
         "sha256": "129106be7cc8fa12cc3367ce658c3ae4725fef0aba621302ad09872db841c421"
       },
       {
+        "path": "modules/project-memory/sdlc-capability.json",
+        "sha256": "4058923151e790155cc7a6c8de4d39672e080fe71b80d07eca634d0dbd187510"
+      },
+      {
         "path": "modules/project-standards/MODULE.md",
         "sha256": "7acda35d2dc9c9a29ea0899b909a17f59013e4359ef0765fa0cea456909f8185"
       },
@@ -213,32 +277,56 @@
         "sha256": "170d35f079b5dcd869c78f634ec99893d3d936c7ada9891a86e8c72781c5c629"
       },
       {
+        "path": "modules/project-standards/sdlc-capability.json",
+        "sha256": "489acb562a2699ffee63faf175c165085f164d4a1bd571e85b922e6ec1c0a711"
+      },
+      {
         "path": "modules/registry.json",
-        "sha256": "a81ad156aa8053a2ce324cc4f9e19533a9f4d2b60cef8128e44e3f95398010e5"
+        "sha256": "c306bb6f31de981305c3e23d2e03be54d6f4b6146d45223aa23e96c3d5ab783e"
       },
       {
         "path": "modules/release-launch/MODULE.md",
         "sha256": "9b4e9a51042466d711ba2c50e1a6a4d3b0663f377cad463d5ebac2ad56758eb9"
       },
       {
+        "path": "modules/release-launch/sdlc-capability.json",
+        "sha256": "9f40815cf888db5c927b43f79df4bd91d30641bdf422f1f176e7ee3e66ba733c"
+      },
+      {
         "path": "modules/review/MODULE.md",
         "sha256": "443c415edc6bb64c90be4ab58f343ff1f6fa2054754a71dc82a767ac8391a4a2"
+      },
+      {
+        "path": "modules/review/sdlc-capability.json",
+        "sha256": "8400b32a802c1527b247399cc9f501675cc62d6dbabe24515d07196399c6bc99"
       },
       {
         "path": "modules/security-auth/MODULE.md",
         "sha256": "6b7d0496710f081bd3779ff79bf435e763c05a3ad885dc9c4409b5e6e00b320f"
       },
       {
+        "path": "modules/security-auth/sdlc-capability.json",
+        "sha256": "ae69879550f0eca5320da93386e83fd62327b870aa0d98dcc8281fc9cc986572"
+      },
+      {
         "path": "modules/tdd/MODULE.md",
         "sha256": "5b317e2ed4932367328ea2c5d93b92b205f1be30b9f75453801d40f4842d699f"
+      },
+      {
+        "path": "modules/tdd/sdlc-capability.json",
+        "sha256": "d0960a08a174511635865ac71a694fdb1e1037d7191a6c2b09e9db45cc17bd0d"
       },
       {
         "path": "modules/testing/MODULE.md",
         "sha256": "3c06c895e4b44129e3b4d2b0fa7ef7cf4ab831d7243d1036e5fa4a6d5a9adb66"
       },
       {
+        "path": "modules/testing/sdlc-capability.json",
+        "sha256": "c3985c10eca3864fe138fb453c0ad9e886a1a86123270cab1ae16372e6b2072e"
+      },
+      {
         "path": "scripts/adaptive_extensions.py",
-        "sha256": "4e353016c6e1e04539257b4edc8277f7e87308f8f8457ec15a7c309d40034f53"
+        "sha256": "4007ba9d74d5e0c451858b35f066d752bf7ef7a921bb181091231481b436c2ef"
       },
       {
         "path": "scripts/artifact_contracts.py",
@@ -246,7 +334,7 @@
       },
       {
         "path": "scripts/capability_contract.py",
-        "sha256": "dece3f9c2b922c60b508ab9d0452fecf42065ef0401bb6d27c5738f60e0b4e06"
+        "sha256": "b99182cc8e6748effcd151b2649dcaf6ba8245fc7b4c3fd70c729d3c66576f97"
       },
       {
         "path": "scripts/config_contract.py",
@@ -262,7 +350,7 @@
       },
       {
         "path": "scripts/manage_extensions.py",
-        "sha256": "b630012f35830d8e5d1e624e034882252c0d20ee0777428b440df02cab9720c3"
+        "sha256": "4a67498c53ef044697a509e4e757074bb95f396e8f2552d99c6492d6c50b06a6"
       },
       {
         "path": "scripts/manage_metrics.py",
@@ -278,14 +366,14 @@
       },
       {
         "path": "scripts/resolve_providers.py",
-        "sha256": "902d7114f5cbadeff16105d92900dbd77d40957bc9146697f0bbd0731ae4627e"
+        "sha256": "18924724903ae94a785eeacd002d8a9b75e8a864daef4829fb174d2a81447d4d"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "9d4b1df669f58e4eff8484284858c12b07e6516d623d542636d007ef01f2fc89"
+    "bundleSha256": "81693c8c0aab87a65856effa1114f0a81fdb6c41b9b6b22e972b04265f44087c"
   },
   "profiles": [
     {

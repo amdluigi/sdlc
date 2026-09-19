@@ -1,9 +1,10 @@
 """The capability provider contract states one vocabulary for every path.
 
-The load-bearing test is ContractProjectionTest.test_every_bundled_module_
-is_conformant. If the bundled registry cannot project onto the contract,
-the claim that the vocabularies already agree is false, and the contract is
-a redesign rather than a consolidation.
+The load-bearing test is BundledDeclarationTest.test_every_bundled_module_
+is_conformant. The bundle no longer projects onto the contract from registry
+rows; each capability declares itself on disk in the same file a third-party
+provider authors. If those declarations do not satisfy the contract, the
+claim that one vocabulary serves every path is false.
 """
 
 from __future__ import annotations
@@ -17,7 +18,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "sdlc" / "SKILL.md"
-REGISTRY = ROOT / "skills" / "sdlc" / "modules" / "registry.json"
+MODULES = ROOT / "skills" / "sdlc" / "modules"
+REGISTRY = MODULES / "registry.json"
 SCHEMA = (
     ROOT / "skills" / "sdlc" / "contracts" / "capability-provider.schema.json"
 )
@@ -38,6 +40,14 @@ def sdlc_version() -> str:
 
 
 def registry() -> dict:
+    """The assembled registry, as every consumer reads it."""
+
+    return capability_contract.load_registry(REGISTRY)
+
+
+def placement_registry() -> dict:
+    """The registry file itself, carrying placement only."""
+
     return json.loads(REGISTRY.read_text(encoding="utf-8"))
 
 
@@ -60,52 +70,53 @@ def valid_declaration(**overrides) -> dict:
     return declaration
 
 
-class ContractProjectionTest(unittest.TestCase):
+class BundledDeclarationTest(unittest.TestCase):
     def test_every_bundled_module_is_conformant(self):
-        data = registry()
+        data = placement_registry()
         capabilities = {entry["name"] for entry in data["modules"]}
-        version = sdlc_version()
         self.assertTrue(capabilities)
         for entry in data["modules"]:
             with self.subTest(module=entry["name"]):
-                declaration = (
-                    capability_contract.declaration_from_registry_entry(
-                        entry, version, capabilities
-                    )
+                declaration = capability_contract.load_bundled_declaration(
+                    MODULES, entry, capabilities
                 )
                 self.assertEqual(declaration["id"], "sdlc")
                 self.assertEqual(declaration["capability"], entry["name"])
                 self.assertEqual(declaration["mode"], "default")
-                self.assertEqual(declaration["trigger"], entry["trigger"])
-                self.assertEqual(
-                    declaration["exitSignal"], entry["exitSignal"]
-                )
-                self.assertEqual(declaration["evidence"], entry["evidence"])
+                self.assertTrue(declaration["trigger"])
+                self.assertTrue(declaration["exitSignal"])
+                self.assertTrue(declaration["evidence"])
 
-    def test_projection_preserves_every_evidence_clause(self):
-        data = registry()
-        version = sdlc_version()
-        for entry in data["modules"]:
-            declaration = capability_contract.declaration_from_registry_entry(
-                entry, version
+    def test_assembly_exposes_every_evidence_clause(self):
+        for entry in registry()["modules"]:
+            declaration = json.loads(
+                (MODULES / entry["name"] / "sdlc-capability.json").read_text(
+                    encoding="utf-8"
+                )
             )
             self.assertEqual(
-                len(declaration["evidence"]), len(entry["evidence"])
+                len(entry["evidence"]), len(declaration["evidence"])
             )
 
-    def test_bundled_projection_is_compatible_with_itself(self):
-        entry = registry()["modules"][0]
-        declaration = capability_contract.declaration_from_registry_entry(
-            entry, "1.2.3"
-        )
-        self.assertEqual(declaration["compatibleSdlc"], "==1.2.3")
+    def test_a_bundled_declaration_accepts_the_running_release(self):
+        import adaptive_extensions
 
-    def test_registry_entry_missing_a_contract_field_is_rejected(self):
-        entry = dict(registry()["modules"][0])
-        del entry["exitSignal"]
+        version = sdlc_version()
+        for entry in placement_registry()["modules"]:
+            declaration = capability_contract.load_bundled_declaration(
+                MODULES, entry
+            )
+            self.assertTrue(
+                adaptive_extensions.version_satisfies(
+                    version, declaration["compatibleSdlc"]
+                ),
+                f"{entry['name']} refuses its own release {version}",
+            )
+
+    def test_a_registry_entry_without_a_declaration_is_rejected(self):
         with self.assertRaises(capability_contract.ContractError):
-            capability_contract.declaration_from_registry_entry(
-                entry, sdlc_version()
+            capability_contract.load_bundled_declaration(
+                MODULES, {"name": "no-such-capability"}
             )
 
 

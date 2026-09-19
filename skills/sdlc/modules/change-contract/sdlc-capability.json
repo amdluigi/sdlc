@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc",
+  "capability": "change-contract",
+  "mode": "default",
+  "instructions": "MODULE.md",
+  "trigger": "Always when enabled to establish the change contract.",
+  "exitSignal": "Repository findings, outcome, acceptance criteria, non-goals, impact, PR boundary, and costly open decisions are clear at the rigor required by the change.",
+  "evidence": [
+    "For a Significant existing-codebase change, a concise discovery brief identifies inspected evidence, existing decisions and patterns, integration points, relevant constraints, facts, assumptions, and unknowns before clarification.",
+    "An inspectable specification, plan, issue, conversation decision, or change brief states the outcome, acceptance criteria, non-goals, affected surfaces, coherent boundary, and unresolved decisions.",
+    "For user-facing changes, the target user and benefit are clear; scenarios and success metrics are included when they materially define behavior or success."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

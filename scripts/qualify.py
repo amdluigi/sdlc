@@ -129,7 +129,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 65
+BUNDLE_FILE_COUNT = 87
 DETERMINISTIC_EVIDENCE = {
     "manifest-valid",
     "file-count",
@@ -774,6 +774,25 @@ def inspect_install(
     performed["module-count"] = [
         {"code": "module-count", "value": len(registry["modules"])}
     ]
+    for item in registry["modules"]:
+        declaration_path = (
+            destination / "modules" / item["name"] / "sdlc-capability.json"
+        )
+        if not declaration_path.is_file():
+            fail(
+                "Installed capability ships no sdlc-capability.json: "
+                f"{item['name']}"
+            )
+        declaration = load_json_strict(declaration_path)
+        if (
+            declaration.get("capability") != item["name"]
+            or declaration.get("id") != "sdlc"
+            or declaration.get("mode") != "default"
+        ):
+            fail(
+                "Installed capability declaration is invalid: "
+                f"{item['name']}"
+            )
     if set(config) != {
         "schemaVersion",
         "phases",
