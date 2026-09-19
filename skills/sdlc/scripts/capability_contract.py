@@ -287,9 +287,30 @@ def assemble_module(entry, declaration, name):
     return assembled
 
 
-def load_registry(registry_path):
-    """Read the registry and each capability's declaration as one record."""
+def implementations_root(registry_path):
+    """Return the directory holding the installed implementation skills.
 
+    Implementations are siblings of the control plane, not files inside it,
+    so they are found where every other skill is found. The registry lives
+    at ``<skills>/sdlc/modules/registry.json``, which makes the skills root
+    its third parent.
+    """
+
+    return Path(registry_path).parents[2]
+
+
+def load_registry(registry_path, root=None, on_missing="error"):
+    """Read the registry and each capability's declaration as one record.
+
+    ``on_missing`` decides what an absent implementation means. The default
+    refuses, because a bundle that cannot find its own implementation is a
+    broken installation. ``report`` instead drops the capability and records
+    the skill that would restore it, which is what a developer who installed
+    part of the suite needs: a named remedy, not a stack trace.
+    """
+
+    if on_missing not in ("error", "report"):
+        raise ContractError("on_missing must be error or report")
     registry_path = Path(registry_path)
     try:
         text = registry_path.read_text(encoding="utf-8")
@@ -301,19 +322,36 @@ def load_registry(registry_path):
     ):
         raise ContractError("registry must declare a list of modules")
 
-    modules_root = registry_path.parent
+    modules_root = (
+        Path(root) if root is not None else implementations_root(registry_path)
+    )
     names = {
         row.get("name") for row in registry["modules"]
         if isinstance(row, dict)
     }
     assembled = []
+    missing = []
     for entry in registry["modules"]:
+        if on_missing == "report" and isinstance(entry, dict):
+            name = entry.get("name")
+            if isinstance(name, str) and not bundled_declaration_path(
+                modules_root, name
+            ).is_file():
+                missing.append(
+                    {
+                        "capability": name,
+                        "install": bundled_provider_id(name),
+                    }
+                )
+                continue
         declaration = load_bundled_declaration(modules_root, entry, names)
         assembled.append(
             assemble_module(entry, declaration, entry["name"])
         )
     resolved = dict(registry)
     resolved["modules"] = assembled
+    if on_missing == "report":
+        resolved["missing"] = missing
     return resolved
 
 

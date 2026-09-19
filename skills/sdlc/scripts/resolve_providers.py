@@ -286,6 +286,7 @@ def survey(
     skipped=None,
     modes=None,
     categories=None,
+    missing=None,
 ):
     """Report which provider serves each capability, and what else could.
 
@@ -398,6 +399,7 @@ def survey(
         "capabilities": capabilities,
         "choicesRequired": choices,
         "skipped": list(skipped or []),
+        "missing": list(missing or []),
     }
 
 
@@ -777,7 +779,7 @@ def main(argv=None, *, host_adapter=None):
                 args.sdlc_version, args.host_profile,
             )
         elif args.command == "survey":
-            registry = load_registry(args.registry)
+            registry = load_registry(args.registry, on_missing="report")
             names = _registry_names(registry)
             config = load_project_config(
                 args.project_root, names, _phase_of(registry)
@@ -802,6 +804,7 @@ def main(argv=None, *, host_adapter=None):
                 config, registry["modules"], adapter, args.sdlc_version,
                 args.host_profile, skipped=skipped, modes=modes,
                 categories=registry.get("categories"),
+                missing=registry.get("missing"),
             )
         elif args.command == "inspect":
             resolution = load_json_strict(args.resolution)

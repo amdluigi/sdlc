@@ -6,9 +6,12 @@ reviewable change using current, inspectable evidence across seven delivery
 phases: inception, triage, design, implementation, verification, delivery,
 and operate.
 
-It is not a collection of separately installed skills. The repository ships
-one discoverable skill named `sdlc`; its internal modules are loaded only when
-their task triggers apply.
+The repository ships a suite: one control plane skill named `sdlc`, and one
+implementation skill per lifecycle capability, named `sdlc-<capability>`. The
+control plane binds each capability to an implementation and loads it only
+when its task triggers apply. Installing the suite gives you all of them.
+Installing a single implementation on its own is also supported, and gives you
+that discipline without the gates the control plane enforces.
 
 [![Development managed by SDLC across seven delivery phases: inception, triage, design, implementation, verification, delivery, and operate. Verification can return the change to an earlier phase when evidence changes.](docs/images/sdlc-development-flow/01-development-lifecycle.svg)](docs/SDLC-DEVELOPMENT-FLOW.md)
 
@@ -145,13 +148,17 @@ to a delivery phase, so you can see which part of the lifecycle it serves:
 `.sdlc/config.json` lists these modules in this same order, so the file reads
 top to bottom as the lifecycle.
 
-Modules are internal Markdown references, not separately discoverable skills.
-The orchestrator uses the
+A module is an interface. The skill serving it is an implementation, shipped
+as `sdlc-<capability>` beside the control plane. The orchestrator uses the
 [module registry](skills/sdlc/modules/registry.json) to evaluate triggers,
 evidence contracts, and existing evidence before loading only the unresolved
 guidance. The domain modules remain trigger-lazy, so a backend-only change
 does not automatically load browser guidance and an unchanged locked
 dependency does not automatically trigger supply-chain work.
+
+If an implementation skill is not installed, SDLC does not fail. It reports
+the capability as missing, names the skill that would restore it, and
+continues without that phase.
 
 ## Use SDLC
 
@@ -352,19 +359,20 @@ rewritten under `phases`. There is nothing to run.
 
 ### Replace a bundled module with an external skill
 
-SDLC works standalone and depends on no external skill. Installing other
-workflow skills changes nothing on its own: they are not candidates to serve
-a module unless they declare themselves, so no configuration, prompting, or
-conflict arises from their presence.
+SDLC ships its own implementation for every capability and depends on no
+external skill. Installing other workflow skills changes nothing on its own:
+they are not candidates to serve a module unless they declare themselves, so
+no configuration, prompting, or conflict arises from their presence.
 
 Replacing a module takes three steps.
 
 **Step 1. The skill declares what it serves.** Its author ships
 `sdlc-capability.json` beside its skill document. A bundled implementation has
-exactly this shape, so the shortest route is to copy one:
+exactly this shape, because it is an ordinary skill too, so the shortest route
+is to copy one:
 
 ```bash
-cp -r skills/sdlc/modules/sdlc-testing ./acme-testing
+cp -r skills/sdlc-testing ./acme-testing
 ```
 
 You now have a working skill: a `SKILL.md` with Agent Skill frontmatter and a
@@ -619,8 +627,12 @@ python .agents\skills\sdlc\scripts\validate_artifacts.py render-handoff .sdlc\ha
 ### Skills CLI
 
 ```bash
-# Install into the current project.
+# Install the whole suite into the current project.
+npx skills add amdluigi/sdlc
+
+# Install only the control plane, then add implementations as needed.
 npx skills add amdluigi/sdlc --skill sdlc
+npx skills add amdluigi/sdlc --skill sdlc-testing
 
 # Install globally for selected agents.
 npx skills add amdluigi/sdlc -g -a claude-code -a codex
@@ -645,22 +657,30 @@ npx skills use amdluigi/sdlc --skill sdlc --agent claude-code
 /plugin install amdluigi-sdlc@amdluigi
 ```
 
-The plugin ships the same single `sdlc` skill.
+The plugin installs the full suite: the `sdlc` control plane and every
+`sdlc-*` implementation.
 
 ### Manual installation
 
-Copy the complete [`skills/sdlc`](skills/sdlc) directory, not only
-`SKILL.md`. The skill needs its registry, contracts, modules, scripts, and
-templates beside the entry point.
+Copy [`skills/sdlc`](skills/sdlc) and every `skills/sdlc-*` directory into
+the same skills root, not only `SKILL.md`. The control plane needs its
+registry, contracts, scripts, and templates beside its entry point, and it
+finds implementations through the host by name.
+
+You may install a single implementation on its own. It will run as an
+ordinary skill, without the control plane's phase ordering, gates, or
+evidence contracts. When the control plane is installed and an
+implementation is not, SDLC reports that capability as missing, names the
+skill that would restore it, and continues without that phase.
 
 Common project-local locations are:
 
 | Host | Location |
 |------|----------|
-| Claude Code | `.claude/skills/sdlc/` |
-| VS Code Copilot / Copilot CLI | `.github/skills/sdlc/` |
-| Cursor Agent | `.cursor/skills/sdlc/` or the configured skill directory |
-| Agent Skills-compatible host | `.agents/skills/sdlc/` |
+| Claude Code | `.claude/skills/` |
+| VS Code Copilot / Copilot CLI | `.github/skills/` |
+| Cursor Agent | `.cursor/skills/` or the configured skill directory |
+| Agent Skills-compatible host | `.agents/skills/` |
 
 ### Support levels
 

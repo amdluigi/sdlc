@@ -118,17 +118,19 @@ safeguards.
 ## Module contract
 
 A module is an interface. The skill serving it is an implementation. Each
-implementation lives in `modules/sdlc-<capability>/` and ships an Agent Skill
-`SKILL.md` beside its `sdlc-capability.json`, which is exactly the shape a
-third-party provider ships. They are not separately discoverable, because a
-host scanning the skills root sees only this skill.
+bundled implementation is installed beside this skill as `sdlc-<capability>`
+and ships an Agent Skill `SKILL.md` next to its `sdlc-capability.json`, which
+is exactly the shape a third-party provider ships. They are discoverable in
+their own right, and this skill reaches them through the host by declared
+name, the same route any external provider takes.
 
 Before reading any implementation `SKILL.md`, read
 [modules/registry.json](modules/registry.json). It is the single source for
 module placement: name, category, order, and whether the module may be
 replaced. Triggers, exit signals, and evidence contracts belong to each
-implementation's declaration. If a registered path is missing, report an
-invalid installation.
+implementation's declaration. If a registered capability has no installed
+implementation, report the capability as missing, name the skill that would
+restore it, and continue without that phase.
 
 The registry is organized by lifecycle category. Future bundles may connect
 one module, multiple complementary modules, or an alternative module to a

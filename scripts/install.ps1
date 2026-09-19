@@ -92,8 +92,8 @@ try {
     }
     else {
         $verb = if ($DryRun) { "Would install" } elseif ($Mode -eq "link") { "Linked" } else { "Copied" }
-        [Console]::Error.WriteLine("$verb sdlc for $Profile ($Scope/$Mode).")
-        [Console]::Error.WriteLine("Reload the client and confirm the sdlc skill is discovered.")
+        [Console]::Error.WriteLine("$verb the sdlc suite for $Profile ($Scope/$Mode).")
+        [Console]::Error.WriteLine("Reload the client and confirm sdlc and its sdlc-* implementations are discovered.")
     }
 }
 catch {

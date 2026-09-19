@@ -129,7 +129,9 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 87
+BUNDLE_FILE_COUNT = 32
+IMPLEMENTATION_COUNT = 22
+DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {
     "manifest-valid",
     "file-count",
@@ -314,11 +316,66 @@ def inventory_bundle(bundle: Path) -> tuple[list[dict[str, str]], str]:
     return rows, hashlib.sha256(payload).hexdigest()
 
 
+def _validate_file_rows(files: object, context: str) -> None:
+    seen: set[str] = set()
+    previous = ""
+    for index, row in enumerate(files):
+        item = _fields(row, {"path", "sha256"}, f"{context} {index}")
+        path = _safe_relative(item["path"], f"{context} {index} path")
+        if path in seen or (previous and path <= previous):
+            fail(f"{context} entries must be unique and sorted by path")
+        if not isinstance(item["sha256"], str) or not HASH_RE.fullmatch(item["sha256"]):
+            fail(f"Invalid {context} hash: {path}")
+        seen.add(path)
+        previous = path
+
+
+def _validate_implementations(value: object) -> None:
+    """Each implementation is qualified as its own installable skill.
+
+    A developer may install one implementation without the control plane,
+    so the suite cannot be qualified as a single opaque directory. Every
+    implementation carries its own inventory and digest, which is what makes
+    a single install verifiable rather than merely permitted.
+    """
+
+    if not isinstance(value, list) or len(value) != IMPLEMENTATION_COUNT:
+        fail(
+            "Manifest must describe exactly "
+            f"{IMPLEMENTATION_COUNT} implementations"
+        )
+    previous = ""
+    for index, row in enumerate(value):
+        item = _fields(
+            row,
+            {"id", "capability", "source", "files", "bundleSha256"},
+            f"implementation {index}",
+        )
+        identifier = _id(item["id"], "implementation ID")
+        capability = _id(item["capability"], "implementation capability")
+        if identifier != "sdlc-" + capability:
+            fail(f"Implementation ID must name its capability: {identifier}")
+        if previous and identifier <= previous:
+            fail("Manifest implementations must be unique and sorted by ID")
+        previous = identifier
+        source = _safe_relative(item["source"], "implementation source")
+        if source != f"skills/{identifier}":
+            fail(f"Implementation source must be skills/{identifier}")
+        if not isinstance(item["files"], list) or not item["files"]:
+            fail(f"Implementation ships no files: {identifier}")
+        _validate_file_rows(item["files"], f"implementation {identifier} file")
+        if (
+            not isinstance(item["bundleSha256"], str)
+            or not HASH_RE.fullmatch(item["bundleSha256"])
+        ):
+            fail(f"Invalid implementation bundleSha256: {identifier}")
+
+
 def validate_manifest(value: object, root: Path) -> dict[str, object]:
     manifest = _fields(
         value,
-        {"schemaVersion", "kind", "release", "skill", "profiles",
-         "deterministicCases", "liveCases", "gate"},
+        {"schemaVersion", "kind", "release", "skill", "implementations",
+         "profiles", "deterministicCases", "liveCases", "gate"},
         "manifest",
     )
     if manifest["schemaVersion"] != 1 or manifest["kind"] != "sdlc-qualification-manifest":
@@ -335,10 +392,13 @@ def validate_manifest(value: object, root: Path) -> dict[str, object]:
     if skill["id"] != "sdlc" or skill["version"] != release:
         fail("Manifest release and skill version must agree")
     source = _safe_relative(skill["source"], "skill source")
-    if type(skill["discoverableSkillCount"]) is not int or skill["discoverableSkillCount"] != 1:
-        fail("discoverableSkillCount must be 1")
-    if type(skill["moduleCount"]) is not int or skill["moduleCount"] != 22:
-        fail("moduleCount must be 22")
+    if (
+        type(skill["discoverableSkillCount"]) is not int
+        or skill["discoverableSkillCount"] != DISCOVERABLE_SKILL_COUNT
+    ):
+        fail(f"discoverableSkillCount must be {DISCOVERABLE_SKILL_COUNT}")
+    if type(skill["moduleCount"]) is not int or skill["moduleCount"] != IMPLEMENTATION_COUNT:
+        fail(f"moduleCount must be {IMPLEMENTATION_COUNT}")
     _safe_relative(skill["configTemplate"], "config template")
     if (
         not isinstance(skill["helperScripts"], list)
@@ -355,19 +415,10 @@ def validate_manifest(value: object, root: Path) -> dict[str, object]:
             "Release 1.0 manifest must contain exactly "
             f"{BUNDLE_FILE_COUNT} bundle files"
         )
-    seen: set[str] = set()
-    previous = ""
-    for index, row in enumerate(files):
-        item = _fields(row, {"path", "sha256"}, f"manifest file {index}")
-        path = _safe_relative(item["path"], f"manifest file {index} path")
-        if path in seen or (previous and path <= previous):
-            fail("Manifest files must be unique and sorted by path")
-        if not isinstance(item["sha256"], str) or not HASH_RE.fullmatch(item["sha256"]):
-            fail(f"Invalid manifest file hash: {path}")
-        seen.add(path)
-        previous = path
+    _validate_file_rows(files, "manifest file")
     if not isinstance(skill["bundleSha256"], str) or not HASH_RE.fullmatch(skill["bundleSha256"]):
         fail("Invalid bundleSha256")
+    _validate_implementations(manifest["implementations"])
     profiles = manifest["profiles"]
     if not isinstance(profiles, list) or len(profiles) != 3:
         fail("Manifest must contain exactly three profiles")
@@ -621,6 +672,26 @@ def install_bundle(source: Path, destination: Path, mode: str) -> None:
         raise
 
 
+def install_suite(
+    root: Path, manifest: dict[str, object], destination: Path, mode: str
+) -> None:
+    """Install the control plane and every implementation beside it.
+
+    The suite is the default install because the control plane binds
+    interfaces to implementations it does not contain. Installing one
+    implementation alone remains possible, and is simply this loop reduced
+    to a single entry.
+    """
+
+    install_bundle(root / str(manifest["skill"]["source"]), destination, mode)
+    for entry in manifest["implementations"]:
+        install_bundle(
+            root / str(entry["source"]),
+            destination.parent / str(entry["id"]),
+            mode,
+        )
+
+
 def _read_frontmatter(path: Path) -> dict[str, str]:
     lines = path.read_text(encoding="utf-8").splitlines()
     if not lines or lines[0] != "---":
@@ -699,8 +770,12 @@ def _deterministic_evidence(case_id: str) -> list[dict[str, object]]:
             {"code": "file-count", "value": BUNDLE_FILE_COUNT},
             {"code": "hashes-match", "value": True},
         ],
-        "discoverable-skill-count": [{"code": "skill-count", "value": 1}],
-        "module-count": [{"code": "module-count", "value": 22}],
+        "discoverable-skill-count": [
+            {"code": "skill-count", "value": DISCOVERABLE_SKILL_COUNT}
+        ],
+        "module-count": [
+            {"code": "module-count", "value": IMPLEMENTATION_COUNT}
+        ],
         "config-template": [{"code": "config-valid", "value": True}],
         "helper-scripts": [{"code": "helpers-match", "value": True}],
         "trigger-discovery-metadata": [{"code": "metadata-valid", "value": True}],
@@ -752,31 +827,44 @@ def inspect_install(
         performed["copy-byte-identity"] = _deterministic_evidence(
             "copy-byte-identity"
         )
-    skill_files = [
-        child / "SKILL.md"
-        for child in destination.parent.iterdir()
+    skills_root = destination.parent
+    skill_dirs = sorted(
+        child.name
+        for child in skills_root.iterdir()
         if not child.name.startswith(".sdlc-") and (child / "SKILL.md").is_file()
-    ]
-    if len(skill_files) != 1:
-        fail("Installed skills root must expose exactly one discoverable skill")
+    )
+    if len(skill_dirs) != DISCOVERABLE_SKILL_COUNT:
+        fail(
+            "Installed skills root must expose exactly "
+            f"{DISCOVERABLE_SKILL_COUNT} discoverable skills"
+        )
     performed["discoverable-skill-count"] = [
-        {"code": "skill-count", "value": len(skill_files)}
+        {"code": "skill-count", "value": len(skill_dirs)}
     ]
+    for entry in manifest["implementations"]:
+        identifier = str(entry["id"])
+        directory = skills_root / identifier
+        if not directory.is_dir():
+            fail(f"Installed implementation is missing: {identifier}")
+        files, digest = inventory_bundle(
+            directory.resolve() if is_directory_link(directory) else directory
+        )
+        if files != entry["files"] or digest != entry["bundleSha256"]:
+            fail(f"Installed implementation bytes do not match: {identifier}")
     registry = load_json_strict(destination / "modules" / "registry.json")
     config = load_json_strict(destination / str(manifest["skill"]["configTemplate"]))
     module_names = {item["name"] for item in registry["modules"]}
     expected_dirs = {"sdlc-" + name for name in module_names}
-    module_dirs = {path.name for path in (destination / "modules").iterdir() if path.is_dir()}
     if (
         len(registry["modules"]) != manifest["skill"]["moduleCount"]
-        or module_dirs != expected_dirs
+        or expected_dirs - set(skill_dirs)
     ):
         fail("Installed module registry and filesystem do not match")
     performed["module-count"] = [
         {"code": "module-count", "value": len(registry["modules"])}
     ]
     for item in registry["modules"]:
-        directory = destination / "modules" / ("sdlc-" + item["name"])
+        directory = skills_root / ("sdlc-" + item["name"])
         declaration_path = directory / "sdlc-capability.json"
         if not declaration_path.is_file():
             fail(
@@ -1267,9 +1355,31 @@ def main(argv: list[str] | None = None) -> int:
             files, digest = inventory_bundle(args.bundle)
             value["skill"]["files"] = files
             value["skill"]["bundleSha256"] = digest
+            implementations = []
+            for directory in sorted(Path(args.bundle).parent.glob("sdlc-*")):
+                if not (directory / "SKILL.md").is_file():
+                    continue
+                rows, bundle_digest = inventory_bundle(directory)
+                implementations.append(
+                    {
+                        "id": directory.name,
+                        "capability": directory.name.removeprefix("sdlc-"),
+                        "source": f"skills/{directory.name}",
+                        "files": rows,
+                        "bundleSha256": bundle_digest,
+                    }
+                )
+            value["implementations"] = implementations
             validate_manifest(value, ROOT)
             _write_json_atomic(args.manifest, value)
-            _emit({"pass": True, "files": len(files), "bundleSha256": digest})
+            _emit(
+                {
+                    "pass": True,
+                    "files": len(files),
+                    "implementations": len(implementations),
+                    "bundleSha256": digest,
+                }
+            )
         elif args.command == "inventory":
             files, digest = inventory_bundle(args.bundle)
             _emit({"files": files, "bundleSha256": digest})
@@ -1283,8 +1393,7 @@ def main(argv: list[str] | None = None) -> int:
             if cell["support"] != "required":
                 fail(f"Installation cell is unsupported: {cell['reason']}")
             if args.command == "install" and not args.dry_run:
-                source = ROOT / str(manifest["skill"]["source"])
-                install_bundle(source, destination, args.mode)
+                install_suite(ROOT, manifest, destination, args.mode)
             value = (
                 {
                     "profile": args.profile,

@@ -126,6 +126,9 @@ class ProviderResolutionTests(unittest.TestCase):
 
     def write_json(self, name, value):
         path = self.work / name
+        if name == "registry.json":
+            path = self.work / "sdlc" / "modules" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(value), encoding="utf-8")
         return path
 

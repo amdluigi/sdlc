@@ -19,5 +19,29 @@
     "code-review",
     "process"
   ],
-  "skills": ["./skills/sdlc"]
+  "skills": [
+    "./skills/sdlc",
+    "./skills/sdlc-accessibility-browser",
+    "./skills/sdlc-api-compatibility",
+    "./skills/sdlc-change-contract",
+    "./skills/sdlc-continuous-improvement",
+    "./skills/sdlc-data-migration",
+    "./skills/sdlc-debugging",
+    "./skills/sdlc-dependency-supply-chain",
+    "./skills/sdlc-implementation",
+    "./skills/sdlc-incident-response",
+    "./skills/sdlc-observability",
+    "./skills/sdlc-operational-readiness",
+    "./skills/sdlc-performance-concurrency",
+    "./skills/sdlc-planning",
+    "./skills/sdlc-pr-handoff",
+    "./skills/sdlc-prd",
+    "./skills/sdlc-project-memory",
+    "./skills/sdlc-project-standards",
+    "./skills/sdlc-release-launch",
+    "./skills/sdlc-review",
+    "./skills/sdlc-security-auth",
+    "./skills/sdlc-tdd",
+    "./skills/sdlc-testing"
+  ]
 }

@@ -2664,8 +2664,6 @@ class ContinuousImprovementContractTests(unittest.TestCase):
             (
                 repository_root
                 / "skills"
-                / "sdlc"
-                / "modules"
                 / "sdlc-continuous-improvement"
                 / "sdlc-capability.json"
             ).read_text(encoding="utf-8")
@@ -2673,8 +2671,6 @@ class ContinuousImprovementContractTests(unittest.TestCase):
         module = (
             repository_root
             / "skills"
-            / "sdlc"
-            / "modules"
             / "sdlc-continuous-improvement"
             / "SKILL.md"
         ).read_text(encoding="utf-8")
