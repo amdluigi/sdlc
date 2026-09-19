@@ -15,7 +15,11 @@ from config_contract import (
     load_project_config,
 )
 from adaptive_extensions import version_satisfies
-from capability_contract import FilesystemProviders, load_registry
+from capability_contract import (
+    FilesystemProviders,
+    bundled_provider_id,
+    load_registry,
+)
 
 
 class ProviderError(ValueError):
@@ -279,7 +283,7 @@ def _validate_provider_metadata(
 
 
 def repair_command(missing, source=SUITE_SOURCE):
-    """Build the single command that reinstalls every missing implementation.
+    """Build the single command that reinstalls every missing requirement.
 
     The control plane depends on its implementations; they do not depend on
     it. That direction is one way, so the remedy is always the same shape:
@@ -288,19 +292,57 @@ def repair_command(missing, source=SUITE_SOURCE):
     them, so the control plane has to hand the developer the exact command
     rather than a description of one.
 
+    Only bundled requirements are included. When configuration names an
+    external provider that is not installed, the control plane cannot know
+    where that skill is published, so it reports the gap and offers no
+    command it cannot honestly promise will work.
+
     Returns ``None`` when nothing is missing, which is what lets a caller
     treat "no repair" and "nothing to say" as the same case.
     """
 
     names = sorted(
-        item["install"]
+        item["requires"]
         for item in missing or []
-        if isinstance(item, dict) and item.get("install")
+        if isinstance(item, dict)
+        and item.get("source") == "bundled"
+        and item.get("requires")
     )
     if not names:
         return None
     flags = " ".join(f"--skill {name}" for name in names)
     return f"npx skills add {source} {flags}"
+
+
+def _required_providers(entry, configured, absent, installed):
+    """Decide what an absent implementation means for one capability.
+
+    Configuration, not the registry, decides what a project requires. A
+    capability the developer disabled requires nothing, and one served by an
+    external provider does not require the bundled implementation at all.
+    Reporting every registered capability as a dependency would demand
+    downloads for phases the project deliberately does not run.
+    """
+
+    name = entry["name"]
+    if configured is False:
+        return None
+    if isinstance(configured, dict) and "replaceWith" in configured:
+        provider = configured["replaceWith"]
+        if provider in installed:
+            return None
+        return {
+            "capability": name,
+            "requires": provider,
+            "source": "external",
+        }
+    if name not in absent:
+        return None
+    return {
+        "capability": name,
+        "requires": bundled_provider_id(name),
+        "source": "bundled",
+    }
 
 
 def survey(
@@ -312,7 +354,7 @@ def survey(
     skipped=None,
     modes=None,
     categories=None,
-    missing=None,
+    absent=None,
 ):
     """Report which provider serves each capability, and what else could.
 
@@ -350,6 +392,9 @@ def survey(
 
     capabilities = []
     choices = []
+    missing = []
+    absent = set(absent or ())
+    installed = {candidate["declaredName"] for candidate in candidates}
     for entry in registry_modules:
         name = entry["name"]
         placement = categories.get(entry.get("category"), {})
@@ -361,6 +406,18 @@ def survey(
         else:
             active = {"type": "bundled"}
         state = "disabled" if configured is False else "enabled"
+
+        requirement = _required_providers(
+            entry, configured, absent, installed
+        )
+        if requirement is not None:
+            missing.append(requirement)
+        if (
+            name in absent
+            and active["type"] == "bundled"
+            and state == "enabled"
+        ):
+            continue
 
         alternatives = []
         for candidate in sorted(
@@ -425,7 +482,7 @@ def survey(
         "capabilities": capabilities,
         "choicesRequired": choices,
         "skipped": list(skipped or []),
-        "missing": list(missing or []),
+        "missing": missing,
         "repair": repair_command(missing),
     }
 
@@ -807,9 +864,12 @@ def main(argv=None, *, host_adapter=None):
             )
         elif args.command == "survey":
             registry = load_registry(args.registry, on_missing="report")
-            names = _registry_names(registry)
+            placement = registry.get("placement") or registry["modules"]
+            names = {entry["name"] for entry in placement}
             config = load_project_config(
-                args.project_root, names, _phase_of(registry)
+                args.project_root,
+                names,
+                _phase_of(dict(registry, modules=placement)),
             )
             adapter = None
             modes = {}
@@ -828,10 +888,10 @@ def main(argv=None, *, host_adapter=None):
                 modes = providers.declared_modes()
                 skipped = providers.skipped
             output = survey(
-                config, registry["modules"], adapter, args.sdlc_version,
+                config, placement, adapter, args.sdlc_version,
                 args.host_profile, skipped=skipped, modes=modes,
                 categories=registry.get("categories"),
-                missing=registry.get("missing"),
+                absent=registry.get("absent"),
             )
         elif args.command == "inspect":
             resolution = load_json_strict(args.resolution)

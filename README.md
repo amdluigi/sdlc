@@ -25,11 +25,17 @@ that discipline without the gates the control plane enforces.
 
 ## Start here
 
-Install `sdlc` in the project where your agent works:
+Install SDLC in the project where your agent works:
 
 ```bash
-npx skills add amdluigi/sdlc --skill sdlc
+npx skills add amdluigi/sdlc --skill '*'
 ```
+
+This installs the `sdlc` control plane and the implementations it binds. The
+control plane does not contain them, so installing `--skill sdlc` on its own
+gives you an orchestrator with nothing to orchestrate. See
+[Install SDLC](#install-sdlc) for the plugin and for installing a single
+implementation on its own.
 
 Then make a normal request, for example:
 
@@ -651,6 +657,27 @@ npx skills update amdluigi/sdlc
 Installing `--skill sdlc` on its own gives you a control plane with no
 implementations. It runs, reports every capability as missing, and offers the
 command that restores them, but it cannot deliver any phase until you accept.
+
+### How SDLC checks its own dependencies
+
+SDLC checks at the start of a session rather than trusting the install. The
+check is driven by your configuration, not by the registry:
+
+- a capability you disabled requires nothing, and is never reported;
+- a capability you replaced with an external provider requires that provider,
+  not the bundled skill;
+- everything else requires its bundled `sdlc-*` implementation.
+
+With no configuration the defaults apply and the whole suite is expected. A
+missing configuration file is not treated as an uninitialized install, so the
+common healthy case never triggers a download.
+
+The check costs two file reads and at most one directory check per capability.
+It never contacts the network. When it finds a gap in a bundled implementation
+it prints one `npx skills add` line, shows it to you, and runs it only if you
+say yes. When the gap is an external provider named in your configuration,
+there is no command to offer: SDLC reports the provider by name, because it
+cannot know where a third party publishes.
 
 To generate a one-off prompt or launch an agent:
 

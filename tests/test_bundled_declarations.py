@@ -216,8 +216,16 @@ class LoadRegistryTest(unittest.TestCase):
             capability_contract.load_registry(path)
         self.assertIn("testing", str(caught.exception))
 
-    def test_a_missing_implementation_is_reported_with_its_remedy(self):
-        """A partial install degrades honestly instead of failing."""
+    def test_an_absent_implementation_keeps_its_registered_name(self):
+        """Presence is a fact about disk, not about the registry.
+
+        Report mode once dropped absent capabilities from the module
+        list. Configuration was validated against what remained, so
+        disabling or replacing a capability whose bundled skill was not
+        installed was rejected as an unknown core module. Only
+        configuration can say whether an absent implementation is
+        actually needed, so every registered name must survive.
+        """
 
         path = write_registry(self.dir, [
             {"name": "testing", "category": "verification", "order": 0,
@@ -232,12 +240,13 @@ class LoadRegistryTest(unittest.TestCase):
         self.assertEqual(
             [entry["name"] for entry in registry["modules"]], ["review"]
         )
+        self.assertEqual(registry["absent"], ["testing"])
         self.assertEqual(
-            registry["missing"],
-            [{"capability": "testing", "install": "sdlc-testing"}],
+            [entry["name"] for entry in registry["placement"]],
+            ["testing", "review"],
         )
 
-    def test_a_complete_install_reports_nothing_missing(self):
+    def test_a_complete_install_reports_nothing_absent(self):
         path = write_registry(self.dir, [
             {"name": "testing", "category": "verification", "order": 0,
              "replaceable": True},
@@ -246,7 +255,7 @@ class LoadRegistryTest(unittest.TestCase):
         registry = capability_contract.load_registry(
             path, on_missing="report"
         )
-        self.assertEqual(registry["missing"], [])
+        self.assertEqual(registry["absent"], [])
 
     def test_missing_implementations_produce_one_repair_command(self):
         """The remedy is a command to run, not a description of one.
@@ -257,8 +266,10 @@ class LoadRegistryTest(unittest.TestCase):
         """
 
         missing = [
-            {"capability": "testing", "install": "sdlc-testing"},
-            {"capability": "review", "install": "sdlc-review"},
+            {"capability": "testing", "requires": "sdlc-testing",
+             "source": "bundled"},
+            {"capability": "review", "requires": "sdlc-review",
+             "source": "bundled"},
         ]
         self.assertEqual(
             resolve_providers.repair_command(missing),
@@ -266,9 +277,86 @@ class LoadRegistryTest(unittest.TestCase):
             "--skill sdlc-review --skill sdlc-testing",
         )
 
+    def test_an_external_requirement_gets_no_repair_command(self):
+        """We know where our own skills live, not where a third party's do.
+
+        Emitting an install line for a provider the project chose in
+        configuration would be a guess at a publisher we have never seen.
+        """
+
+        missing = [
+            {"capability": "testing", "requires": "acme-testing",
+             "source": "external"},
+            {"capability": "review", "requires": "sdlc-review",
+             "source": "bundled"},
+        ]
+        self.assertEqual(
+            resolve_providers.repair_command(missing),
+            "npx skills add amdluigi/sdlc --skill sdlc-review",
+        )
+        self.assertIsNone(resolve_providers.repair_command(
+            [missing[0]]
+        ))
+
     def test_nothing_missing_produces_no_repair_command(self):
         self.assertIsNone(resolve_providers.repair_command([]))
         self.assertIsNone(resolve_providers.repair_command(None))
+
+    def test_a_disabled_capability_requires_nothing(self):
+        """Configuration decides requirements, not the registry.
+
+        A project that switched a phase off should never be asked to
+        download the implementation for it.
+        """
+
+        entry = {"name": "testing"}
+        self.assertIsNone(resolve_providers._required_providers(
+            entry, False, absent=["testing"], installed=set()
+        ))
+
+    def test_an_enabled_capability_requires_its_bundled_skill(self):
+        entry = {"name": "testing"}
+        self.assertEqual(
+            resolve_providers._required_providers(
+                entry, True, absent=["testing"], installed=set()
+            ),
+            {"capability": "testing", "requires": "sdlc-testing",
+             "source": "bundled"},
+        )
+
+    def test_a_present_bundled_skill_requires_nothing(self):
+        entry = {"name": "testing"}
+        self.assertIsNone(resolve_providers._required_providers(
+            entry, True, absent=[], installed=set()
+        ))
+
+    def test_a_replaced_capability_does_not_require_the_bundled_skill(self):
+        """An external provider discharges the dependency.
+
+        The bundled implementation is absent here, but the project asked
+        for someone else's, so installing ours would be pointless.
+        """
+
+        entry = {"name": "testing"}
+        self.assertIsNone(resolve_providers._required_providers(
+            entry,
+            {"replaceWith": "acme-testing"},
+            absent=["testing"],
+            installed={"acme-testing"},
+        ))
+
+    def test_a_replacement_that_is_not_installed_is_reported(self):
+        entry = {"name": "testing"}
+        self.assertEqual(
+            resolve_providers._required_providers(
+                entry,
+                {"replaceWith": "acme-testing"},
+                absent=["testing"],
+                installed=set(),
+            ),
+            {"capability": "testing", "requires": "acme-testing",
+             "source": "external"},
+        )
 
     def test_a_declaration_may_not_serve_another_capability(self):
         path = write_registry(self.dir, [
@@ -359,6 +447,90 @@ class LoadRegistryTest(unittest.TestCase):
             [entry["name"] for entry in registry["modules"]],
             ["project-memory", "testing"],
         )
+
+
+class SurveyConfigurationTest(unittest.TestCase):
+    """A partial install must survive configuration that mentions the gap.
+
+    This reproduces the failure end to end: disabling a capability whose
+    bundled skill is not installed once aborted the survey with "unknown
+    core module", because report mode had already removed the name that
+    configuration referred to.
+    """
+
+    def setUp(self):
+        import tempfile
+
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        self.skills = self.dir / "skills"
+        self.project = self.dir / "project"
+        (self.project / ".sdlc").mkdir(parents=True)
+        self.registry = write_registry(self.skills, [
+            {"name": "project-memory", "category": "context", "order": 0,
+             "replaceable": True},
+            {"name": "testing", "category": "verification", "order": 1,
+             "replaceable": True},
+        ])
+        write_declaration(self.skills, "project-memory")
+
+    def write_config(self, testing):
+        (self.project / ".sdlc" / "config.json").write_text(
+            json.dumps({
+                "schemaVersion": 3,
+                "modules": {"project-memory": True, "testing": testing},
+                "extensions": {"project": {}, "global": {}},
+                "measurement": {"enabled": False},
+            }),
+            encoding="utf-8",
+        )
+
+    def run_survey(self):
+        import contextlib
+        import io
+
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            resolve_providers.main([
+                "survey",
+                "--registry", str(self.registry),
+                "--project-root", str(self.project),
+                "--sdlc-version", "1.0.0",
+                "--provider-root", str(self.skills),
+                "--host-profile", "filesystem",
+            ])
+        return json.loads(stream.getvalue())
+
+    def test_disabling_an_absent_capability_requires_nothing(self):
+        self.write_config(False)
+        result = self.run_survey()
+        self.assertEqual(result["missing"], [])
+        self.assertIsNone(result["repair"])
+
+    def test_an_enabled_absent_capability_is_reported_with_its_remedy(self):
+        self.write_config(True)
+        result = self.run_survey()
+        self.assertEqual(
+            result["missing"],
+            [{"capability": "testing", "requires": "sdlc-testing",
+              "source": "bundled"}],
+        )
+        self.assertEqual(
+            result["repair"],
+            "npx skills add amdluigi/sdlc --skill sdlc-testing",
+        )
+
+    def test_bundled_implementations_are_not_reported_as_skipped(self):
+        """Siblings are the bundle, not rejected third-party providers.
+
+        Scanning the skills root now finds them, and the reserved prefix
+        would otherwise record every healthy one as a skipped candidate,
+        burying the malformed provider the list exists to surface.
+        """
+
+        self.write_config(True)
+        self.assertEqual(self.run_survey()["skipped"], [])
 
 
 if __name__ == "__main__":

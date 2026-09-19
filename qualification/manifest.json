@@ -26,7 +26,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "720a18a9c66e808c1d48a34ea66c12623cebb30ed90576189496969b264326dc"
+        "sha256": "39b47d23c736dc6eeb8f757686dcb6b6ae16599659c3908d36f4ede6d04b977f"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -90,7 +90,7 @@
       },
       {
         "path": "contracts/provider-survey.schema.json",
-        "sha256": "7a26caf5332c14a42a4528593f3c80f323c932d147095394c56e3f6151900fa6"
+        "sha256": "ef9ba9e3d846a2aaecf8e73016ae0c161db3464b4b78daaefb37986714fbb78c"
       },
       {
         "path": "contracts/reconciliation-report.schema.json",
@@ -114,7 +114,7 @@
       },
       {
         "path": "scripts/capability_contract.py",
-        "sha256": "bb46611f46b4a2ad0b3278b3e09ad8f75f107e9ea863d04a61d68c303aa98635"
+        "sha256": "25319ea679b66817dda85b71b2ba13e905c73deb6c32eba1d4815a68ffefaa26"
       },
       {
         "path": "scripts/config_contract.py",
@@ -146,14 +146,14 @@
       },
       {
         "path": "scripts/resolve_providers.py",
-        "sha256": "c39890cd45fc71b123ccc90de44743134be48605f8eebaf7a30d7ab43bf3c6f5"
+        "sha256": "7314b42191bef709ac98eafbbbcbadaacbd7f64422f7aa99474d395d95943430"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "c9a8997143e5bf4b7d2226489da7c19d8bba21187d6760e004e3df06a1ee13ff"
+    "bundleSha256": "7ec9536f9ed5b354af63deb72b7df17f3e3e8236ab6f0677fe902ad82873342c"
   },
   "profiles": [
     {

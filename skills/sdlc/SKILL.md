@@ -136,16 +136,28 @@ in `sdlc-requires`; no implementation requires this skill. Each one runs
 alone as an ordinary skill, without phase ordering, gates, or evidence
 contracts.
 
+`sdlc-requires` is the default case, not the effective requirement.
+Configuration decides what this project needs: a capability the developer
+disabled requires nothing, and a capability replaced by an external provider
+requires that provider rather than the bundled skill. The survey applies
+that narrowing for you and reports only real gaps, so the check costs two
+file reads and stays correct for a project that runs half the lifecycle.
+
 The Agent Skills format has no dependency field, so no host installs those
-requirements for you. When a registered capability has no installed
-implementation, do not fail and do not silently skip it:
+requirements for you. Run the survey at the start of a session. When it
+reports a gap, do not fail and do not silently skip the capability:
 
 1. report the capability as missing and name the delivery phase it served;
-2. show the `repair` command from the survey, which installs every missing
-   implementation in one step;
+2. if the gap is `bundled`, show the `repair` command from the survey, which
+   installs every missing bundled implementation in one step;
 3. ask the developer whether to run it, and run it only on an explicit yes;
 4. if they decline, continue without that phase and state which gate is no
    longer enforced.
+
+When the gap is `external`, there is no `repair` command. Configuration
+names a provider this skill cannot locate, because it does not know where a
+third party publishes. Report the provider by name and let the developer
+install it or change the configuration.
 
 Never run the repair command without consent. Installing software is the
 developer's decision, and a skill that installs things unasked is not one a
