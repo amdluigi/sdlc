@@ -2,14 +2,15 @@
 
 [`sdlc`](skills/sdlc) is one portable [Agent Skill](https://agentskills.io)
 for AI-assisted software delivery. It guides an agent from a request to one
-reviewable change using current, inspectable evidence for scope, contracts,
-implementation, verification, and handoff.
+reviewable change using current, inspectable evidence across seven delivery
+phases: inception, triage, design, implementation, verification, delivery,
+and operate.
 
 It is not a collection of separately installed skills. The repository ships
 one discoverable skill named `sdlc`; its internal modules are loaded only when
 their task triggers apply.
 
-[![Development managed by SDLC: understand, plan, build, verify, and hand off.](docs/images/sdlc-development-flow/01-development-lifecycle.svg)](docs/SDLC-DEVELOPMENT-FLOW.md)
+[![Development managed by SDLC across seven delivery phases: inception, triage, design, implementation, verification, delivery, and operate. Verification can return the change to an earlier phase when evidence changes.](docs/images/sdlc-development-flow/01-development-lifecycle.svg)](docs/SDLC-DEVELOPMENT-FLOW.md)
 
 ## Choose your path
 
@@ -76,6 +77,40 @@ inspectable repository evidence.
 
 For the complete visual explanation, see the
 [SDLC development flow](docs/SDLC-DEVELOPMENT-FLOW.md).
+
+## Delivery phases
+
+Every module belongs to a category, and every category belongs to one of
+seven delivery phases. The grouping is declared in the
+[module registry](skills/sdlc/modules/registry.json) and is machine readable.
+
+| Phase | Purpose |
+|-------|---------|
+| `inception` | Establish memory, standards, requirements, and a plan |
+| `triage` | Fix scope, invariants, and root cause before building |
+| `design` | Lock contracts and qualify specialist risk |
+| `implementation` | Build thin, test-first, verified slices |
+| `verification` | Prove acceptance, readiness, and independent review |
+| `delivery` | Decide the release and hand off a reviewable change |
+| `operate` | Contain production harm and convert gaps into improvements |
+
+A phase gate is the entry gate, meaning the earliest evidence gate at which
+the phase participates. `inception` and `operate` declare no gate, because
+they sit outside the per-change state machine and therefore carry no
+blocking authority over a single change.
+
+Phase is a grouping and presentation layer. Module resolution happens per
+capability, so a phase never binds a provider on its own.
+
+[docs/DELIVERY-PROFILE.md](docs/DELIVERY-PROFILE.md) is generated from the
+registry and shows which provider currently serves each capability.
+Regenerate it after changing configuration:
+
+```bash
+python skills/sdlc/scripts/delivery_profile.py render \
+  --registry skills/sdlc/modules/registry.json \
+  --output docs/DELIVERY-PROFILE.md
+```
 
 ## What SDLC provides
 

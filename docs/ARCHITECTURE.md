@@ -94,8 +94,20 @@ internal references loaded by the orchestrator.
 - exit signal;
 - acceptable evidence.
 
+It also declares the delivery phase layer:
+
+- `deliveryPhases`, the ordered phases of software development;
+- `categories`, mapping each category to one delivery phase and to the entry
+  gate at which that category first participates.
+
+Phase is a grouping and presentation layer above category. Resolution and
+replacement happen per module, so a phase never binds a provider. A category
+with a null gate sits outside the per-change state machine.
+
 The default project configuration must list the same core module IDs. The
-repository validator rejects registry, configuration, and filesystem drift.
+repository validator rejects registry, configuration, and filesystem drift,
+including drift between the registry and the generated delivery profile at
+`docs/DELIVERY-PROFILE.md`.
 
 ## Runtime Flow
 

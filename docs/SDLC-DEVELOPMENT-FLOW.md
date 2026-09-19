@@ -6,11 +6,16 @@ answers one question.
 
 ## 1. What is the overall development process?
 
-![Five steps: understand, plan, build, verify, and handoff. Verification can return the process to understanding when evidence changes.](./images/sdlc-development-flow/01-development-lifecycle.svg)
+![Seven delivery phases: inception, triage, design, implementation, verification, delivery, and operate. Verification can return the change to an earlier phase when evidence changes.](./images/sdlc-development-flow/01-development-lifecycle.svg)
 
-The SDLC skill guides one coherent change through five understandable phases.
-It can return to an earlier phase when scope, implementation, or evidence
-changes.
+The SDLC skill guides one coherent change through 7 delivery phases:
+inception, triage, design, implementation, verification, delivery, and
+operate. It can return to an earlier phase when scope, implementation, or
+evidence changes.
+
+The phases group capabilities for explanation and review. They are not the
+evidence gate itself. `inception` and `operate` declare no gate, because they
+sit outside the per-change state machine.
 
 ## 2. Why does the skill sometimes run different checks?
 
@@ -31,9 +36,10 @@ evidence for the risks they introduce.
 ## Source and maintenance
 
 The module order, triggers, and evidence contracts are defined by
-[`skills/sdlc/modules/registry.json`](../skills/sdlc/modules/registry.json).
-These diagrams are explanatory views, not an authoritative replacement for
-that registry.
+[`skills/sdlc/modules/registry.json`](../skills/sdlc/modules/registry.json),
+which also declares the delivery phases and the category that maps each
+module to one. These diagrams are explanatory views, not an authoritative
+replacement for that registry.
 
 Keep each diagram:
 
