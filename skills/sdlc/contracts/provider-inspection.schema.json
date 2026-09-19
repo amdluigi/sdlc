@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:provider-inspection:1",
+  "title": "Replacement provider coverage inspection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "module", "provider", "status", "recognizedEvidence", "gaps",
+    "action", "loadRequired", "bindingDigest"
+  ],
+  "properties": {
+    "module": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"const": "replacement"},
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+      }
+    },
+    "status": {
+      "enum": [
+        "satisfied", "partial", "missing", "stale/unverified",
+        "configured-disabled", "not-applicable"
+      ]
+    },
+    "recognizedEvidence": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "gaps": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "action": {"enum": ["reused", "skipped", "would-load", "blocked"]},
+    "loadRequired": {"type": "boolean"},
+    "bindingDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

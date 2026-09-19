@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-performance-concurrency",
+  "capability": "performance-concurrency",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "A change has an explicit latency, throughput, capacity, or resource objective; modifies an evidenced hot path; or introduces or changes concurrency, parallel work, batching, caching, streaming, queueing, rate control, or shared mutable state.",
+  "exitSignal": "The relevant budget or baseline is explicit, representative current measurements meet it without correctness, contention, or resource regressions, and remaining capacity limits or measurement uncertainty are disclosed.",
+  "evidence": [
+    "A measurable hypothesis identifies the operation, workload, baseline or budget, metric, environment, and expected direction or threshold.",
+    "Before-and-after measurements use the same representative workload and method, include repetitions that expose variance, and identify material environmental limitations.",
+    "Concurrency evidence covers applicable race, ordering, cancellation, timeout, retry, duplicate work, deadlock, starvation, backpressure, and shared-state behavior.",
+    "Resource evidence reports applicable CPU, memory, I/O, network, connection, queue-depth, or cache metrics, including relevant warm and cold conditions.",
+    "Tests or invariants demonstrate correctness at the measured load, and evidence records the current revision and measurement source."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

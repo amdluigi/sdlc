@@ -1,0 +1,821 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdlc-qualification-manifest",
+  "release": "1.0.0",
+  "skill": {
+    "id": "sdlc",
+    "version": "1.0.0",
+    "source": "skills/sdlc",
+    "discoverableSkillCount": 23,
+    "moduleCount": 22,
+    "configTemplate": "assets/sdlc-config.template.json",
+    "helperScripts": [
+      "scripts/adaptive_extensions.py",
+      "scripts/artifact_contracts.py",
+      "scripts/capability_contract.py",
+      "scripts/config_contract.py",
+      "scripts/delivery_profile.py",
+      "scripts/handoff_renderers.py",
+      "scripts/manage_extensions.py",
+      "scripts/manage_install.py",
+      "scripts/manage_metrics.py",
+      "scripts/operator_reports.py",
+      "scripts/reconcile_artifacts.py",
+      "scripts/resolve_providers.py",
+      "scripts/validate_artifacts.py"
+    ],
+    "files": [
+      {
+        "path": "SKILL.md",
+        "sha256": "e33e4a16cf8c0e90863d2028e69b15a7dd7761880da5800f852b87b1300da7bd"
+      },
+      {
+        "path": "assets/sdlc-config.template.json",
+        "sha256": "9e368206784ea808943c53220df58cd014e095a1c764ac77e278e2a2f741c973"
+      },
+      {
+        "path": "contracts/capability-provider.schema.json",
+        "sha256": "e0e0735e7bbb8cbb543eec07ba55491a7975dfa240d94fb48d23d55f0c0f1221"
+      },
+      {
+        "path": "contracts/delivery-profile.schema.json",
+        "sha256": "43a419401a654fa10666d325437ebb937c750abcee48e95df53f76444ba66a97"
+      },
+      {
+        "path": "contracts/handoff-result.schema.json",
+        "sha256": "1a829e2bdb2a1c652efc4215f636daa6d8ea930cc64e12dec1b32baca58802fa"
+      },
+      {
+        "path": "contracts/handoff.schema.json",
+        "sha256": "fd2508f4fbb2286dc3c7984321c6add93d8c5380a9694079e0a5f0a575c94906"
+      },
+      {
+        "path": "contracts/metrics.schema.json",
+        "sha256": "48946d3f8fb0e94e9612d44d42ff9a46b9fa869197933a11273f804295eb56fc"
+      },
+      {
+        "path": "contracts/operator-result.schema.json",
+        "sha256": "a835b3119adb01cfcfb05be44f0e8eed84986b574f087238f62a8732fe6ee869"
+      },
+      {
+        "path": "contracts/operator-state.schema.json",
+        "sha256": "4cc9281b586d04523b1ecf5a5102f97ce1c25bb1fb5b88874bc10b0d28605f4f"
+      },
+      {
+        "path": "contracts/plan-result.schema.json",
+        "sha256": "93ae49e7dfceebf1ea114284121520b419af5c891ceda68eafd9653560e1e62d"
+      },
+      {
+        "path": "contracts/prd-result.schema.json",
+        "sha256": "cb09ad00b126ded2ea0c850201d92f048474c99355c7618906e6ba8a69e6c982"
+      },
+      {
+        "path": "contracts/provider-adapter-load.schema.json",
+        "sha256": "a69a144da51254807e2f5a1a629d442dd2d716018e30676d8c1148e7842dd9ef"
+      },
+      {
+        "path": "contracts/provider-adapter.schema.json",
+        "sha256": "bfb141006a766c05f98347ed9c04c54ecd05bd24a0c89965721a16e0f4556ef8"
+      },
+      {
+        "path": "contracts/provider-inspection.schema.json",
+        "sha256": "42b041d71e5612fcf4e71b76fbdb849248dd4c4baa460bb5d8ae2ff02c331233"
+      },
+      {
+        "path": "contracts/provider-load-result.schema.json",
+        "sha256": "b11ad712375373d2483090133541117cc65bdf8ed565dafc5096df7bea17ba0f"
+      },
+      {
+        "path": "contracts/provider-resolution.schema.json",
+        "sha256": "27bae4ed2671d782ac4d030ce92981a5b2f6a8c98046f8287a690d56cfd1ff69"
+      },
+      {
+        "path": "contracts/provider-survey.schema.json",
+        "sha256": "ef9ba9e3d846a2aaecf8e73016ae0c161db3464b4b78daaefb37986714fbb78c"
+      },
+      {
+        "path": "contracts/reconciliation-report.schema.json",
+        "sha256": "62af39d57b2d01daf06c2360335a6776827ffdc6c389709a6e7c6ae3d3119ffd"
+      },
+      {
+        "path": "contracts/sdlc-config.schema.json",
+        "sha256": "7639baddf3a184ad8088620cb8d8f97fcb0a951fe381a993f3f1c7985f516f4c"
+      },
+      {
+        "path": "modules/registry.json",
+        "sha256": "c306bb6f31de981305c3e23d2e03be54d6f4b6146d45223aa23e96c3d5ab783e"
+      },
+      {
+        "path": "scripts/adaptive_extensions.py",
+        "sha256": "4007ba9d74d5e0c451858b35f066d752bf7ef7a921bb181091231481b436c2ef"
+      },
+      {
+        "path": "scripts/artifact_contracts.py",
+        "sha256": "6c85588b6f31a3f228e3f18b3cc2e223ca6325b14f458581945ad82f3c8e63b3"
+      },
+      {
+        "path": "scripts/capability_contract.py",
+        "sha256": "25319ea679b66817dda85b71b2ba13e905c73deb6c32eba1d4815a68ffefaa26"
+      },
+      {
+        "path": "scripts/config_contract.py",
+        "sha256": "c94976fa95fca8f2c84d93c66176813169bbf46281daaf3f938cd2fa7bf6cc8a"
+      },
+      {
+        "path": "scripts/delivery_profile.py",
+        "sha256": "84c3169318b582d0a0299a0c31552939800098ea48c28abb33ad8399ed1946ba"
+      },
+      {
+        "path": "scripts/handoff_renderers.py",
+        "sha256": "f4d054e02784aa540ff6320bed4d620b278624ea02948885e134d4350db211f2"
+      },
+      {
+        "path": "scripts/manage_extensions.py",
+        "sha256": "4a67498c53ef044697a509e4e757074bb95f396e8f2552d99c6492d6c50b06a6"
+      },
+      {
+        "path": "scripts/manage_install.py",
+        "sha256": "e7aee4fe0afcdd2359a8e7b0d370191dc793903259093392754fe1510568b26c"
+      },
+      {
+        "path": "scripts/manage_metrics.py",
+        "sha256": "f0837e6dff2d3a69e5c7022aa4f3f690089ae24a3cdb0befba9e34b92fda9ef4"
+      },
+      {
+        "path": "scripts/operator_reports.py",
+        "sha256": "9ce0ffbd9486fd82332e518fb249da29b32f72fbbdf6815ade3819c411c5774b"
+      },
+      {
+        "path": "scripts/reconcile_artifacts.py",
+        "sha256": "5281217cccc78fcb93ccf9bfadb77ff6167f0d8a9e9c404ce4f16f619d15d132"
+      },
+      {
+        "path": "scripts/resolve_providers.py",
+        "sha256": "2a429d4d9bf3413deb9cf8534b710d706f4172758281cd555c020f89ebfd8e89"
+      },
+      {
+        "path": "scripts/validate_artifacts.py",
+        "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
+      }
+    ],
+    "bundleSha256": "253381fe3f6f7e8d4d480c5384f8e3c10afef7b4f247ef71a1ea5e63ccb38a61"
+  },
+  "profiles": [
+    {
+      "id": "copilot-vscode",
+      "label": "GitHub Copilot / VS Code",
+      "projectRoot": ".github/skills",
+      "globalRoot": ".copilot/skills",
+      "required": true,
+      "cells": [
+        {
+          "scope": "project",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "project",
+          "mode": "link",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "link",
+          "support": "required"
+        }
+      ]
+    },
+    {
+      "id": "claude-code",
+      "label": "Claude Code",
+      "projectRoot": ".claude/skills",
+      "globalRoot": ".claude/skills",
+      "required": true,
+      "cells": [
+        {
+          "scope": "project",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "project",
+          "mode": "link",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "link",
+          "support": "required"
+        }
+      ]
+    },
+    {
+      "id": "generic-agent-skills",
+      "label": "Generic Agent Skills client",
+      "projectRoot": ".agents/skills",
+      "globalRoot": null,
+      "required": true,
+      "cells": [
+        {
+          "scope": "project",
+          "mode": "copy",
+          "support": "required"
+        },
+        {
+          "scope": "project",
+          "mode": "link",
+          "support": "required"
+        },
+        {
+          "scope": "global",
+          "mode": "copy",
+          "support": "unsupported",
+          "reason": "No portable user-global root is defined."
+        },
+        {
+          "scope": "global",
+          "mode": "link",
+          "support": "unsupported",
+          "reason": "No portable user-global root is defined."
+        }
+      ]
+    }
+  ],
+  "deterministicCases": [
+    {
+      "id": "manifest-contract",
+      "critical": true
+    },
+    {
+      "id": "bundle-inventory",
+      "critical": true
+    },
+    {
+      "id": "discoverable-skill-count",
+      "critical": true
+    },
+    {
+      "id": "module-count",
+      "critical": true
+    },
+    {
+      "id": "config-template",
+      "critical": true
+    },
+    {
+      "id": "helper-scripts",
+      "critical": true
+    },
+    {
+      "id": "trigger-discovery-metadata",
+      "critical": true
+    },
+    {
+      "id": "copy-byte-identity",
+      "critical": true
+    },
+    {
+      "id": "link-target-identity",
+      "critical": true
+    },
+    {
+      "id": "project-global-isolation",
+      "critical": true
+    },
+    {
+      "id": "installer-idempotence",
+      "critical": true
+    },
+    {
+      "id": "legacy-install-conflict",
+      "critical": true
+    },
+    {
+      "id": "path-confinement",
+      "critical": true
+    },
+    {
+      "id": "installer-no-network",
+      "critical": true
+    },
+    {
+      "id": "shell-contract",
+      "critical": true
+    }
+  ],
+  "liveCases": [
+    {
+      "id": "qualification-standard-change-trigger",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-non-code-counterexample",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-lazy-module-loading",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-invalid-installation",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-disabled-disclosure",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "qualification-review-fallback",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "measurement-consent-refusal",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "measurement-private-aggregate-boundary",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "measurement-timing-unavailable",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-successful-specialization",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-unavailable-blocks",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-ambiguous-blocks",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-incompatible-blocks",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-core-authority-pressure",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-satisfied-without-loading",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-unsupported-success-claim",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-partial-evidence",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-unsupported-host-enumeration",
+      "critical": true,
+      "repetitions": 5
+    },
+    {
+      "id": "provider-disabled-and-no-automatic-selection",
+      "critical": true,
+      "repetitions": 5
+    }
+  ],
+  "gate": {
+    "requireEverySupportedCell": true,
+    "requireEveryProfileLive": true,
+    "failOnCriticalNotPassed": true,
+    "liveBaseline": {
+      "scope": "project",
+      "mode": "copy"
+    },
+    "requireSupportedLiveLink": true
+  },
+  "implementations": [
+    {
+      "id": "sdlc-accessibility-browser",
+      "capability": "accessibility-browser",
+      "source": "skills/sdlc-accessibility-browser",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7a03b9f73b74863acda7958591e8369280548140c113a25ba673e8c00738758e"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "237db5e75debbb70e223912570b7b6415ffd816230ec9c33e3d2c2dad9721eff"
+        }
+      ],
+      "bundleSha256": "1385286221e76abf136bfebd74103f2808f7bbbc69cfb4b62d4b4a96de54e516"
+    },
+    {
+      "id": "sdlc-api-compatibility",
+      "capability": "api-compatibility",
+      "source": "skills/sdlc-api-compatibility",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "0dc64ee003194e0cbcd5ea48b49f2898982a2c4274c449cc54c3f36c432b61b3"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "f418d5b4bb3ae7123e07406bb7de93146e1bf9019b2614ba3046fe563403dac8"
+        }
+      ],
+      "bundleSha256": "d208195f3f52e9fd972a62a6c9ee06a264f7d8f0c15155e30ced1324326e707e"
+    },
+    {
+      "id": "sdlc-change-contract",
+      "capability": "change-contract",
+      "source": "skills/sdlc-change-contract",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "e09f413317df9b3db64e0c254a3a89638ba53829ad3bbc0f65791a7cf4852153"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "f7403cec179a0be3465060dfad7c40f1604669db6a6c50172a33320bc043ef96"
+        }
+      ],
+      "bundleSha256": "4f7e92ed61f6b09fdb6316c5d4c0465cb1c330645783e71d3b4e62fc6c1d8d88"
+    },
+    {
+      "id": "sdlc-continuous-improvement",
+      "capability": "continuous-improvement",
+      "source": "skills/sdlc-continuous-improvement",
+      "files": [
+        {
+          "path": "REFERENCE.md",
+          "sha256": "b167036dcbbbf276769705e8e53a3acc11ae4b89871ccb3f9a1ae6ee7238f7e0"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "babbec579f740ae67210d3f95283a2deaf94fc80527542c3e3bb1ebcfa4faf98"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "bbdbf2be5667d72ca6c514d965228d2c090fa75d3e7f4308405c91f727efd2b7"
+        }
+      ],
+      "bundleSha256": "3715e3ecf71132f3dc19ff19daeee0ae66c4df414cd7310b2592a30484df4d70"
+    },
+    {
+      "id": "sdlc-data-migration",
+      "capability": "data-migration",
+      "source": "skills/sdlc-data-migration",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3a14b06f05cd9efe37f641acd4737f844c1270ade5318cd03a19c6a2004820ec"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "9961daece80348990c2786b911552eac5559e32cd1f24782e15f88d29a89ea0a"
+        }
+      ],
+      "bundleSha256": "261ae7c8e121ae11521f94bcec3f560d4ab814a2acd410e2dedd8fbab99efe2d"
+    },
+    {
+      "id": "sdlc-debugging",
+      "capability": "debugging",
+      "source": "skills/sdlc-debugging",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "e20e5bdc5f5069633cd6bd5cb69bf270061ca56aabc34e2a9182405c3518cb19"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "24c3ca98f4b1b9f015b6f42b31b3672dab9ac6004e82a3b3a54405ff70ad6d7c"
+        }
+      ],
+      "bundleSha256": "1a46636ce7057597b1501b4d7aab219fc74c03a8e1b39c7cf40abee4ad870128"
+    },
+    {
+      "id": "sdlc-dependency-supply-chain",
+      "capability": "dependency-supply-chain",
+      "source": "skills/sdlc-dependency-supply-chain",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7ebab8261398e3f08d37f6615c41cb0dddf62f5a666bd0af04bbd1cdea489948"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "2af2da8796b50611e3828a88f50c2cb7b0900be980b61f2700bd083d28bfee23"
+        }
+      ],
+      "bundleSha256": "f6daf36c0ff0482cad4a5256db2a11b72c29835ed238c9a9630b8d44c61b89fd"
+    },
+    {
+      "id": "sdlc-implementation",
+      "capability": "implementation",
+      "source": "skills/sdlc-implementation",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "18d6f416bbd853376bffc8e7e09c1230b27e392f64d67640494d41ae8d70e07d"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "a7614ee9386f1d601570dac3e804999300c45adde5a34404bac4558a290cdbdd"
+        }
+      ],
+      "bundleSha256": "487e16c901d016d7c6aa9f045281c57b0634ed0c0fe4f07e7dfc018f29c91b7f"
+    },
+    {
+      "id": "sdlc-incident-response",
+      "capability": "incident-response",
+      "source": "skills/sdlc-incident-response",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "163391e2e3c854f12d371bee2717e19dfac25496dce3de1d2ca692c129e4f00f"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "df0aa77cf8c152eb7e988b8ee768ffde3a3dd203427279ab6ad224ed59e7e620"
+        }
+      ],
+      "bundleSha256": "3cd4262f6ae17e7849b4f08af0daf612b44665ce6ace8300e7228dab55a2d62f"
+    },
+    {
+      "id": "sdlc-observability",
+      "capability": "observability",
+      "source": "skills/sdlc-observability",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "fc628caf0692d92804d3fe8f45fdcfc94dad693874a61c83305605a6ee4609a5"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "f80f077f71c4d6eaf2e9ae7dab78af8a0926130d1e58958bf530bd8b19e90fa3"
+        }
+      ],
+      "bundleSha256": "d837713ffd1480ce5e3c67ec0314f19b6ca84bc84f45ff64e3f8f09312ce701d"
+    },
+    {
+      "id": "sdlc-operational-readiness",
+      "capability": "operational-readiness",
+      "source": "skills/sdlc-operational-readiness",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "a98c2e47a520684b701190f9f85446cb4ed12908dd8e65967608e0294eeda7e3"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "f73a4f91e5c38c155a2047ed972acce77c1b570fb38e88bb69e2b74ea0cbf328"
+        }
+      ],
+      "bundleSha256": "e4ad2f6a038ba9ea6c5d9ad46f3703dcfd255076cc5572eaf2668b4118278b76"
+    },
+    {
+      "id": "sdlc-performance-concurrency",
+      "capability": "performance-concurrency",
+      "source": "skills/sdlc-performance-concurrency",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "1fd171bf24e3cb91a5b614abdfe6dc3ab90313c4b96318f0f1a131fa348efe2e"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "117ee211f2ce64ca2ea5275e52763bd9ce935eb74e29cbccae6d9b5222423a8f"
+        }
+      ],
+      "bundleSha256": "d2f30821285fcd73ba2d981548323ec90b3c90f71109e554a64c0f96cce709ff"
+    },
+    {
+      "id": "sdlc-planning",
+      "capability": "planning",
+      "source": "skills/sdlc-planning",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ad8808d95baa137533647da8b1d2e9a63ea5059c36dcad31b96dd5263e6e68b1"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "82abd49f588bd82d490c21a17e6f06aad0038610984d79d85cda87eae155b8ab"
+        }
+      ],
+      "bundleSha256": "836a99a14bffb0b7343e0cf9bdd7c129bca52d6a764491677fd740764134ee6b"
+    },
+    {
+      "id": "sdlc-pr-handoff",
+      "capability": "pr-handoff",
+      "source": "skills/sdlc-pr-handoff",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "cdb8378170219160e70aeb112fc5e09e19e9943bfc38e85554817e500a07bbb0"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "ba095b788332d1da5b12d118c3a388aea529e9cce79fe11b6b9ecd1f87a0524c"
+        }
+      ],
+      "bundleSha256": "9d9bfc510147c2954bac958a569ea492ff1d5f1a4583ad1a4683c29f4af54f9c"
+    },
+    {
+      "id": "sdlc-prd",
+      "capability": "prd",
+      "source": "skills/sdlc-prd",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "b7542fda666cf7f51a1a80ec47e3be38e1cf72ea6c076060bfa51b7f0e93a674"
+        },
+        {
+          "path": "assets/PRD.template.md",
+          "sha256": "cb08048b3634b4100e609e9d51438c5b6df14a1fa7d76a2796e7478c73ba1e05"
+        },
+        {
+          "path": "references/external-reconciliation.md",
+          "sha256": "d63469e869ef78538619392dcedc484c32e5617efc69bf46197c6cc9191fc9a5"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "ab3271658ff5a37d8aec1a09a7e0003532f1559e8996dec031bc393c993d0fe9"
+        }
+      ],
+      "bundleSha256": "c8cc6a43c8cdcb190858471226fab11971878971f013f2bd0742d8ab8deb2e87"
+    },
+    {
+      "id": "sdlc-project-memory",
+      "capability": "project-memory",
+      "source": "skills/sdlc-project-memory",
+      "files": [
+        {
+          "path": "REFERENCE.md",
+          "sha256": "c22dba4240a1c2c1dcb4dca4a361c6c1f030e1edca020d1860d948f793ed0c48"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "aba61c279bb0f177d02f8d50aad343f33766459b43b4370625a23d05aa936043"
+        },
+        {
+          "path": "assets/project-memory-templates/active-context.md",
+          "sha256": "9c5d0a097ac1ad2d16640b75c92f474ffd08750ecdcc4c84404a1dd7f0c72f2a"
+        },
+        {
+          "path": "assets/project-memory-templates/architecture.md",
+          "sha256": "3dc9cc6bcf0dbcacc8e4c61184bb8a5f8dcd0cd933cb1ba942265f4afb36c647"
+        },
+        {
+          "path": "assets/project-memory-templates/decisions-log.md",
+          "sha256": "eed7cf1bb93bc60b08588a0a4ed335c01e61841daead93c52f4c6978f38426b4"
+        },
+        {
+          "path": "assets/project-memory-templates/do-and-dont.md",
+          "sha256": "bd7e310a402fc7b837eb5a3f097c12419d547059d2efe7c3319788101a875f06"
+        },
+        {
+          "path": "assets/project-memory-templates/glossary.md",
+          "sha256": "b8a9d8b90e01e8aa6d5ce97cd4c42ea263e487b82e33f78d0792907cc9481ba6"
+        },
+        {
+          "path": "assets/project-memory-templates/project-brief.md",
+          "sha256": "129106be7cc8fa12cc3367ce658c3ae4725fef0aba621302ad09872db841c421"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "56a94a90580480df531115ab90e99e45ded7a129e03daab27fb910d276342960"
+        }
+      ],
+      "bundleSha256": "4e2fd4a28dc6eea1ae863dee9041698978d91ab15a700b206ce66599ac50cc75"
+    },
+    {
+      "id": "sdlc-project-standards",
+      "capability": "project-standards",
+      "source": "skills/sdlc-project-standards",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "dcab32a8c7a6bddb62175ac7857c39d2e864fad49c058bb1de70458d34513497"
+        },
+        {
+          "path": "assets/PROJECT-STANDARDS.template.md",
+          "sha256": "170d35f079b5dcd869c78f634ec99893d3d936c7ada9891a86e8c72781c5c629"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "90da43cfdd5d752c8c019250c167c65ec4911ab066bff7fe4f9450674bf587d0"
+        }
+      ],
+      "bundleSha256": "c841548f70e83c003467e44a616d90cf3ad904ad5e7743153f34e628da13b243"
+    },
+    {
+      "id": "sdlc-release-launch",
+      "capability": "release-launch",
+      "source": "skills/sdlc-release-launch",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "6bc4104d41f67dc7a1f8ffdf26d919d02faafb0e371b0dffbf20af32fdd48d1b"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "f5c0799a33002974d1d99a4b53d09675af12919583fdd915fb57223596c7bf14"
+        }
+      ],
+      "bundleSha256": "76625590aa334fffa92ba3f3e219d37f99fec0ad96bf3c81387a1c95f83eb334"
+    },
+    {
+      "id": "sdlc-review",
+      "capability": "review",
+      "source": "skills/sdlc-review",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "8b444c66e26977f59b5f750e9f8b8a1301d3fe2ba57a04952221bd557163bcce"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "ccc89c1649ad225655e55d0fcf04bec8aab5d00efbf3300668854bf36caf0183"
+        }
+      ],
+      "bundleSha256": "efcb5021d8dfb45903432c722163331c9c03010ad5c5e82351bd659a68c653b5"
+    },
+    {
+      "id": "sdlc-security-auth",
+      "capability": "security-auth",
+      "source": "skills/sdlc-security-auth",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ffc426d068b02cc5d64fe4952275c07223fec8fdb1faaf4102b969f114d6ec76"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "126e6285803a7fc7f2613c53a05d7507e7b6e6385314d99b3678e7292cf33910"
+        }
+      ],
+      "bundleSha256": "5418f0e0afc7fed2b3c685d7f1694b38c723c46c8e535de37aaf78c8488f1a65"
+    },
+    {
+      "id": "sdlc-tdd",
+      "capability": "tdd",
+      "source": "skills/sdlc-tdd",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "1d36e5e63c24dd368c488cfa53b5f7f03f8612ee2ecd3b281d0bd1edd4ae60d0"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "241c6ff15a10badb9f5e8544bb40d2abf62f7fec3008deb2d0b35190f1de1aec"
+        }
+      ],
+      "bundleSha256": "1eff415b47e078be21f7b141b9a4c73a80e8135c48bb27851257b1020d61282e"
+    },
+    {
+      "id": "sdlc-testing",
+      "capability": "testing",
+      "source": "skills/sdlc-testing",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "1ffb58ac892af940d18babf95461749f4d3878098ed696c025180d8398b21390"
+        },
+        {
+          "path": "sdlc-capability.json",
+          "sha256": "a1581330959acf35d0508216bfe08393cf2efc7f4b4a1da644087af8d0b1dca8"
+        }
+      ],
+      "bundleSha256": "39ea9e05e4f54028e2c34556590bd2bbc19f994b6d511cbf5026b84cafa29583"
+    }
+  ]
+}

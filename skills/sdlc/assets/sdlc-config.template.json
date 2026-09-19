@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 4,
+  "phases": {
+    "inception": {
+      "project-memory": true,
+      "project-standards": true,
+      "prd": true,
+      "planning": true
+    },
+    "triage": {
+      "change-contract": true,
+      "debugging": true
+    },
+    "design": {
+      "api-compatibility": true,
+      "data-migration": true,
+      "security-auth": true,
+      "performance-concurrency": true,
+      "accessibility-browser": true,
+      "dependency-supply-chain": true,
+      "observability": true
+    },
+    "implementation": {
+      "tdd": true,
+      "implementation": true
+    },
+    "verification": {
+      "testing": true,
+      "review": true,
+      "operational-readiness": true
+    },
+    "delivery": {
+      "pr-handoff": true,
+      "release-launch": true
+    },
+    "operate": {
+      "incident-response": true,
+      "continuous-improvement": true
+    }
+  },
+  "extensions": {
+    "project": {},
+    "global": {}
+  },
+  "measurement": {
+    "enabled": false
+  }
+}

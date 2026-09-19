@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-release-launch",
+  "capability": "release-launch",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "A completed change is being published, deployed, released, launched, rolled out, tagged, or otherwise made available to an external audience.",
+  "exitSignal": "The release state is explicit and supported by current artifact, rollout, signal, and post-release validation evidence, with unresolved limitations visible to the owner.",
+  "evidence": [
+    "The exact revision, version, audience, compatibility declaration, and release criteria are identified.",
+    "Release notes, rollout cohorts, measurable success and failure signals, monitoring owner, decision window, and rollback triggers are current and inspectable.",
+    "The actual release artifact or deployment target and post-release smoke checks were verified before a launch-success claim."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

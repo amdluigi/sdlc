@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:capability-provider:1",
+  "title": "Unified capability provider declaration",
+  "description": "One shape every capability provider satisfies, whether it is bundled with the skill, installed as an extension, or supplied by a third-party skill that ships sdlc-capability.json beside its SKILL.md. Bundled and extension providers satisfy this contract by projection; a third-party provider authors it directly.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "capability",
+    "mode",
+    "instructions",
+    "trigger",
+    "exitSignal",
+    "evidence",
+    "compatibleSdlc"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "id": {
+      "description": "Provider identity, meaning the implementation that serves the capability. A third-party provider may not claim 'sdlc', an 'sdlc-' prefixed name, or the name of a core capability. Each bundled implementation declares 'sdlc-' followed by the capability it serves.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "capability": {
+      "description": "The capability served, named exactly as the module registry names it.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "mode": {
+      "description": "Relationship to the bundled default. 'default' is the bundle's own projection, 'augment' adds a capability without displacing a guarantee, and 'replace' asks to be trusted where a qualified module is trusted today.",
+      "enum": ["default", "augment", "replace"]
+    },
+    "instructions": {
+      "description": "Relative path to the instruction document, confined to the provider directory. For a third-party provider this is its own Agent Skill document, whose frontmatter name and sdlc metadata must match this declaration.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\:*?\"<>|]+\\.md$"
+    },
+    "trigger": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "exitSignal": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "evidence": {
+      "description": "The evidence clauses that satisfy the capability. A replacing provider never restates its own obligations; the registry retains them.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048
+      }
+    },
+    "evaluations": {
+      "description": "Relative path to evaluation cases. Required when mode is 'replace', because displacing a qualified module requires demonstrating parity.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\:*?\"<>|]+\\.json$"
+    },
+    "compatibleSdlc": {
+      "description": "Supported SDLC version range, such as '>=1.0.0 <2.0.0'.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mode": {"const": "replace"}}, "required": ["mode"]},
+      "then": {"required": ["evaluations"]}
+    }
+  ]
+}

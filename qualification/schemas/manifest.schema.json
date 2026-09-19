@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:qualification:manifest:1",
+  "title": "SDLC qualification manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?/)(?!.*\\\\)[^:\\u0000-\\u001f]+$"},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "critical"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "critical": {"const": true}
+      }
+    },
+    "liveCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "critical", "repetitions"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "critical": {"const": true},
+        "repetitions": {"const": 5}
+      }
+    },
+    "cell": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope", "mode", "support"],
+          "properties": {
+            "scope": {"enum": ["project", "global"]},
+            "mode": {"enum": ["copy", "link"]},
+            "support": {"const": "required"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope", "mode", "support", "reason"],
+          "properties": {
+            "scope": {"enum": ["project", "global"]},
+            "mode": {"enum": ["copy", "link"]},
+            "support": {"const": "unsupported"},
+            "reason": {"type": "string", "minLength": 1, "maxLength": 160}
+          }
+        }
+      ]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "projectRoot", "globalRoot", "required", "cells"],
+      "properties": {
+        "id": {"enum": ["copilot-vscode", "claude-code", "generic-agent-skills"]},
+        "label": {"type": "string", "minLength": 1, "maxLength": 96},
+        "projectRoot": {"$ref": "#/$defs/path"},
+        "globalRoot": {"oneOf": [{"$ref": "#/$defs/path"}, {"type": "null"}]},
+        "required": {"const": true},
+        "cells": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {"$ref": "#/$defs/cell"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"id": {"const": "copilot-vscode"}}},
+          "then": {
+            "properties": {
+              "label": {"const": "GitHub Copilot / VS Code"},
+              "projectRoot": {"const": ".github/skills"},
+              "globalRoot": {"const": ".copilot/skills"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"id": {"const": "claude-code"}}},
+          "then": {
+            "properties": {
+              "label": {"const": "Claude Code"},
+              "projectRoot": {"const": ".claude/skills"},
+              "globalRoot": {"const": ".claude/skills"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"id": {"const": "generic-agent-skills"}}},
+          "then": {
+            "properties": {
+              "label": {"const": "Generic Agent Skills client"},
+              "projectRoot": {"const": ".agents/skills"},
+              "globalRoot": {"type": "null"}
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": ["schemaVersion", "kind", "release", "skill", "profiles", "deterministicCases", "liveCases", "gate"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "sdlc-qualification-manifest"},
+    "release": {"const": "1.0.0"},
+    "skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "source", "discoverableSkillCount", "moduleCount", "configTemplate", "helperScripts", "files", "bundleSha256"],
+      "properties": {
+        "id": {"const": "sdlc"},
+        "version": {"const": "1.0.0"},
+        "source": {"$ref": "#/$defs/path"},
+        "discoverableSkillCount": {"const": 1},
+        "moduleCount": {"const": 20},
+        "configTemplate": {"$ref": "#/$defs/path"},
+        "helperScripts": {"type": "array", "minItems": 10, "maxItems": 10, "items": {"$ref": "#/$defs/path"}, "uniqueItems": true},
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": {
+              "path": {"$ref": "#/$defs/path"},
+              "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+            }
+          }
+        },
+        "bundleSha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "profiles": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/profile"}},
+    "deterministicCases": {"type": "array", "minItems": 15, "maxItems": 15, "items": {"$ref": "#/$defs/case"}},
+    "liveCases": {"type": "array", "minItems": 19, "maxItems": 19, "items": {"$ref": "#/$defs/liveCase"}},
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requireEverySupportedCell", "requireEveryProfileLive", "failOnCriticalNotPassed", "liveBaseline", "requireSupportedLiveLink"],
+      "properties": {
+        "requireEverySupportedCell": {"const": true},
+        "requireEveryProfileLive": {"const": true},
+        "failOnCriticalNotPassed": {"const": true},
+        "liveBaseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope", "mode"],
+          "properties": {
+            "scope": {"const": "project"},
+            "mode": {"const": "copy"}
+          }
+        },
+        "requireSupportedLiveLink": {"const": true}
+      }
+    }
+  }
+}

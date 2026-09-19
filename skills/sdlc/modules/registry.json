@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "deliveryPhases": [
+    "inception",
+    "triage",
+    "design",
+    "implementation",
+    "verification",
+    "delivery",
+    "operate"
+  ],
+  "categories": {
+    "context": {
+      "deliveryPhase": "inception",
+      "gate": null,
+      "order": 0
+    },
+    "product-requirements": {
+      "deliveryPhase": "inception",
+      "gate": null,
+      "order": 1
+    },
+    "planning": {
+      "deliveryPhase": "inception",
+      "gate": null,
+      "order": 2
+    },
+    "requirements": {
+      "deliveryPhase": "triage",
+      "gate": 1,
+      "order": 3
+    },
+    "diagnosis": {
+      "deliveryPhase": "triage",
+      "gate": 1,
+      "order": 4
+    },
+    "compatibility": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 5
+    },
+    "data": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 6
+    },
+    "risk": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 7
+    },
+    "performance": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 8
+    },
+    "experience": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 9
+    },
+    "dependency": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 10
+    },
+    "observability": {
+      "deliveryPhase": "design",
+      "gate": 2,
+      "order": 11
+    },
+    "implementation": {
+      "deliveryPhase": "implementation",
+      "gate": 3,
+      "order": 12
+    },
+    "verification": {
+      "deliveryPhase": "verification",
+      "gate": 5,
+      "order": 13
+    },
+    "review": {
+      "deliveryPhase": "verification",
+      "gate": 5,
+      "order": 14
+    },
+    "delivery-risk": {
+      "deliveryPhase": "verification",
+      "gate": 5,
+      "order": 15
+    },
+    "handoff": {
+      "deliveryPhase": "delivery",
+      "gate": 5,
+      "order": 16
+    },
+    "release": {
+      "deliveryPhase": "delivery",
+      "gate": null,
+      "order": 17
+    },
+    "incident": {
+      "deliveryPhase": "operate",
+      "gate": null,
+      "order": 18
+    },
+    "adaptation": {
+      "deliveryPhase": "operate",
+      "gate": null,
+      "order": 19
+    }
+  },
+  "modules": [
+    {
+      "name": "project-memory",
+      "category": "context",
+      "order": 0,
+      "replaceable": true
+    },
+    {
+      "name": "project-standards",
+      "category": "context",
+      "order": 1,
+      "replaceable": true
+    },
+    {
+      "name": "change-contract",
+      "category": "requirements",
+      "order": 2,
+      "replaceable": false
+    },
+    {
+      "name": "prd",
+      "category": "product-requirements",
+      "order": 3,
+      "replaceable": true
+    },
+    {
+      "name": "debugging",
+      "category": "diagnosis",
+      "order": 4,
+      "replaceable": true
+    },
+    {
+      "name": "incident-response",
+      "category": "incident",
+      "order": 5,
+      "replaceable": true
+    },
+    {
+      "name": "release-launch",
+      "category": "release",
+      "order": 6,
+      "replaceable": true
+    },
+    {
+      "name": "planning",
+      "category": "planning",
+      "order": 7,
+      "replaceable": true
+    },
+    {
+      "name": "accessibility-browser",
+      "category": "experience",
+      "order": 8,
+      "replaceable": true
+    },
+    {
+      "name": "performance-concurrency",
+      "category": "performance",
+      "order": 9,
+      "replaceable": true
+    },
+    {
+      "name": "observability",
+      "category": "observability",
+      "order": 10,
+      "replaceable": true
+    },
+    {
+      "name": "api-compatibility",
+      "category": "compatibility",
+      "order": 11,
+      "replaceable": true
+    },
+    {
+      "name": "data-migration",
+      "category": "data",
+      "order": 12,
+      "replaceable": true
+    },
+    {
+      "name": "dependency-supply-chain",
+      "category": "dependency",
+      "order": 13,
+      "replaceable": true
+    },
+    {
+      "name": "tdd",
+      "category": "implementation",
+      "order": 14,
+      "replaceable": true
+    },
+    {
+      "name": "implementation",
+      "category": "implementation",
+      "order": 15,
+      "replaceable": true
+    },
+    {
+      "name": "testing",
+      "category": "verification",
+      "order": 16,
+      "replaceable": true
+    },
+    {
+      "name": "security-auth",
+      "category": "risk",
+      "order": 17,
+      "replaceable": true
+    },
+    {
+      "name": "operational-readiness",
+      "category": "delivery-risk",
+      "order": 18,
+      "replaceable": false
+    },
+    {
+      "name": "review",
+      "category": "review",
+      "order": 19,
+      "replaceable": false
+    },
+    {
+      "name": "pr-handoff",
+      "category": "handoff",
+      "order": 20,
+      "replaceable": false
+    },
+    {
+      "name": "continuous-improvement",
+      "category": "adaptation",
+      "order": 21,
+      "replaceable": true
+    }
+  ]
+}

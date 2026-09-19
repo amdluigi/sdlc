@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:operator-state:1",
+  "title": "SDLC operator state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "task", "modules", "configuredDisabledModules", "blockers"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "task": {"$ref": "#/$defs/task"},
+    "modules": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/module"}
+    },
+    "configuredDisabledModules": {"$ref": "#/$defs/ids"},
+    "blockers": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/blocker"}
+    }
+  },
+  "$defs": {
+    "ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["bundled", "disabled", "replacement"]},
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "replacement"}}},
+          "then": {"required": ["id"]},
+          "else": {"not": {"required": ["id"]}}
+        }
+      ]
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rigor", "facts"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "rigor": {"enum": ["trivial", "standard", "significant"]},
+        "facts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "nonTrivial": {"type": "boolean"},
+            "beforeCompletion": {"type": "boolean"},
+            "bugOrUnexplainedFailure": {"type": "boolean"},
+            "newCapability": {"type": "boolean"},
+            "userOrProductFacing": {"type": "boolean"},
+            "significantInternalCapability": {"type": "boolean"},
+            "codeOrConfigurationChange": {"type": "boolean"},
+            "newOrChangedBehavior": {"type": "boolean"},
+            "verificationInScope": {"type": "boolean"},
+            "securitySurfaceAffected": {"type": "boolean"},
+            "operationalSurfaceAffected": {"type": "boolean"},
+            "learningSignalPresent": {"type": "boolean"},
+            "coreUpgrade": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {"enum": ["project-extension", "global-extension"]},
+              "configured": {"const": "enabled"}
+            },
+            "required": ["source", "configured"]
+          },
+          "then": {"required": ["contentDigest", "sources"]}
+        },
+        {
+          "if": {
+            "properties": {"source": {"const": "core"}},
+            "required": ["source"]
+          },
+          "else": {"not": {"required": ["provider"]}}
+        },
+        {
+          "if": {
+            "properties": {"configured": {"const": "disabled"}},
+            "required": ["configured", "provider"]
+          },
+          "then": {
+            "properties": {
+              "provider": {
+                "properties": {"type": {"const": "disabled"}}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"configured": {"const": "enabled"}},
+            "required": ["configured", "provider"]
+          },
+          "then": {
+            "properties": {
+              "provider": {
+                "properties": {
+                  "type": {"enum": ["bundled", "replacement"]}
+                }
+              }
+            }
+          }
+        }
+      ],
+      "required": ["id", "source", "order", "configured", "trigger", "evidence", "instruction"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "source": {"enum": ["core", "project-extension", "global-extension"]},
+        "order": {"type": "integer", "minimum": 0},
+        "configured": {"enum": ["enabled", "disabled"]},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "evidence": {"$ref": "#/$defs/evidence"},
+        "instruction": {"$ref": "#/$defs/instruction"},
+        "provider": {"$ref": "#/$defs/provider"},
+        "contentDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "basis", "assertedBy"],
+      "properties": {
+        "state": {"enum": ["matched", "not-matched", "undetermined"]},
+        "basis": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "assertedBy": {"enum": ["deterministic-core-rule", "runtime"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "items", "gaps"],
+      "properties": {
+        "status": {
+          "enum": ["satisfied", "partial", "missing", "stale/unverified", "configured-disabled", "not-applicable"]
+        },
+        "items": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidenceItem"}
+        },
+        "gaps": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reference", "summary", "current"],
+      "properties": {
+        "kind": {"type": "string", "minLength": 1},
+        "reference": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1},
+        "current": {"type": "boolean"}
+      }
+    },
+    "instruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reason"],
+      "properties": {
+        "state": {"enum": ["would-load", "loaded", "reused", "skipped", "blocked", "undetermined"]},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "message"],
+      "properties": {
+        "module": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "message": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "amdluigi-sdlc",
+  "version": "1.0.0",
+  "description": "A modular SDLC bundle that reuses verified lifecycle evidence and fills only missing work for scoped, tested, reviewed changes.",
+  "author": {
+    "name": "amdluigi",
+    "url": "https://github.com/amdluigi"
+  },
+  "homepage": "https://github.com/amdluigi/sdlc",
+  "repository": "https://github.com/amdluigi/sdlc",
+  "license": "MIT",
+  "keywords": [
+    "sdlc",
+    "software-development-lifecycle",
+    "project-memory",
+    "requirements",
+    "testing",
+    "security",
+    "code-review",
+    "process"
+  ],
+  "skills": [
+    "./skills/sdlc",
+    "./skills/sdlc-accessibility-browser",
+    "./skills/sdlc-api-compatibility",
+    "./skills/sdlc-change-contract",
+    "./skills/sdlc-continuous-improvement",
+    "./skills/sdlc-data-migration",
+    "./skills/sdlc-debugging",
+    "./skills/sdlc-dependency-supply-chain",
+    "./skills/sdlc-implementation",
+    "./skills/sdlc-incident-response",
+    "./skills/sdlc-observability",
+    "./skills/sdlc-operational-readiness",
+    "./skills/sdlc-performance-concurrency",
+    "./skills/sdlc-planning",
+    "./skills/sdlc-pr-handoff",
+    "./skills/sdlc-prd",
+    "./skills/sdlc-project-memory",
+    "./skills/sdlc-project-standards",
+    "./skills/sdlc-release-launch",
+    "./skills/sdlc-review",
+    "./skills/sdlc-security-auth",
+    "./skills/sdlc-tdd",
+    "./skills/sdlc-testing"
+  ],
+  "commands": [
+    "./commands/sdlc-init.md",
+    "./commands/sdlc-check.md",
+    "./commands/sdlc-download.md"
+  ]
+}

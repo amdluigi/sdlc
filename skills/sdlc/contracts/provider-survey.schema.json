@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:provider-survey:1",
+  "title": "Capability survey",
+  "description": "What the control plane reports for every capability: where it is invoked in the lifecycle, which provider serves it now, which installed providers could serve it instead, and whether the developer still has a decision to make. The survey reports; it never adopts a provider. Only project configuration adopts one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "hostProfile", "capabilities", "choicesRequired", "skipped", "missing", "repair"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "hostProfile": {
+      "type": ["string", "null"],
+      "enum": ["copilot-vscode", "claude-code", "generic-agent-skills", "filesystem", null]
+    },
+    "capabilities": {
+      "description": "Every registry capability, in registry order, whether or not an alternative exists.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/capability"}
+    },
+    "choicesRequired": {
+      "description": "Capabilities where an eligible alternative is installed and the developer has recorded no explicit decision. These are the only capabilities worth asking about.",
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "skipped": {
+      "description": "Candidate provider directories that could not be read as declarations. Reported rather than hidden, so a malformed provider is visible instead of silently absent.",
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "missing": {
+      "description": "Requirements the project needs but does not have installed. Derived from configuration, never from the registry alone: a disabled capability requires nothing, and a capability served by an external provider does not require the bundled implementation. A capability listed here is absent from 'capabilities' only when nothing serves it.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["capability", "requires", "source"],
+        "properties": {
+          "capability": {"type": "string"},
+          "requires": {
+            "description": "The skill that would serve this capability.",
+            "type": "string"
+          },
+          "source": {
+            "description": "'bundled' when the suite ships the skill, so the control plane can offer an exact install command. 'external' when configuration names a third-party provider that is not installed, which the control plane can report but cannot install, because it does not know where that skill is published.",
+            "enum": ["bundled", "external"]
+          }
+        }
+      }
+    },
+    "repair": {
+      "description": "The single command that installs every missing bundled requirement, or null when none are missing. The Agent Skills format has no dependency field and no host resolves one, so the control plane cannot have its requirements installed for it. It hands the developer the exact command instead, to be run only with their consent. External requirements are never included, because their source is unknown.",
+      "type": ["string", "null"]
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capability",
+        "category",
+        "deliveryPhase",
+        "entryGate",
+        "replaceable",
+        "state",
+        "active",
+        "explicit",
+        "alternatives",
+        "decision"
+      ],
+      "properties": {
+        "capability": {
+          "description": "The capability name, as the module registry names it.",
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "category": {
+          "description": "The registry category this capability belongs to. Categories are the unit a developer compares against an installed skill, because a skill that covers a category covers every capability grouped under it.",
+          "type": ["string", "null"]
+        },
+        "deliveryPhase": {
+          "description": "The phase of software development in which this capability is invoked, read from the registry category. Never declared by a provider: a provider that could name its own phase could claim one the control plane does not gate, escaping the evidence gate that governs the capability it replaces. Null only when the registry supplied no category map.",
+          "type": ["string", "null"]
+        },
+        "entryGate": {
+          "description": "The entry gate of the delivery phase: the earliest lifecycle gate at which any of the phase's categories participates. Null when the phase lies outside the per-change state machine and can never block progression.",
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "replaceable": {
+          "description": "False for a capability that renders the judgment permitting progression. Such a capability is never delegated, and an alternative for it is refused rather than offered.",
+          "type": "boolean"
+        },
+        "state": {
+          "description": "Whether project configuration enables the capability.",
+          "enum": ["enabled", "disabled"]
+        },
+        "active": {"$ref": "#/$defs/active"},
+        "explicit": {
+          "description": "True when configuration records a deliberate decision, either keeping the bundled module or naming a replacement. False means the value is the untouched default, which is why an alternative can still raise a question.",
+          "type": "boolean"
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/alternative"}
+        },
+        "decision": {
+          "description": "'settled' when nothing is owed to the developer, 'developer-choice-required' when an eligible alternative exists and no explicit decision was recorded, and 'refused' when an alternative was declared for a capability that may not be delegated.",
+          "enum": ["settled", "developer-choice-required", "refused"]
+        }
+      }
+    },
+    "active": {
+      "description": "The provider serving the capability now.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["bundled", "replacement"]},
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      },
+      "if": {"properties": {"type": {"const": "replacement"}}, "required": ["type"]},
+      "then": {"required": ["id"]}
+    },
+    "alternative": {
+      "description": "An installed provider that declared this capability and is not the one already serving it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "mode", "eligible"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "mode": {
+          "description": "The relationship the provider declared. 'unknown' when the mode could not be read.",
+          "enum": ["default", "augment", "replace", "unknown"]
+        },
+        "eligible": {
+          "description": "True only when resolution would accept the provider, so the survey can never offer a choice that resolution would refuse.",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why an ineligible alternative was not offered.",
+          "type": "string"
+        }
+      },
+      "if": {"properties": {"eligible": {"const": false}}, "required": ["eligible"]},
+      "then": {"required": ["reason"]}
+    }
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:config:4",
+  "title": "SDLC project configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "phases", "extensions", "measurement"],
+  "properties": {
+    "schemaVersion": {"const": 4},
+    "phases": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Modules grouped under the delivery phase that invokes them. Placement is owned by the module registry; a module listed under a different phase is rejected.",
+      "required": ["inception", "triage", "design", "implementation", "verification", "delivery", "operate"],
+      "properties": {
+        "inception": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "project-memory": {"$ref": "#/$defs/moduleState"},
+            "project-standards": {"$ref": "#/$defs/moduleState"},
+            "prd": {"$ref": "#/$defs/moduleState"},
+            "planning": {"$ref": "#/$defs/moduleState"}
+          }
+        },
+        "triage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "change-contract": {"$ref": "#/$defs/nonDelegatableState"},
+            "debugging": {"$ref": "#/$defs/moduleState"}
+          }
+        },
+        "design": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "api-compatibility": {"$ref": "#/$defs/moduleState"},
+            "data-migration": {"$ref": "#/$defs/moduleState"},
+            "security-auth": {"$ref": "#/$defs/moduleState"},
+            "performance-concurrency": {"$ref": "#/$defs/moduleState"},
+            "accessibility-browser": {"$ref": "#/$defs/moduleState"},
+            "dependency-supply-chain": {"$ref": "#/$defs/moduleState"},
+            "observability": {"$ref": "#/$defs/moduleState"}
+          }
+        },
+        "implementation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tdd": {"$ref": "#/$defs/moduleState"},
+            "implementation": {"$ref": "#/$defs/moduleState"}
+          }
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "testing": {"$ref": "#/$defs/moduleState"},
+            "review": {"$ref": "#/$defs/nonDelegatableState"},
+            "operational-readiness": {"$ref": "#/$defs/nonDelegatableState"}
+          }
+        },
+        "delivery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pr-handoff": {"$ref": "#/$defs/nonDelegatableState"},
+            "release-launch": {"$ref": "#/$defs/moduleState"}
+          }
+        },
+        "operate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "incident-response": {"$ref": "#/$defs/moduleState"},
+            "continuous-improvement": {"$ref": "#/$defs/moduleState"}
+          }
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project", "global"],
+      "properties": {
+        "project": {"$ref": "#/$defs/booleanMap"},
+        "global": {"$ref": "#/$defs/booleanMap"}
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "properties": {"enabled": {"type": "boolean"}}
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "moduleState": {
+      "description": "true enables the bundled module as the default and leaves the choice open, so a competing installed provider is raised as a question. An object records an explicit decision and settles it.",
+      "oneOf": [
+        {"type": "boolean"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["replaceWith"],
+          "properties": {"replaceWith": {"$ref": "#/$defs/id"}}
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider"],
+          "properties": {"provider": {"const": "bundled"}}
+        }
+      ]
+    },
+    "nonDelegatableState": {
+      "description": "This capability may only be enabled or disabled. It renders the judgment that permits progression, so it may not be served by a replacement provider.",
+      "type": "boolean"
+    },
+    "booleanMap": {
+      "type": "object",
+      "additionalProperties": {"type": "boolean"},
+      "propertyNames": {"$ref": "#/$defs/id"}
+    }
+  }
+}
