@@ -14,8 +14,17 @@ operate. It can return to an earlier phase when scope, implementation, or
 evidence changes.
 
 The phases group capabilities for explanation and review. They are not the
-evidence gate itself. `inception` and `operate` declare no gate, because they
-sit outside the per-change state machine.
+evidence gate itself. `inception` and `operate` declare no entry gate, because
+they sit outside the per-change state machine.
+
+The number on each phase is its entry gate: the earliest of the five
+lifecycle gates in [SKILL.md](../skills/sdlc/SKILL.md) at which any of its
+categories participates. It is not a per-phase identifier, so the numbers do
+not run one per phase. Gate 4, minimal-diff implementation, participates only
+in the implementation phase, which already enters at gate 3 for contract
+testing, so gate 4 never appears as an entry gate. Gate 5, verification and
+the PR gate, is the entry gate for both verification and delivery, because
+the handoff contract is assessed under it.
 
 ## 2. Why does the skill sometimes run different checks?
 

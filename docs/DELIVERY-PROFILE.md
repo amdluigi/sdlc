@@ -3,8 +3,11 @@
 Generated file. Do not edit by hand.
 
 Each row states which plugin serves a capability and where that plugin
-came from. A phase without a gate lies outside the per-change state
-machine and carries no blocking authority.
+came from. A phase heading shows its entry gate: the earliest lifecycle
+gate at which any of its capabilities participates. It is not a
+per-phase identifier, so one gate can open two phases and a gate that
+opens no phase does not appear. A phase without an entry gate lies
+outside the per-change state machine and carries no blocking authority.
 
 To change a plugin, edit the project configuration, then regenerate:
 
@@ -14,7 +17,7 @@ python skills/sdlc/scripts/delivery_profile.py render \
   --output docs/DELIVERY-PROFILE.md
 ```
 
-## inception (no gate)
+## inception (no entry gate)
 
 | Capability | Plugin | Source | Role | Enabled |
 |---|---|---|---|---|
@@ -23,14 +26,14 @@ python skills/sdlc/scripts/delivery_profile.py render \
 | prd | sdlc | bundled | default | yes |
 | planning | sdlc | bundled | default | yes |
 
-## triage (gate 1)
+## triage (entry gate 1)
 
 | Capability | Plugin | Source | Role | Enabled |
 |---|---|---|---|---|
 | change-contract | sdlc | bundled | default | yes |
 | debugging | sdlc | bundled | default | yes |
 
-## design (gate 2)
+## design (entry gate 2)
 
 | Capability | Plugin | Source | Role | Enabled |
 |---|---|---|---|---|
@@ -42,14 +45,14 @@ python skills/sdlc/scripts/delivery_profile.py render \
 | dependency-supply-chain | sdlc | bundled | default | yes |
 | security-auth | sdlc | bundled | default | yes |
 
-## implementation (gate 3)
+## implementation (entry gate 3)
 
 | Capability | Plugin | Source | Role | Enabled |
 |---|---|---|---|---|
 | tdd | sdlc | bundled | default | yes |
 | implementation | sdlc | bundled | default | yes |
 
-## verification (gate 5)
+## verification (entry gate 5)
 
 | Capability | Plugin | Source | Role | Enabled |
 |---|---|---|---|---|
@@ -57,14 +60,14 @@ python skills/sdlc/scripts/delivery_profile.py render \
 | operational-readiness | sdlc | bundled | default | yes |
 | review | sdlc | bundled | default | yes |
 
-## delivery (gate 5)
+## delivery (entry gate 5)
 
 | Capability | Plugin | Source | Role | Enabled |
 |---|---|---|---|---|
 | release-launch | sdlc | bundled | default | yes |
 | pr-handoff | sdlc | bundled | default | yes |
 
-## operate (no gate)
+## operate (no entry gate)
 
 | Capability | Plugin | Source | Role | Enabled |
 |---|---|---|---|---|

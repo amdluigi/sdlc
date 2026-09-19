@@ -250,7 +250,7 @@
       },
       {
         "path": "scripts/delivery_profile.py",
-        "sha256": "ba7ad9550ecc9bf3c176b2e1dcc44b1547dbb5b99a108b8556ee2773382ee0c1"
+        "sha256": "ffd22fbfb1c863acbbff7484051f690f1097e277989cb80067799cb38e35e484"
       },
       {
         "path": "scripts/handoff_renderers.py",
@@ -281,7 +281,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "7eea322d6cbb08542479a2f05732bad767fc556ebfa364f4ef011f2f6bdfc3d7"
+    "bundleSha256": "7a01193693ff342dee0ffb6a54e0f993bcc195588b9fc9f29865808914a61069"
   },
   "profiles": [
     {
