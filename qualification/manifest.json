@@ -26,7 +26,7 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "a00019dc0873f6248755ad56a879d039179e087201d616d144a84181fd0471c3"
+        "sha256": "b81084a732246de765992cddc489fd9d51753562052acfc2c636fc1fcfe54188"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -114,11 +114,11 @@
       },
       {
         "path": "modules/continuous-improvement/MODULE.md",
-        "sha256": "3b26f31908dc05b6fe77a9747ea6a327bb213edb6dee7b4ad6ef34778865f816"
+        "sha256": "a9761ebe4e002bb200da33146ff1091d37a66077a69c651560dc6da1cf31133b"
       },
       {
         "path": "modules/continuous-improvement/REFERENCE.md",
-        "sha256": "8628d415e4c8efb7636d6e47438b3856298b5505dc780d00ec12f5d2d75f8ceb"
+        "sha256": "b167036dcbbbf276769705e8e53a3acc11ae4b89871ccb3f9a1ae6ee7238f7e0"
       },
       {
         "path": "modules/data-migration/MODULE.md",
@@ -285,7 +285,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "7782eeb893838441ff1c9d923caa34525523ffac2fe403a779be72e519dcc5e4"
+    "bundleSha256": "9d4b1df669f58e4eff8484284858c12b07e6516d623d542636d007ef01f2fc89"
   },
   "profiles": [
     {

@@ -75,7 +75,7 @@ running SDLC version. Metadata cannot replace or weaken core modules.
 
 ## Runtime discovery
 
-Runtime discovery accepts only extension IDs explicitly present in schema-3
+Runtime discovery accepts only extension IDs explicitly present in project
 configuration. It processes project entries before global entries and never
 scans either catalog for unlisted Markdown.
 
