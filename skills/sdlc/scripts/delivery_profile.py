@@ -25,8 +25,11 @@ HEADER = (
     "Generated file. Do not edit by hand.\n"
     "\n"
     "Each row states which plugin serves a capability and where that plugin\n"
-    "came from. A phase without a gate lies outside the per-change state\n"
-    "machine and carries no blocking authority.\n"
+    "came from. A phase heading shows its entry gate: the earliest lifecycle\n"
+    "gate at which any of its capabilities participates. It is not a\n"
+    "per-phase identifier, so one gate can open two phases and a gate that\n"
+    "opens no phase does not appear. A phase without an entry gate lies\n"
+    "outside the per-change state machine and carries no blocking authority.\n"
     "\n"
     "To change a plugin, edit the project configuration, then regenerate:\n"
     "\n"
@@ -103,7 +106,11 @@ def render_markdown(profile):
     lines = [HEADER]
     for phase in profile["phases"]:
         gate = phase["gate"]
-        suffix = "gate {0}".format(gate) if gate is not None else "no gate"
+        suffix = (
+            "entry gate {0}".format(gate)
+            if gate is not None
+            else "no entry gate"
+        )
         lines.append("")
         lines.append("## {0} ({1})".format(phase["name"], suffix))
         lines.append("")

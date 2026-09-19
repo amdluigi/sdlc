@@ -231,8 +231,14 @@ class RenderMarkdownTest(unittest.TestCase):
         profile = delivery_profile.build_profile(registry(), base_config())
         text = delivery_profile.render_markdown(profile)
 
-        self.assertIn("## inception (no gate)", text)
-        self.assertIn("## triage (gate 1)", text)
+        self.assertIn("## inception (no entry gate)", text)
+        self.assertIn("## triage (entry gate 1)", text)
+
+    def test_render_explains_that_gate_numbers_are_entry_gates(self) -> None:
+        profile = delivery_profile.build_profile(registry(), base_config())
+        text = delivery_profile.render_markdown(profile)
+
+        self.assertIn("entry gate", text.split("## ")[0])
 
     def test_render_contains_no_em_dash(self) -> None:
         profile = delivery_profile.build_profile(registry(), base_config())
