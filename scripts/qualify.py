@@ -129,7 +129,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 64
+BUNDLE_FILE_COUNT = 65
 DETERMINISTIC_EVIDENCE = {
     "manifest-valid",
     "file-count",

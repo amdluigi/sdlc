@@ -105,6 +105,7 @@ REQUIRED_CONTRACTS = {
     "provider-inspection.schema.json",
     "provider-load-result.schema.json",
     "provider-resolution.schema.json",
+    "provider-survey.schema.json",
     "reconciliation-report.schema.json",
     "sdlc-config.schema.json",
 }
