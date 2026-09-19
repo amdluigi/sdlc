@@ -114,32 +114,36 @@ python skills/sdlc/scripts/delivery_profile.py render \
 
 ## What SDLC provides
 
-`sdlc` is a compact orchestrator backed by internal modules:
+`sdlc` is a compact orchestrator backed by internal modules. Each one belongs
+to a delivery phase, so you can see which part of the lifecycle it serves:
 
-| Module | Responsibility |
-|--------|----------------|
-| `project-memory` | Preserve architecture, decisions, rules, active context, and terminology |
-| `project-standards` | Apply repository-specific stack and delivery policy |
-| `change-contract` | Define one coherent outcome, acceptance criteria, non-goals, impact, and PR boundary |
-| `prd` | Require an approved, traceable product requirements document for new capabilities |
-| `debugging` | Reproduce, localize, and fix root causes |
-| `incident-response` | Contain production harm, preserve evidence, verify recovery, and track corrective actions |
-| `release-launch` | Make an evidence-backed release decision and verify post-release state |
-| `planning` | Plan the minimum complete change |
-| `accessibility-browser` | Qualify changed rendered flows, interaction states, and accessibility behavior |
-| `performance-concurrency` | Establish performance, contention, resource, and load-correctness evidence |
-| `observability` | Design and validate bounded, privacy-aware logs, metrics, traces, and alerts |
-| `api-compatibility` | Classify consumer-visible contract changes and prove transition behavior |
-| `data-migration` | Prove safe migration sequencing, integrity, resumability, and recovery |
-| `dependency-supply-chain` | Assess third-party necessity, provenance, reproducibility, advisories, and licenses |
-| `tdd` | Enforce red, minimal green, and refactor for changed behavior |
-| `implementation` | Deliver thin, verified, safe, reversible slices |
-| `testing` | Own final acceptance coverage and verification |
-| `security-auth` | Check security, authentication, and authorization risks |
-| `operational-readiness` | Plan reversibility, rollout, observability, and post-change validation |
-| `review` | Run risk-scaled independent review perspectives |
-| `pr-handoff` | Inspect the final diff and prepare a human-readable readiness decision |
-| `continuous-improvement` | Turn recurring process gaps into inactive, reviewable extension candidates |
+| Phase | Module | Responsibility |
+|-------|--------|----------------|
+| `inception` | `project-memory` | Preserve architecture, decisions, rules, active context, and terminology |
+| `inception` | `project-standards` | Apply repository-specific stack and delivery policy |
+| `inception` | `prd` | Require an approved, traceable product requirements document for new capabilities |
+| `inception` | `planning` | Plan the minimum complete change |
+| `triage` | `change-contract` | Define one coherent outcome, acceptance criteria, non-goals, impact, and PR boundary |
+| `triage` | `debugging` | Reproduce, localize, and fix root causes |
+| `design` | `api-compatibility` | Classify consumer-visible contract changes and prove transition behavior |
+| `design` | `data-migration` | Prove safe migration sequencing, integrity, resumability, and recovery |
+| `design` | `security-auth` | Check security, authentication, and authorization risks |
+| `design` | `performance-concurrency` | Establish performance, contention, resource, and load-correctness evidence |
+| `design` | `accessibility-browser` | Qualify changed rendered flows, interaction states, and accessibility behavior |
+| `design` | `dependency-supply-chain` | Assess third-party necessity, provenance, reproducibility, advisories, and licenses |
+| `design` | `observability` | Design and validate bounded, privacy-aware logs, metrics, traces, and alerts |
+| `implementation` | `tdd` | Enforce red, minimal green, and refactor for changed behavior |
+| `implementation` | `implementation` | Deliver thin, verified, safe, reversible slices |
+| `verification` | `testing` | Own final acceptance coverage and verification |
+| `verification` | `review` | Run risk-scaled independent review perspectives |
+| `verification` | `operational-readiness` | Plan reversibility, rollout, observability, and post-change validation |
+| `delivery` | `pr-handoff` | Inspect the final diff and prepare a human-readable readiness decision |
+| `delivery` | `release-launch` | Make an evidence-backed release decision and verify post-release state |
+| `operate` | `incident-response` | Contain production harm, preserve evidence, verify recovery, and track corrective actions |
+| `operate` | `continuous-improvement` | Turn recurring process gaps into inactive, reviewable extension candidates |
+
+`.sdlc/config.json` lists these modules in this same order, so the file reads
+top to bottom as the lifecycle.
 
 Modules are internal Markdown references, not separately discoverable skills.
 The orchestrator uses the
@@ -242,22 +246,44 @@ extension lifecycle, see [Architecture](docs/ARCHITECTURE.md). The
 [module registry](skills/sdlc/modules/registry.json) is the authoritative
 list of internal modules and their responsibilities.
 
-### Module policy and replacement providers
+### Module policy
 
-The generated configuration lists every core module. Set a module to `false`
-to disable it, leave it `true` to use the bundled instructions, or record an
-explicit decision:
+`.sdlc/config.json` is the file you edit. It lists every module in lifecycle
+order, so the file reads as the delivery phases: `inception` first,
+`operate` last.
 
 ```json
 {
   "schemaVersion": 3,
   "modules": {
-    "prd": {
-      "provider": "bundled"
-    },
-    "testing": {
-      "replaceWith": "organization-testing-provider"
-    }
+    "project-memory": true,
+    "project-standards": true,
+    "prd": true,
+    "planning": true,
+
+    "change-contract": true,
+    "debugging": true,
+
+    "api-compatibility": true,
+    "data-migration": true,
+    "security-auth": true,
+    "performance-concurrency": true,
+    "accessibility-browser": true,
+    "dependency-supply-chain": true,
+    "observability": true,
+
+    "tdd": true,
+    "implementation": true,
+
+    "testing": true,
+    "review": true,
+    "operational-readiness": true,
+
+    "pr-handoff": true,
+    "release-launch": true,
+
+    "incident-response": true,
+    "continuous-improvement": true
   },
   "extensions": {
     "project": {},
@@ -269,32 +295,60 @@ explicit decision:
 }
 ```
 
-`true` enables the bundled module as the default and leaves the choice open.
-`{"provider": "bundled"}` records a decision to keep it. Both run the same
-instructions and differ only in whether you have decided, which controls
-whether SDLC raises a competing installed skill with you.
+The blank lines separate the seven phases, in the order shown in the
+[delivery phases table](#what-sdlc-provides). JSON has no comments, so the
+grouping is the file's own documentation of which phase each module serves.
 
-A replacement provider changes only the instructions for that module. The
-SDLC registry still owns its trigger, evidence contract, freshness, and
-readiness decision. Providers are resolved by exact declared identity and
-bound to an immutable instruction snapshot; ambiguous, unavailable, or
-incompatible providers block rather than silently falling back to different
-instructions.
+Each module takes one of four values:
 
-`change-contract`, `review`, `operational-readiness`, and `pr-handoff` may
-never be replaced. Each renders the judgment that permits a change to
+| Value | Meaning |
+|-------|---------|
+| `true` | Use the bundled module. You have not decided, so SDLC may raise a competing installed skill with you |
+| `false` | Disable the module. Disclosed in SDLC's final report |
+| `{"provider": "bundled"}` | Keep the bundled module, decided. SDLC stops asking |
+| `{"replaceWith": "<skill-id>"}` | An external skill serves this module |
+
+`true` and `{"provider": "bundled"}` run identical instructions. They differ
+only in whether you have made a decision.
+
+`change-contract`, `review`, `operational-readiness`, and `pr-handoff` accept
+only `true` or `false`. Each renders the judgment that permits a change to
 advance, so delegating one would let a provider authorize its own
-progression. They may still be disabled.
+progression.
 
-### Using SDLC alongside other skills
+### Replace a bundled module with an external skill
 
 SDLC works standalone and depends on no external skill. Installing other
 workflow skills changes nothing on its own: they are not candidates to serve
-a capability unless they declare themselves, so no configuration, prompting,
-or conflict arises from their presence.
+a module unless they declare themselves, so no configuration, prompting, or
+conflict arises from their presence.
 
-A skill offers to serve a capability by shipping `sdlc-capability.json`
-beside its own skill document, in a directory you name explicitly:
+Replacing a module takes three steps.
+
+**Step 1. The skill declares what it serves.** Its author ships
+`sdlc-capability.json` beside its skill document:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "acme-testing",
+  "capability": "testing",
+  "mode": "replace",
+  "instructions": "SKILL.md",
+  "trigger": "When behavior changes.",
+  "exitSignal": "The acme suite passes.",
+  "evidence": ["The acme suite reported a result for the change."],
+  "evaluations": "evals.json",
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}
+```
+
+`capability` must name a module from the table above. The declaration cannot
+name a phase: the registry decides where a module is gated, so a provider
+cannot move itself somewhere the lifecycle checks less.
+
+**Step 2. Ask SDLC what it can see.** This command reads only; it changes
+nothing and never adopts a skill:
 
 ```bash
 python skills/sdlc/scripts/resolve_providers.py survey \
@@ -304,14 +358,8 @@ python skills/sdlc/scripts/resolve_providers.py survey \
   --provider-root ~/.agent-skills
 ```
 
-The survey reports which provider serves each capability, whether that is a
-decision or the default, which installed alternatives declare the same
-capability, and which declarations were skipped as malformed. Each capability
-also reports its category, the delivery phase it is invoked in, and that
-phase's entry gate, so you can tell whether a skill you already trust covers
-the same ground. The survey is read-only and adopts nothing.
-
-One entry, with a competing skill installed but not yet chosen:
+SDLC prints a `capabilities` list with one entry per module. The entry for
+the example above:
 
 ```json
 {
@@ -336,24 +384,41 @@ One entry, with a competing skill installed but not yet chosen:
 }
 ```
 
-`deliveryPhase` and `entryGate` come from the
-[module registry](skills/sdlc/modules/registry.json), never from a
-declaration. A provider names the capability it serves and does not choose
-which phase governs it, because a provider that could claim an ungated phase
-would escape the evidence gate covering the capability it replaces. The full
-shape is
+Read it as: the `testing` module runs in the `verification` phase, the
+bundled module is serving it, `acme-testing` could serve it instead, and you
+have not decided. `deliveryPhase` and `entryGate` come from the
+[module registry](skills/sdlc/modules/registry.json), never from the skill.
+The full shape of an entry is
 [contracts/provider-survey.schema.json](skills/sdlc/contracts/provider-survey.schema.json).
 
-When an eligible alternative meets a capability you have not decided on,
-SDLC keeps using its own module and raises the choice with you rather than
-switching by itself. Recording either decision settles it, and the question
-is not asked again.
+**Step 3. Record your decision** by editing that module's line in the
+`modules` block of `.sdlc/config.json`:
+
+```json
+    "testing": { "replaceWith": "acme-testing" },
+```
+
+Or keep the bundled module and stop being asked:
+
+```json
+    "testing": { "provider": "bundled" },
+```
+
+Re-run the survey to confirm; `decision` becomes `settled`. Until you record
+one, SDLC keeps using its own module and raises the choice rather than
+switching by itself.
+
+A replacement changes only the instructions for that module. The SDLC
+registry still owns its trigger, evidence contract, freshness, and readiness
+decision. Providers resolve by exact declared identity and bind to an
+immutable instruction snapshot; ambiguous, unavailable, or incompatible
+providers block rather than silently falling back to different instructions.
 
 Work produced by any other skill is assessed on its merits regardless of
-whether it was selected as a provider. An artifact satisfies a capability
-when it meets that capability's evidence contract and does not contradict
-evidence already accepted for another enabled module. Producing an artifact
-never grants authority over whether a change may advance.
+whether it was selected as a provider. An artifact satisfies a module when it
+meets that module's evidence contract and does not contradict evidence
+already accepted for another enabled module. Producing an artifact never
+grants authority over whether a change may advance.
 
 ## Advanced usage
 
