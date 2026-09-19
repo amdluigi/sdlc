@@ -37,9 +37,10 @@ skills/
   sdlc/
     SKILL.md               discoverable orchestrator
     modules/
-      registry.json         module order, triggers, exits, and evidence contracts
-      {module-name}/
-        MODULE.md          module instructions, loaded by the orchestrator
+      registry.json         module placement: name, category, order, replaceable
+      sdlc-{module-name}/
+        sdlc-capability.json  what this implementation serves and its evidence
+        SKILL.md           implementation instructions, loaded by the orchestrator
         assets/            optional module-owned templates/resources
         REFERENCE.md       optional detailed reference
 scripts/
@@ -52,13 +53,21 @@ scripts/
 ## Naming conventions
 
 - The only discoverable skill directory is `skills/sdlc`, matching the
-  `name:` field in `SKILL.md`.
+  `name:` field in `SKILL.md`. Implementations nested under `modules/` ship
+  their own `SKILL.md` but are not discovered by a host that scans the
+  skills root.
 - `SKILL.md`: always this exact filename, uppercase.
-- Module directory: `kebab-case`.
-- Module entrypoint: always `MODULE.md`, uppercase.
+- A module is an interface. The skill serving it is an implementation, and
+  its directory is named `sdlc-{module-name}` to match its declared skill
+  name. The `sdlc-` prefix is reserved to the bundle.
+- Module directory: `sdlc-` plus `kebab-case`.
+- Module entrypoint: always `SKILL.md`, uppercase, carrying Agent Skill
+  frontmatter whose `name` matches the directory.
 - Module reference/asset files: `kebab-case.md`, except `REFERENCE.md`.
-- `modules/registry.json` is the single source for module identity, order,
-  activation triggers, exit signals, and evidence contracts.
+- `modules/registry.json` is the single source for module placement, meaning
+  name, category, order, and whether the module may be replaced. Triggers,
+  exit signals, and evidence contracts live in each implementation's
+  `sdlc-capability.json`.
 
 ## Adding or editing a skill
 
@@ -70,7 +79,7 @@ scripts/
    one particular project. Anything project-specific belongs in an
    `assets/*.template.md` that the installing project fills in.
 3. Keep `SKILL.md` under ~500 lines; move lifecycle detail into
-   `modules/*/MODULE.md` and heavy detail into module-owned references.
+   `modules/sdlc-*/SKILL.md` and heavy detail into module-owned references.
    Configuration logic remains in the orchestrator because modules can be
    disabled.
 4. Bump `metadata.version` in the frontmatter when you make a meaningful
@@ -83,8 +92,8 @@ scripts/
    Use a comma, colon, period, parentheses, or a conjunction instead -
    whichever the sentence actually wants.
 8. Adding, removing, or renaming a module requires coordinated updates to
-   `modules/registry.json`, the default config template, documentation, and
-   behavioral evaluations.
+   `modules/registry.json`, its `sdlc-capability.json`, the default config
+   template, documentation, and behavioral evaluations.
 9. Do not add `Co-authored-by` trailers to commits in this repository.
 10. Keep the extension metadata, candidate, evaluation, and schema-4
     configuration contracts backward compatible within the 2.x release line.

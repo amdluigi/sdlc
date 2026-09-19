@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "sdlc-incident-response",
+  "capability": "incident-response",
+  "mode": "default",
+  "instructions": "SKILL.md",
+  "trigger": "An active production incident, material service degradation, security event, or customer-impacting data integrity failure requires containment, recovery, or a post-incident follow-up.",
+  "exitSignal": "Containment or recovery is verified, remaining impact and risk are explicit, root-cause status is honest, and follow-up actions have owners and observable completion criteria.",
+  "evidence": [
+    "Current incident evidence identifies impact, severity, affected scope, owner, and containment or mitigation decision.",
+    "Relevant diagnostic and decision evidence was preserved safely, recovery checks were defined and observed, and communications distinguish verified facts from unknowns.",
+    "A blameless post-incident record identifies timeline, contributing conditions, root-cause status, and owned corrective actions."
+  ],
+  "compatibleSdlc": ">=1.0.0 <2.0.0"
+}

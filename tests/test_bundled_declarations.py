@@ -1,7 +1,7 @@
 """The bundle satisfies its own capability provider contract on disk.
 
 A bundled capability declares itself in ``sdlc-capability.json`` beside its
-``MODULE.md``, exactly as a third-party provider does. The registry keeps
+``SKILL.md``, exactly as a third-party provider does. The registry keeps
 placement. These tests pin the split and the assembly that rejoins them.
 """
 
@@ -44,15 +44,17 @@ def write_registry(directory, modules):
 
 
 def write_declaration(directory, name, **overrides):
-    capability_dir = directory / name
+    capability_dir = directory / capability_contract.bundled_directory_name(
+        name
+    )
     capability_dir.mkdir(parents=True, exist_ok=True)
-    (capability_dir / "MODULE.md").write_text("# module\n", encoding="utf-8")
+    (capability_dir / "SKILL.md").write_text("# module\n", encoding="utf-8")
     declaration = {
         "schemaVersion": 1,
         "id": capability_contract.bundled_provider_id(name),
         "capability": name,
         "mode": "default",
-        "instructions": "MODULE.md",
+        "instructions": "SKILL.md",
         "trigger": "Always when enabled.",
         "exitSignal": "The capability is satisfied.",
         "evidence": ["Inspectable evidence supports the outcome."],
@@ -78,7 +80,7 @@ class ShippedBundleTest(unittest.TestCase):
 
     def test_every_capability_ships_a_declaration(self):
         for entry in self.registry["modules"]:
-            path = MODULES / entry["name"] / "sdlc-capability.json"
+            path = MODULES / ("sdlc-" + entry["name"]) / "sdlc-capability.json"
             self.assertTrue(
                 path.is_file(),
                 f"{entry['name']} ships no sdlc-capability.json",
@@ -98,7 +100,7 @@ class ShippedBundleTest(unittest.TestCase):
         names = {entry["name"] for entry in self.registry["modules"]}
         for name in names:
             declaration = json.loads(
-                (MODULES / name / "sdlc-capability.json").read_text(
+                (MODULES / ("sdlc-" + name) / "sdlc-capability.json").read_text(
                     encoding="utf-8"
                 )
             )
@@ -117,7 +119,7 @@ class ShippedBundleTest(unittest.TestCase):
         for entry in self.registry["modules"]:
             name = entry["name"]
             declaration = json.loads(
-                (MODULES / name / "sdlc-capability.json").read_text(
+                (MODULES / ("sdlc-" + name) / "sdlc-capability.json").read_text(
                     encoding="utf-8"
                 )
             )
@@ -127,7 +129,7 @@ class ShippedBundleTest(unittest.TestCase):
         for identity in ("sdlc", "sdlc-testing", "sdlc-anything"):
             with self.subTest(identity=identity):
                 declaration = json.loads(
-                    (MODULES / "testing" / "sdlc-capability.json").read_text(
+                    (MODULES / "sdlc-testing" / "sdlc-capability.json").read_text(
                         encoding="utf-8"
                     )
                 )
@@ -142,7 +144,7 @@ class ShippedBundleTest(unittest.TestCase):
     def test_a_shipped_declaration_is_a_usable_example(self):
         """A contributor copies this file and changes three fields."""
         declaration = json.loads(
-            (MODULES / "testing" / "sdlc-capability.json").read_text(
+            (MODULES / "sdlc-testing" / "sdlc-capability.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -182,7 +184,7 @@ class LoadRegistryTest(unittest.TestCase):
             entry["evidence"],
             ["Inspectable evidence supports the outcome."],
         )
-        self.assertEqual(entry["path"], "testing/MODULE.md")
+        self.assertEqual(entry["path"], "sdlc-testing/SKILL.md")
 
     def test_registry_metadata_is_preserved(self):
         path = write_registry(self.dir, [
@@ -255,7 +257,7 @@ class LoadRegistryTest(unittest.TestCase):
              "replaceable": True},
         ])
         write_declaration(
-            self.dir, "testing", instructions="../review/MODULE.md"
+            self.dir, "testing", instructions="../sdlc-review/SKILL.md"
         )
         with self.assertRaises(capability_contract.ContractError):
             capability_contract.load_registry(path)
@@ -276,10 +278,10 @@ class LoadRegistryTest(unittest.TestCase):
              "replaceable": True},
         ])
         declaration = write_declaration(self.dir, "testing")
-        (declaration.parent / "MODULE.md").unlink()
+        (declaration.parent / "SKILL.md").unlink()
         with self.assertRaises(capability_contract.ContractError) as caught:
             capability_contract.load_registry(path)
-        self.assertIn("MODULE.md", str(caught.exception))
+        self.assertIn("SKILL.md", str(caught.exception))
 
     def test_assembly_preserves_registry_order(self):
         path = write_registry(self.dir, [

@@ -404,10 +404,62 @@ def validate_extension_bundles(
                 fail(f"Invalid extension bundle in {case_id}: {error}")
 
 
+def validate_implementation_skills(paths) -> None:
+    """Each bundled implementation is a real Agent Skill document.
+
+    A module is an interface and the skill serving it is an implementation.
+    Holding the implementations to the frontmatter rules a third-party
+    provider must satisfy is what keeps the two shapes identical, so a
+    contributor copies a working directory instead of reading prose.
+    """
+
+    for path in paths:
+        directory = path.parent.name
+        capability = directory.removeprefix("sdlc-")
+        text = path.read_text(encoding="utf-8")
+        if not text.startswith("---\n"):
+            fail(f"{directory} is missing opening frontmatter")
+        end = text.find("\n---\n", 4)
+        if end < 0:
+            fail(f"{directory} does not close its frontmatter")
+        frontmatter = text[4:end]
+        if not re.search(
+            rf"^name:\s+{re.escape(directory)}$", frontmatter, re.MULTILINE
+        ):
+            fail(f"{directory} must declare name {directory}")
+        if not re.search(
+            r"^description:\s+\S", frontmatter, re.MULTILINE
+        ):
+            fail(f"{directory} must declare a description")
+        declaration = load_json_strict_path(
+            path.parent / "sdlc-capability.json"
+        )
+        for key, expected in (
+            ("sdlc-provider-schema", "1"),
+            ("sdlc-compatible", declaration["compatibleSdlc"]),
+            ("sdlc-modules", capability),
+        ):
+            if not re.search(
+                rf'^  {re.escape(key)}:\s+"{re.escape(str(expected))}"$',
+                frontmatter,
+                re.MULTILINE,
+            ):
+                fail(f"{directory} must declare {key} as {expected}")
+
+
 def validate_skill() -> None:
     skill_files = list((ROOT / "skills").glob("**/SKILL.md"))
-    if skill_files != [SKILL]:
-        fail(f"Expected only {SKILL.relative_to(ROOT)}, found {skill_files}")
+    implementations = sorted(
+        path for path in MODULES.glob("sdlc-*/SKILL.md")
+    )
+    if sorted(skill_files) != sorted([SKILL, *implementations]):
+        fail(f"Unexpected skill documents: {skill_files}")
+    if len(implementations) != len(
+        {path.parent.name for path in implementations}
+    ):
+        fail("Duplicate implementation skill directories")
+
+    validate_implementation_skills(implementations)
 
     text = SKILL.read_text(encoding="utf-8")
     if not text.startswith("---\n"):
@@ -483,9 +535,9 @@ def validate_skill() -> None:
         if len(path.parts) != 2:
             fail(f"Unsafe module path: {entry['path']}")
         resolved = MODULES.joinpath(*path.parts)
-        if not resolved.is_file() or resolved.name != "MODULE.md":
+        if not resolved.is_file() or resolved.name != "SKILL.md":
             fail(f"Registered module file not found: {entry['path']}")
-        if resolved.parent.name != entry["name"]:
+        if resolved.parent.name != "sdlc-" + entry["name"]:
             fail(f"Module path/name mismatch: {entry['name']}")
         if entry["name"] in DOMAIN_MODULE_CASES:
             validate_domain_module_contract(
@@ -494,7 +546,10 @@ def validate_skill() -> None:
                 DOMAIN_MODULE_CASES[entry["name"]],
             )
 
-    available = {path.parent.name for path in MODULES.glob("*/MODULE.md")}
+    available = {
+        path.parent.name.removeprefix("sdlc-")
+        for path in MODULES.glob("sdlc-*/SKILL.md")
+    }
     if registered != available:
         fail(
             "Module registry mismatch: "
@@ -613,7 +668,10 @@ def validate_skill() -> None:
         )
     if "project-memory" in registered:
         memory_templates = (
-            MODULES / "project-memory" / "assets" / "project-memory-templates"
+            MODULES
+            / "sdlc-project-memory"
+            / "assets"
+            / "project-memory-templates"
         )
         required_templates = {
             "active-context.md",
@@ -627,7 +685,7 @@ def validate_skill() -> None:
         if available_templates != required_templates:
             fail("Project-memory template set is incomplete")
     if "prd" in registered:
-        prd_template = MODULES / "prd" / "assets" / "PRD.template.md"
+        prd_template = MODULES / "sdlc-prd" / "assets" / "PRD.template.md"
         if not prd_template.is_file():
             fail("PRD template is missing")
         prd_text = prd_template.read_text(encoding="utf-8")
@@ -976,7 +1034,7 @@ def main() -> int:
         print(f"VALIDATION FAILED: {error}", file=sys.stderr)
         return 1
 
-    module_count = len(list(MODULES.glob("*/MODULE.md")))
+    module_count = len(list(MODULES.glob("sdlc-*/SKILL.md")))
     print(f"VALIDATION PASSED: 1 skill, {module_count} modules")
     return 0
 

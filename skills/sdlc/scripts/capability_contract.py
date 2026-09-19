@@ -181,10 +181,24 @@ def validate_declaration(declaration, *, capabilities=None, reserved=None):
 PLACEMENT_FIELDS = ("name", "category", "order", "replaceable")
 
 
+def bundled_directory_name(capability):
+    """Return the directory holding a capability's implementation.
+
+    The directory is named after the implementation it holds, not the
+    interface it serves, so copying it out yields a skill directory whose
+    name already matches its declared skill name.
+    """
+
+    return bundled_provider_id(capability)
+
+
 def bundled_declaration_path(modules_root, name):
     """Return the declaration path for a bundled capability."""
 
-    return Path(modules_root) / name / DECLARATION_FILENAME
+    return (
+        Path(modules_root) / bundled_directory_name(name)
+        / DECLARATION_FILENAME
+    )
 
 
 def load_bundled_declaration(modules_root, entry, capabilities=None):
@@ -264,7 +278,9 @@ def assemble_module(entry, declaration, name):
     """
 
     assembled = dict(entry)
-    assembled["path"] = f"{name}/{declaration['instructions']}"
+    assembled["path"] = (
+        f"{bundled_directory_name(name)}/{declaration['instructions']}"
+    )
     assembled["trigger"] = declaration["trigger"]
     assembled["exitSignal"] = declaration["exitSignal"]
     assembled["evidence"] = list(declaration["evidence"])

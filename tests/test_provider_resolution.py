@@ -132,9 +132,9 @@ class ProviderResolutionTests(unittest.TestCase):
     def write_capability(self, name, **overrides):
         """Write a bundled-style declaration beside a synthetic registry."""
 
-        directory = self.work / name
+        directory = self.work / ("sdlc-" + name)
         directory.mkdir(parents=True, exist_ok=True)
-        (directory / "MODULE.md").write_text(
+        (directory / "SKILL.md").write_text(
             f"# {name}\n", encoding="utf-8"
         )
         declaration = {
@@ -142,7 +142,7 @@ class ProviderResolutionTests(unittest.TestCase):
             "id": "sdlc-" + name,
             "capability": name,
             "mode": "default",
-            "instructions": "MODULE.md",
+            "instructions": "SKILL.md",
             "trigger": "Product change.",
             "exitSignal": "Evidence exists.",
             "evidence": ["Approved definition."],

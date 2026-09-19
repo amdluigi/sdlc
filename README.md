@@ -360,16 +360,16 @@ conflict arises from their presence.
 Replacing a module takes three steps.
 
 **Step 1. The skill declares what it serves.** Its author ships
-`sdlc-capability.json` beside its skill document. Every bundled capability
-ships exactly this file, so the shortest route is to copy one and edit it:
+`sdlc-capability.json` beside its skill document. A bundled implementation has
+exactly this shape, so the shortest route is to copy one:
 
 ```bash
-cp skills/sdlc/modules/testing/sdlc-capability.json ./sdlc-capability.json
+cp -r skills/sdlc/modules/sdlc-testing ./acme-testing
 ```
 
-That shipped file is a working declaration. Change `id` to your skill, set
-`mode` to `replace`, add `evaluations`, and point `instructions` at your own
-document:
+You now have a working skill: a `SKILL.md` with Agent Skill frontmatter and a
+declaration beside it. Change `name` in the frontmatter, then change `id` to
+match, set `mode` to `replace`, and add `evaluations`:
 
 ```json
 {
