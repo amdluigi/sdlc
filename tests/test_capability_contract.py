@@ -263,6 +263,93 @@ class DeclarationValidationTest(unittest.TestCase):
                     )
 
 
+class DomainScopedProviderTest(unittest.TestCase):
+    def test_a_domain_agnostic_declaration_needs_no_applies_to(self):
+        declaration = capability_contract.validate_declaration(
+            valid_declaration()
+        )
+        self.assertNotIn("appliesTo", declaration)
+
+    def test_applies_to_is_accepted_and_normalized(self):
+        declaration = capability_contract.validate_declaration(
+            valid_declaration(appliesTo=["mobile"])
+        )
+        self.assertEqual(declaration["appliesTo"], ["mobile"])
+
+    def test_applies_to_may_declare_more_than_one_domain(self):
+        declaration = capability_contract.validate_declaration(
+            valid_declaration(appliesTo=["cli", "library"])
+        )
+        self.assertEqual(declaration["appliesTo"], ["cli", "library"])
+
+    def test_empty_applies_to_is_rejected(self):
+        with self.assertRaises(capability_contract.ContractError):
+            capability_contract.validate_declaration(
+                valid_declaration(appliesTo=[])
+            )
+
+    def test_duplicate_domain_is_rejected(self):
+        with self.assertRaises(capability_contract.ContractError):
+            capability_contract.validate_declaration(
+                valid_declaration(appliesTo=["mobile", "mobile"])
+            )
+
+    def test_non_kebab_domain_is_rejected(self):
+        with self.assertRaises(capability_contract.ContractError):
+            capability_contract.validate_declaration(
+                valid_declaration(appliesTo=["Mobile"])
+            )
+
+    def test_unknown_domain_is_rejected_against_a_closed_enum(self):
+        with self.assertRaises(capability_contract.ContractError):
+            capability_contract.validate_declaration(
+                valid_declaration(appliesTo=["quantum"]),
+                domains={"web", "mobile", "desktop"},
+            )
+
+    def test_known_domain_is_accepted_against_a_closed_enum(self):
+        declaration = capability_contract.validate_declaration(
+            valid_declaration(appliesTo=["mobile"]),
+            domains={"web", "mobile", "desktop"},
+        )
+        self.assertEqual(declaration["appliesTo"], ["mobile"])
+
+    def test_registry_declares_the_closed_domain_enum(self):
+        data = placement_registry()
+        self.assertIn("domains", data)
+        domains = data["domains"]
+        self.assertIsInstance(domains, list)
+        self.assertTrue(domains)
+        self.assertEqual(len(domains), len(set(domains)))
+
+    def test_registry_reserves_the_generic_domain(self):
+        """`generic` is the enum's answer to "what if none of these fit",
+        not a new named domain, so it needs no ADR to exist."""
+        self.assertIn("generic", placement_registry()["domains"])
+
+    def test_generic_applies_to_is_accepted(self):
+        declaration = capability_contract.validate_declaration(
+            valid_declaration(appliesTo=["generic"]),
+            domains=set(placement_registry()["domains"]),
+        )
+        self.assertEqual(declaration["appliesTo"], ["generic"])
+
+    def test_no_bundled_capability_is_domain_scoped_yet(self):
+        """Every bundled capability today is domain-agnostic.
+
+        Domain scoping unlocks a third-party specialist choosing one
+        domain; the bundle itself has no reason to narrow to one, so this
+        proves the addition changed no resolution behavior.
+        """
+        for name in registry()["modules"]:
+            declaration = json.loads(
+                (
+                    SKILLS / ("sdlc-" + name["name"]) / "sdlc-capability.json"
+                ).read_text(encoding="utf-8")
+            )
+            self.assertNotIn("appliesTo", declaration)
+
+
 class DeclarationParsingTest(unittest.TestCase):
     def test_duplicate_keys_are_rejected(self):
         with self.assertRaises(capability_contract.ContractError):

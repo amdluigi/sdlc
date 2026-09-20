@@ -35,7 +35,7 @@
       },
       {
         "path": "contracts/capability-provider.schema.json",
-        "sha256": "e0e0735e7bbb8cbb543eec07ba55491a7975dfa240d94fb48d23d55f0c0f1221"
+        "sha256": "282dab4742dee12f39e99d9d6684fcb60bb14f4933a67a8cd6b335702510a6f6"
       },
       {
         "path": "contracts/delivery-profile.schema.json",
@@ -103,7 +103,7 @@
       },
       {
         "path": "modules/registry.json",
-        "sha256": "c306bb6f31de981305c3e23d2e03be54d6f4b6146d45223aa23e96c3d5ab783e"
+        "sha256": "cd2339e6ec8eefc8793b1504f905c0fba4eb6a28a2701f0587dea3af1d5585e7"
       },
       {
         "path": "scripts/adaptive_extensions.py",
@@ -115,7 +115,7 @@
       },
       {
         "path": "scripts/capability_contract.py",
-        "sha256": "25319ea679b66817dda85b71b2ba13e905c73deb6c32eba1d4815a68ffefaa26"
+        "sha256": "b5a2b6d359db7a9dd1118f8b647906478495a04fea75cf0906f68b64f3332dce"
       },
       {
         "path": "scripts/config_contract.py",
@@ -151,14 +151,14 @@
       },
       {
         "path": "scripts/resolve_providers.py",
-        "sha256": "2a429d4d9bf3413deb9cf8534b710d706f4172758281cd555c020f89ebfd8e89"
+        "sha256": "a2b3e1bc5f191fff5762ec6928e5daa50cc98d5f90e17207f1a30fd47a7a09c7"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "253381fe3f6f7e8d4d480c5384f8e3c10afef7b4f247ef71a1ea5e63ccb38a61"
+    "bundleSha256": "6943dad1e0836afff8d2db20507556df577b9ec05a1df23691ece0313ea3fb5a"
   },
   "profiles": [
     {

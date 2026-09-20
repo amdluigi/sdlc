@@ -87,6 +87,12 @@ def _registry_names(registry):
     return set(names)
 
 
+def _domain_set(registry):
+    """Return the registry's closed domain enum, or None if it declares none."""
+    domains = registry.get("domains") if isinstance(registry, dict) else None
+    return set(domains) if isinstance(domains, list) else None
+
+
 def module_provider(config, module):
     state = config["modules"][module]
     if state is False:
@@ -526,6 +532,7 @@ def survey_install(
             provider_root,
             capabilities=names,
             reserved=names | {"sdlc"},
+            domains=_domain_set(registry),
         )
         adapter = providers.adapter()
         modes = providers.declared_modes()
@@ -908,6 +915,7 @@ def main(argv=None, *, host_adapter=None):
                     args.provider_root,
                     capabilities=names,
                     reserved=names | {"sdlc"},
+                    domains=_domain_set(registry),
                 ).adapter()
             output = resolve(
                 config, registry["modules"], adapter,
@@ -954,6 +962,7 @@ def main(argv=None, *, host_adapter=None):
                     args.provider_root,
                     capabilities=names,
                     reserved=names | {"sdlc"},
+                    domains=_domain_set(registry),
                 ).load
             else:
                 adapter_load = None

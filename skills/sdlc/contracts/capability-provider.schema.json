@@ -68,6 +68,17 @@
       "maxLength": 256,
       "pattern": "^(?!/)(?!.*\\.\\.)[^\\\\:*?\"<>|]+\\.json$"
     },
+    "appliesTo": {
+      "description": "Domains this provider is specialized for, drawn from the closed domain enum the module registry declares (for example 'web', 'mobile', 'desktop'). Absent means the provider is domain-agnostic and applies regardless of a project's declared domains. Declaring 'generic' is narrower than omitting this field: it means the provider is written for a project that has declared it fits no named domain, not that it applies everywhere. This selects among specialists for the same capability; it never combines more than one provider's verdict.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "maxLength": 64
+      }
+    },
     "compatibleSdlc": {
       "description": "Supported SDLC version range, such as '>=1.0.0 <2.0.0'.",
       "type": "string",
