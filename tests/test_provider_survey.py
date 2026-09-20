@@ -411,7 +411,7 @@ class CandidateShortlistSurveyTest(unittest.TestCase):
             self.assertEqual(testing["alternatives"], [])
             self.assertEqual(document["choicesRequired"], [])
 
-    def test_no_installed_candidate_remains_a_developer_choice(self):
+    def test_no_installed_candidate_is_settled_not_a_developer_choice(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             document = survey_from(root, project_config=shortlist_config())
@@ -420,11 +420,71 @@ class CandidateShortlistSurveyTest(unittest.TestCase):
                 testing["active"],
                 {"type": "replacement", "candidates": ["acme-a", "acme-b"]},
             )
-            self.assertEqual(
-                testing["decision"], "developer-choice-required"
-            )
-            self.assertIn("testing", document["choicesRequired"])
+            self.assertEqual(testing["decision"], "settled")
+            self.assertNotIn("testing", document["choicesRequired"])
             self.assertEqual(testing["alternatives"], [])
+            self.assertIn(
+                "acme-a/acme-b",
+                [item["requires"] for item in document["missing"]],
+            )
+
+    def test_an_installed_but_ineligible_candidate_is_settled_not_a_choice(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(
+                root,
+                name="acme-a",
+                compatibleSdlc=">=9.0.0 <10.0.0",
+                instructions=skill_document(
+                    name="acme-a", compatible=">=9.0.0 <10.0.0"
+                ),
+            )
+            document = survey_from(root, project_config=shortlist_config())
+            testing = entry_for(document, "testing")
+            self.assertEqual(
+                testing["active"],
+                {"type": "replacement", "candidates": ["acme-a", "acme-b"]},
+            )
+            self.assertEqual(testing["decision"], "settled")
+            self.assertEqual(
+                testing["alternatives"],
+                [
+                    {
+                        "id": "acme-a",
+                        "mode": "replace",
+                        "eligible": False,
+                        "reason": "provider-incompatible",
+                    }
+                ],
+            )
+
+    def test_a_shortlisted_id_installed_twice_never_settles_silently(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, name="acme-a", instructions=skill_document(
+                name="acme-a"
+            ))
+            duplicate = write_provider(
+                root, name="acme-a-duplicate",
+                instructions=skill_document(name="acme-a"),
+            )
+            declaration_path = (
+                duplicate / capability_contract.DECLARATION_FILENAME
+            )
+            payload = json.loads(declaration_path.read_text(encoding="utf-8"))
+            payload["id"] = "acme-a"
+            declaration_path.write_text(
+                json.dumps(payload), encoding="utf-8"
+            )
+            document = survey_from(root, project_config=shortlist_config())
+            testing = entry_for(document, "testing")
+            self.assertEqual(
+                testing["active"],
+                {"type": "replacement", "candidates": ["acme-a", "acme-b"]},
+            )
+            self.assertEqual(testing["decision"], "settled")
 
     def test_two_installed_candidates_are_both_offered_and_tied(self):
         with tempfile.TemporaryDirectory() as temporary:

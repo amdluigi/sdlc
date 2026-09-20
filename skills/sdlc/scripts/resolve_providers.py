@@ -368,19 +368,34 @@ def _required_providers(entry, configured, absent, installed):
 
 
 def _shortlist_winner(module, pool, sdlc_version):
-    """Resolve a configured candidate shortlist to a single provider id.
+    """Classify a configured candidate shortlist's installed eligibility.
 
     ``pool`` is already filtered to installed candidates whose declared
-    name is one of the shortlisted ids. Returns the winning id when exactly
-    one is eligible (the ordinary case a shortlist exists to serve), or
-    ``None`` when zero or more than one are; the caller distinguishes those
-    two by whether ``pool`` is empty, since both report as unsettled.
+    name is one of the shortlisted ids. Returns ``(winner, tied)``:
+
+    - exactly one shortlisted id installed once and eligible: that id as
+      ``winner``, ``tied`` is ``None``;
+    - two or more shortlisted ids installed once and eligible: ``winner``
+      is ``None``, ``tied`` is their sorted ids, a genuine developer
+      decision;
+    - anything else (nothing eligible, including a shortlisted id that
+      matched more than one installed candidate, which is
+      ``resolve``'s ``provider-ambiguous`` and never counts toward a
+      winner): both are ``None``, reported the same as an ordinary
+      settled-but-not-installed replacement, since there is nothing
+      installed yet to ask the developer to choose between.
     """
 
-    eligible = {
+    counts = {}
+    for candidate in pool:
+        counts[candidate["declaredName"]] = (
+            counts.get(candidate["declaredName"], 0) + 1
+        )
+    eligible = sorted({
         candidate["declaredName"]
         for candidate in pool
-        if _metadata_problem(
+        if counts[candidate["declaredName"]] == 1
+        and _metadata_problem(
             candidate["declaredName"],
             candidate.get("providerMetadata"),
             module,
@@ -388,10 +403,12 @@ def _shortlist_winner(module, pool, sdlc_version):
             sdlc_version,
         )
         is None
-    }
+    })
     if len(eligible) == 1:
-        return next(iter(eligible))
-    return None
+        return eligible[0], None
+    if len(eligible) > 1:
+        return None, eligible
+    return None, None
 
 
 def survey(
@@ -451,6 +468,7 @@ def survey(
         replaceable = bool(entry.get("replaceable", True))
         explicit = isinstance(configured, dict)
         pool = by_capability.get(name, [])
+        shortlist_tied = None
         if explicit and "replaceWith" in configured:
             provider = configured["replaceWith"]
             if isinstance(provider, list):
@@ -458,7 +476,9 @@ def survey(
                     candidate for candidate in pool
                     if candidate["declaredName"] in provider
                 ]
-                winner = _shortlist_winner(name, pool, sdlc_version)
+                winner, shortlist_tied = _shortlist_winner(
+                    name, pool, sdlc_version
+                )
                 if winner is not None:
                     active = {"type": "replacement", "id": winner}
                 else:
@@ -515,7 +535,7 @@ def survey(
         offered = [item for item in alternatives if item["eligible"]]
         if alternatives and not replaceable:
             decision = "refused"
-        elif "candidates" in active:
+        elif shortlist_tied:
             decision = "developer-choice-required"
             choices.append(name)
         elif (

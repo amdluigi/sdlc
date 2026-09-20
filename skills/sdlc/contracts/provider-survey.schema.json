@@ -105,7 +105,7 @@
           "items": {"$ref": "#/$defs/alternative"}
         },
         "decision": {
-          "description": "'settled' when nothing is owed to the developer, 'developer-choice-required' when an eligible alternative exists and no explicit decision was recorded (this also covers a configured candidate shortlist that has not yet narrowed to one installed, eligible candidate), and 'refused' when an alternative was declared for a capability that may not be delegated.",
+          "description": "'settled' when nothing is owed to the developer, 'developer-choice-required' when an eligible alternative exists and no explicit decision was recorded (this also covers a configured candidate shortlist with more than one installed, eligible member: a genuine tie), and 'refused' when an alternative was declared for a capability that may not be delegated. A configured candidate shortlist with zero installed, eligible members reports 'settled', the same as a single configured ID that is not installed: there is nothing to choose between yet, only something to install.",
           "enum": ["settled", "developer-choice-required", "refused"]
         }
       }

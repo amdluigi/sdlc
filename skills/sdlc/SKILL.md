@@ -376,12 +376,16 @@ the choice is genuinely undecided or has become confused, specifically:
 - an eligible installed alternative declares an enabled capability whose
   state is still the default `true`, which `survey` reports as
   `developer-choice-required`; or
-- a configured candidate shortlist has more than one, or none, of its
-  members currently installed and eligible, which `survey` reports the same
-  way, with `active.candidates` naming the tied shortlist instead of
-  `active.id`, and which `resolve_providers.py resolve` separately refuses
-  at resolution time with `provider-choice-required` should this arise
-  outside a survey; or
+- a configured candidate shortlist has more than one of its members
+  currently installed and eligible, a genuine tie, which `survey` reports
+  the same way, with `active.candidates` naming the tied shortlist instead
+  of `active.id`, and which `resolve_providers.py resolve` separately
+  refuses at resolution time with `provider-choice-required` should this
+  arise outside a survey. A shortlist with zero installed, eligible
+  members is reported as `settled`, the same as a single configured ID
+  that is not installed: there is nothing yet to ask the developer to pick
+  between, only something to install, which the survey's `missing` list
+  already names; or
 - artifacts attributable to a provider this configuration did not select
   appear during implementation, which makes the effective owner of a
   capability ambiguous.

@@ -563,12 +563,13 @@ against what is actually installed:
 - exactly one shortlisted skill installed and eligible: SDLC binds it, no
   question asked;
 - none installed: SDLC reports the module as unavailable, the same as
-  configuring a single skill ID that is not installed;
+  configuring a single skill ID that is not installed. There is nothing to
+  choose between yet, only something to install;
 - more than one installed and eligible: SDLC cannot guess, so it asks you.
 
-The survey reports a tied shortlist the same way it reports any other open
-decision, under `decision: "developer-choice-required"`, except `active`
-carries `candidates` (the tied IDs) instead of `id`:
+The survey reports a genuine tie the same way it reports any other open
+decision, under `decision: "developer-choice-required"`, with `active`
+carrying `candidates` (the tied IDs) instead of `id`:
 
 ```json
 {
@@ -579,6 +580,11 @@ carries `candidates` (the tied IDs) instead of `id`:
   "decision": "developer-choice-required"
 }
 ```
+
+When none of the shortlisted skills are installed, the survey instead
+reports `decision: "settled"`, exactly as a single configured ID that is
+not installed does, since there is no choice to make until something is
+installed; the survey's `missing` list still names the gap.
 
 Once you decide, record the answer by collapsing the array back down to the
 single winning ID, the same field, now settled:
