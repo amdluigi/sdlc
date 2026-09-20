@@ -834,13 +834,17 @@ def inspect_install(
         for child in skills_root.iterdir()
         if not child.name.startswith(".sdlc-") and (child / "SKILL.md").is_file()
     )
-    if len(skill_dirs) != DISCOVERABLE_SKILL_COUNT:
+    suite_dir_names = {destination.name} | {
+        str(entry["id"]) for entry in manifest["implementations"]
+    }
+    suite_skill_dirs = [name for name in skill_dirs if name in suite_dir_names]
+    if len(suite_skill_dirs) != DISCOVERABLE_SKILL_COUNT:
         fail(
-            "Installed skills root must expose exactly "
+            "Installed sdlc suite must expose exactly "
             f"{DISCOVERABLE_SKILL_COUNT} discoverable skills"
         )
     performed["discoverable-skill-count"] = [
-        {"code": "skill-count", "value": len(skill_dirs)}
+        {"code": "skill-count", "value": len(suite_skill_dirs)}
     ]
     for entry in manifest["implementations"]:
         identifier = str(entry["id"])

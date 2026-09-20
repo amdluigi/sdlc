@@ -178,6 +178,19 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertFalse(list(destination.parent.glob(".sdlc-*")))
 
+    def test_install_inspection_ignores_unrelated_skills_sharing_the_root(self):
+        destination = self.work / "skills" / "sdlc"
+        qualify.install_suite(ROOT, self.manifest, destination, "copy")
+        unrelated = destination.parent / "some-other-skill"
+        unrelated.mkdir()
+        (unrelated / "SKILL.md").write_text(
+            "---\nname: some-other-skill\n---\n", encoding="utf-8"
+        )
+        result = qualify.inspect_install(
+            self.manifest, destination, "generic-agent-skills", "project", "copy"
+        )
+        self.assertEqual("pass", result["installation"]["status"])
+
     def test_link_install_targets_canonical_bundle(self):
         destination = self.work / "skills" / "sdlc"
         try:
