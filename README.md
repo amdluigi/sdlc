@@ -443,6 +443,35 @@ match, set `mode` to `replace`, and add `evaluations`:
 }
 ```
 
+**Optional: declare which project domain you specialize for.** If your
+skill only makes sense for one kind of project, for example a `testing`
+implementation written for mobile app conventions, add `appliesTo`:
+
+```json
+{
+  "capability": "testing",
+  "appliesTo": ["mobile"],
+  "mode": "replace"
+}
+```
+
+`appliesTo` draws from the closed domain vocabulary the
+[module registry](skills/sdlc/modules/registry.json) declares (`web`,
+`mobile`, `desktop`, `cli`, `api`, `library`, `generic`); an unlisted value
+is rejected. Omit the field and your skill is domain-agnostic, the default.
+`generic` is not a wildcard: it means a skill written for a project that
+fits none of the named domains, not one that applies to every project (that
+is what omitting `appliesTo` already does). This field only ever selects
+among specialists for the same capability; it never lets two providers
+jointly serve one capability at once, so the one-provider-per-module rule
+below still applies.
+
+As of this version, `appliesTo` is validated and recorded but SDLC does not
+yet read a project's own domain to filter candidates by it, so declaring it
+does not change which providers are offered today. It exists so specialist
+skills can start declaring their domain now, ahead of that resolution logic
+landing.
+
 `capability` must name a module from the table above. `id` is your skill's own
 identity and may not begin with `sdlc-`, which is reserved for the
 implementations the bundle ships. The declaration cannot name a phase: the
