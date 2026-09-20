@@ -690,6 +690,36 @@ For trivial work, use one line listing satisfied/reused, completed,
 not-applicable, and configured-disabled modules. Do not persist the ledger;
 rebuild it from current evidence on every task.
 
+## Turn-end self-check
+
+This module has no way to force its own reinvocation. A turn can make
+repository changes entirely through direct file, shell, or subagent tool
+calls and never load these instructions again before ending, silently
+skipping the coverage report, the `Configured-disabled modules` line, and
+the project-memory update below. Guard against exactly that failure mode:
+
+Before sending any response that a user could reasonably read as "this
+work is done," explicitly check: did an earlier response in this same
+turn or session already produce the coverage report (or its trivial-work
+one-liner) and the `Configured-disabled modules` disclosure? If the
+project-memory module is selected and this turn produced durable project
+knowledge worth recording (decisions, constraints, architecture, or
+context a future session would need), was that already written to the
+canonical memory files? Answer from what was actually sent or written,
+not from intent to do it later.
+
+If repository state changed since the last time these were produced and
+any is missing, produce it now before treating the work as finished:
+include the coverage report and the disclosure line in this response,
+and write the project-memory update to its canonical files (not merely
+describe it in the response). Recompute the coverage ledger from current
+evidence rather than reusing a stale one; a self-check performed once and
+not repeated at the true end of the turn is not a self-check. Do not let
+"the diff already speaks for itself" or "the user can see the commits"
+excuse skipping this: the report and the memory update are the record
+that these lifecycle obligations were actually considered, not merely a
+courtesy summary.
+
 ## Orchestration rules
 
 1. Complete the gated delivery lifecycle above while resolving configuration,
@@ -782,6 +812,10 @@ Stop and re-check the relevant module when reasoning becomes:
 - "The test passes, so proving it fails is unnecessary."
 - "The implementation already exists, so tests after are close enough."
 - "The first plausible fix is probably the root cause."
+- "I already made all the changes, so the recap or memory update is a
+  formality I can skip or leave for later."
+- "The user can read the diff themselves, so the coverage report is
+  optional."
 
 These stop signals apply only when the corresponding module is enabled.
 Urgency changes sequencing, not the active readiness gates.
