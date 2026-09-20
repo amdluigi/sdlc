@@ -327,7 +327,8 @@ passed explicitly with `--provider-root`. The declaration states
 `contracts/capability-provider.schema.json`.
 
 Every bundled capability satisfies this same contract on disk: each
-`modules/<name>/` directory ships its own `sdlc-capability.json`. A module is
+`sdlc-<capability>/` implementation directory ships its own
+`sdlc-capability.json` beside its `SKILL.md`. A module is
 an interface and the skill serving it is an implementation, so each bundled
 declaration states `id` of `sdlc-<capability>` and `mode` of `default`. The
 `sdlc-` prefix is reserved; a third-party declaration claiming one is refused.

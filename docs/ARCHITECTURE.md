@@ -135,11 +135,14 @@ core module sits in the lifecycle:
 - execution order;
 - whether the module may be replaced.
 
-Each module directory owns what it does. `sdlc-capability.json` beside the
-module states identity, mode, instruction path, activation trigger, exit
-signal, and acceptable evidence, using the same contract a third-party
-provider satisfies. A registry row carrying those fields is rejected, and a
-declaration carrying placement is rejected, so each field has one home.
+Each module is served by its own top-level `skills/sdlc-<name>/` skill
+directory, not a subdirectory of `skills/sdlc/modules/` (that directory
+holds only the registry itself). `sdlc-capability.json` beside `SKILL.md` in
+that implementation directory states identity, mode, instruction path,
+activation trigger, exit signal, and acceptable evidence, using the same
+contract a third-party provider satisfies. A registry row carrying those
+fields is rejected, and a declaration carrying placement is rejected, so
+each field has one home.
 
 A module is an interface and the skill serving it is an implementation.
 Bundled implementations are named after the interface they serve, so
