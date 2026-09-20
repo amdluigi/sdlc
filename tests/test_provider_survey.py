@@ -382,6 +382,94 @@ class DeveloperChoiceTest(unittest.TestCase):
             )
 
 
+def shortlist_config(shortlist=("acme-a", "acme-b")) -> dict:
+    modules = {name: True for name in capability_names()}
+    modules["testing"] = {"replaceWith": list(shortlist)}
+    return {
+        "schemaVersion": 3,
+        "modules": modules,
+        "extensions": {"project": {}, "global": {}},
+        "measurement": {"enabled": False},
+    }
+
+
+class CandidateShortlistSurveyTest(unittest.TestCase):
+    """A configured replaceWith shortlist is reported as settled or tied."""
+
+    def test_the_only_installed_candidate_settles_the_shortlist(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, name="acme-a", instructions=skill_document(
+                name="acme-a"
+            ))
+            document = survey_from(root, project_config=shortlist_config())
+            testing = entry_for(document, "testing")
+            self.assertEqual(
+                testing["active"], {"type": "replacement", "id": "acme-a"}
+            )
+            self.assertEqual(testing["decision"], "settled")
+            self.assertEqual(testing["alternatives"], [])
+            self.assertEqual(document["choicesRequired"], [])
+
+    def test_no_installed_candidate_remains_a_developer_choice(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            document = survey_from(root, project_config=shortlist_config())
+            testing = entry_for(document, "testing")
+            self.assertEqual(
+                testing["active"],
+                {"type": "replacement", "candidates": ["acme-a", "acme-b"]},
+            )
+            self.assertEqual(
+                testing["decision"], "developer-choice-required"
+            )
+            self.assertIn("testing", document["choicesRequired"])
+            self.assertEqual(testing["alternatives"], [])
+
+    def test_two_installed_candidates_are_both_offered_and_tied(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, name="acme-a", instructions=skill_document(
+                name="acme-a"
+            ))
+            write_provider(root, name="acme-b", instructions=skill_document(
+                name="acme-b"
+            ))
+            document = survey_from(root, project_config=shortlist_config())
+            testing = entry_for(document, "testing")
+            self.assertEqual(
+                testing["active"],
+                {"type": "replacement", "candidates": ["acme-a", "acme-b"]},
+            )
+            self.assertEqual(
+                testing["decision"], "developer-choice-required"
+            )
+            self.assertEqual(
+                [item["id"] for item in testing["alternatives"]],
+                ["acme-a", "acme-b"],
+            )
+            self.assertTrue(
+                all(item["eligible"] for item in testing["alternatives"])
+            )
+
+    def test_an_installed_provider_outside_the_shortlist_is_not_offered(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, name="acme-a", instructions=skill_document(
+                name="acme-a"
+            ))
+            write_provider(
+                root, name="unlisted-testing",
+                instructions=skill_document(name="unlisted-testing"),
+            )
+            document = survey_from(root, project_config=shortlist_config())
+            testing = entry_for(document, "testing")
+            self.assertEqual(
+                testing["active"], {"type": "replacement", "id": "acme-a"}
+            )
+            self.assertEqual(testing["alternatives"], [])
+
+
 class NonDelegatableSurveyTest(unittest.TestCase):
     def test_an_alternative_for_a_protected_capability_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:

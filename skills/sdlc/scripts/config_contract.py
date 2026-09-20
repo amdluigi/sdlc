@@ -131,6 +131,13 @@ def _replacement(value, field):
     """Normalize an explicit provider decision for one capability.
 
     ``{"replaceWith": id}`` selects an external provider.
+    ``{"replaceWith": [id, ...]}`` records a shortlist of two or more
+    acceptable candidates instead of a single decision: the developer has
+    committed to replacing the capability but not yet to which installed
+    skill should do it. Resolution binds whichever one candidate turns out
+    to be installed and eligible, and refuses rather than guessing when
+    more than one is, so a shortlist stays undecided until it collapses
+    back to a single string.
     ``{"provider": "bundled"}`` records a deliberate choice to keep the
     bundled module, which is not the same as the default ``true``. The
     control plane raises a competing installed provider as a question only
@@ -149,15 +156,43 @@ def _replacement(value, field):
             "replaceWith, or an object containing only provider"
         )
     provider = value["replaceWith"]
+    if isinstance(provider, list):
+        return {"replaceWith": _candidate_shortlist(provider, field)}
     if (
         not isinstance(provider, str)
         or len(provider) > 64
         or not _ID_PATTERN.fullmatch(provider)
     ):
         raise ConfigError(
-            f"{field}.replaceWith must be a lowercase kebab-case skill ID"
+            f"{field}.replaceWith must be a lowercase kebab-case skill ID, "
+            "or an array of two or more such IDs"
         )
     return {"replaceWith": provider}
+
+
+def _candidate_shortlist(provider, field):
+    if len(provider) < 2:
+        raise ConfigError(
+            f"{field}.replaceWith as an array needs two or more candidate "
+            "IDs; a single candidate should be a plain string"
+        )
+    seen = []
+    for index, item in enumerate(provider):
+        if (
+            not isinstance(item, str)
+            or len(item) > 64
+            or not _ID_PATTERN.fullmatch(item)
+        ):
+            raise ConfigError(
+                f"{field}.replaceWith[{index}] must be a lowercase "
+                "kebab-case skill ID"
+            )
+        if item in seen:
+            raise ConfigError(
+                f"{field}.replaceWith repeats candidate: {item}"
+            )
+        seen.append(item)
+    return seen
 
 
 def _flatten_phases(phases, phase_of):
@@ -236,21 +271,25 @@ def normalize_config(config, registry_names, phase_of=None):
             if "provider" in replacement:
                 normalized_modules[name] = replacement
                 continue
-            provider = replacement["replaceWith"]
-            if (
-                provider == "sdlc"
-                or provider.startswith("sdlc-")
-                or provider in known
-            ):
-                raise ConfigError(
-                    f"modules.{name}.replaceWith creates a provider cycle"
-                )
-            if provider in assignments:
-                raise ConfigError(
-                    f"provider {provider} is assigned to both "
-                    f"{assignments[provider]} and {name}"
-                )
-            assignments[provider] = name
+            candidates = replacement["replaceWith"]
+            if isinstance(candidates, str):
+                candidates = [candidates]
+            for provider in candidates:
+                if (
+                    provider == "sdlc"
+                    or provider.startswith("sdlc-")
+                    or provider in known
+                ):
+                    raise ConfigError(
+                        f"modules.{name}.replaceWith creates a provider "
+                        "cycle"
+                    )
+                if provider in assignments:
+                    raise ConfigError(
+                        f"provider {provider} is assigned to both "
+                        f"{assignments[provider]} and {name}"
+                    )
+                assignments[provider] = name
             normalized_modules[name] = replacement
         else:
             raise ConfigError(f"modules.{name} must be boolean")

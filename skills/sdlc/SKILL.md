@@ -211,8 +211,13 @@ project root.
   disabling it in the open.
 - Each schema-4 module value is exactly `true`, `false`,
   `{"provider": "bundled"}`, or `{"replaceWith": "installed-skill-id"}`.
-  Replacement objects contain only that field. Provider IDs are lowercase
-  kebab-case, unique across module
+  `replaceWith` may also be an array of two or more unique candidate IDs: an
+  undecided shortlist rather than a settled choice. Resolution binds
+  whichever one configured candidate is installed and eligible, refuses when
+  none are, and refuses when more than one ties, so a shortlist stays
+  undecided until it collapses back to a single ID. Replacement objects
+  contain only that field. Provider IDs are lowercase kebab-case, unique
+  across module
   assignments, and cannot name `sdlc` or a core module. Unsupported versions,
   unknown fields or module names, duplicate keys or providers, and invalid
   union values are configuration errors: stop and identify the exact problem.
@@ -360,7 +365,10 @@ capability participates.
 In configuration, `true` enables the bundled module as the default and
 leaves the choice open. `{"provider": "bundled"}` records a deliberate
 decision to keep it, and `{"replaceWith": "<id>"}` selects an external
-provider. Both object forms are explicit decisions.
+provider. Both object forms are explicit decisions. `{"replaceWith": [<id>,
+<id>, ...]}` records a shortlist of acceptable candidates instead of a
+single decision: the developer has committed to replacing the capability
+but not yet to which installed skill should do it.
 
 Do not raise provider selection with the developer routinely. Ask only when
 the choice is genuinely undecided or has become confused, specifically:
@@ -368,6 +376,12 @@ the choice is genuinely undecided or has become confused, specifically:
 - an eligible installed alternative declares an enabled capability whose
   state is still the default `true`, which `survey` reports as
   `developer-choice-required`; or
+- a configured candidate shortlist has more than one, or none, of its
+  members currently installed and eligible, which `survey` reports the same
+  way, with `active.candidates` naming the tied shortlist instead of
+  `active.id`, and which `resolve_providers.py resolve` separately refuses
+  at resolution time with `provider-choice-required` should this arise
+  outside a survey; or
 - artifacts attributable to a provider this configuration did not select
   appear during implementation, which makes the effective owner of a
   capability ambiguous.
@@ -375,10 +389,13 @@ the choice is genuinely undecided or has become confused, specifically:
 Present the competing options, the capability at stake, and the evidence
 each would be accountable for, then let the developer decide. Record the
 outcome as an explicit configuration decision so the same question is not
-asked again. Never adopt an alternative to resolve the ambiguity yourself,
-and never stall the lifecycle waiting on this: proceed with the connected
-provider and assess any unselected provider's artifacts as ordinary
-evidence under the coverage ledger rules.
+asked again: for a shortlist, this means collapsing the configured array
+down to the single winning ID once the developer answers, the same
+`replaceWith` field, now settled rather than open. Never adopt an
+alternative to resolve the ambiguity yourself, and never stall the
+lifecycle waiting on this: proceed with the connected provider and assess
+any unselected provider's artifacts as ordinary evidence under the coverage
+ledger rules.
 
 Evaluate the unchanged core trigger and evidence contract before loading
 instructions. If the module is not applicable or existing evidence satisfies

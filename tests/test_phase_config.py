@@ -117,6 +117,68 @@ class PhaseConfigReadTest(unittest.TestCase):
             config_contract.normalize_config(config, set(phase_of()), phase_of())
 
 
+class ReplaceWithShortlistTest(unittest.TestCase):
+    """replaceWith accepts an undecided shortlist of candidate providers."""
+
+    def config(self, testing):
+        return {
+            "schemaVersion": 4,
+            "phases": {"verification": {"testing": testing}},
+            "extensions": {"project": {}, "global": {}},
+            "measurement": {"enabled": False},
+        }
+
+    def normalize(self, testing):
+        return config_contract.normalize_config(
+            self.config(testing), set(phase_of()), phase_of()
+        )
+
+    def test_accepts_a_shortlist_of_two_or_more_candidates(self):
+        normalized = self.normalize({"replaceWith": ["acme-a", "acme-b"]})
+        self.assertEqual(
+            normalized["modules"]["testing"],
+            {"replaceWith": ["acme-a", "acme-b"]},
+        )
+
+    def test_rejects_a_shortlist_with_only_one_candidate(self):
+        with self.assertRaises(config_contract.ConfigError) as caught:
+            self.normalize({"replaceWith": ["acme-a"]})
+        self.assertIn("two or more", str(caught.exception))
+
+    def test_rejects_a_shortlist_with_a_repeated_candidate(self):
+        with self.assertRaises(config_contract.ConfigError) as caught:
+            self.normalize({"replaceWith": ["acme-a", "acme-a"]})
+        self.assertIn("repeats candidate", str(caught.exception))
+
+    def test_rejects_a_shortlist_with_a_malformed_candidate(self):
+        with self.assertRaises(config_contract.ConfigError):
+            self.normalize({"replaceWith": ["acme-a", "Not_Kebab"]})
+
+    def test_rejects_a_shortlist_member_that_creates_a_provider_cycle(self):
+        with self.assertRaises(config_contract.ConfigError) as caught:
+            self.normalize({"replaceWith": ["acme-a", "review"]})
+        self.assertIn("provider cycle", str(caught.exception))
+
+    def test_rejects_a_shortlist_member_already_assigned_elsewhere(self):
+        config = {
+            "schemaVersion": 4,
+            "phases": {
+                "verification": {
+                    "testing": {"replaceWith": ["acme-a", "acme-b"]},
+                    "review": True,
+                },
+                "triage": {"debugging": {"replaceWith": "acme-a"}},
+            },
+            "extensions": {"project": {}, "global": {}},
+            "measurement": {"enabled": False},
+        }
+        with self.assertRaises(config_contract.ConfigError) as caught:
+            config_contract.normalize_config(
+                config, set(phase_of()), phase_of()
+            )
+        self.assertIn("assigned to both", str(caught.exception))
+
+
 class PhaseConfigWriteTest(unittest.TestCase):
     def test_renders_the_document_grouped_by_phase(self):
         normalized = config_contract.normalize_config(

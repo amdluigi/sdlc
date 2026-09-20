@@ -105,13 +105,13 @@
           "items": {"$ref": "#/$defs/alternative"}
         },
         "decision": {
-          "description": "'settled' when nothing is owed to the developer, 'developer-choice-required' when an eligible alternative exists and no explicit decision was recorded, and 'refused' when an alternative was declared for a capability that may not be delegated.",
+          "description": "'settled' when nothing is owed to the developer, 'developer-choice-required' when an eligible alternative exists and no explicit decision was recorded (this also covers a configured candidate shortlist that has not yet narrowed to one installed, eligible candidate), and 'refused' when an alternative was declared for a capability that may not be delegated.",
           "enum": ["settled", "developer-choice-required", "refused"]
         }
       }
     },
     "active": {
-      "description": "The provider serving the capability now.",
+      "description": "The provider serving the capability now. A configured candidate shortlist reports 'candidates' instead of 'id' until exactly one installed, eligible candidate settles it.",
       "type": "object",
       "additionalProperties": false,
       "required": ["type"],
@@ -120,10 +120,19 @@
         "id": {
           "type": "string",
           "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "candidates": {
+          "description": "The configured shortlist, reported in place of 'id' when more than one, or none, of its members are currently installed and eligible.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "minItems": 2
         }
       },
       "if": {"properties": {"type": {"const": "replacement"}}, "required": ["type"]},
-      "then": {"required": ["id"]}
+      "then": {"oneOf": [{"required": ["id"]}, {"required": ["candidates"]}]}
     },
     "alternative": {
       "description": "An installed provider that declared this capability and is not the one already serving it.",
