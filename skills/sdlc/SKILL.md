@@ -200,7 +200,9 @@ project root.
   every explicit boolean, replacement decision, and extension flag. Missing
   `measurement` becomes `{"enabled": false}`. Schema 4 requires `phases`,
   `extensions.project`, `extensions.global`, and the strict
-  `measurement.enabled` boolean.
+  `measurement.enabled` boolean. Missing `evaluation` becomes
+  `{"enabled": false}`; it is optional and independent of `measurement`
+  (see Run records for sdlc-evaluator).
 - Schema 4 groups module states under the delivery phase that invokes them,
   so the file names the lifecycle a developer is configuring. Phase
   membership is owned by
@@ -719,6 +721,45 @@ not repeated at the true end of the turn is not a self-check. Do not let
 excuse skipping this: the report and the memory update are the record
 that these lifecycle obligations were actually considered, not merely a
 courtesy summary.
+
+## Run records for sdlc-evaluator
+
+`evaluation` is disabled by default and, like `measurement`, can be enabled
+only by an explicit project configuration edit that is then committed:
+
+```json
+"evaluation": {"enabled": true}
+```
+
+It is independent of `measurement.enabled`: a project may enable one, both,
+or neither. When enabled, the turn-end self-check above writes exactly one
+run record per non-trivial task, at the same point it confirms or produces
+the coverage report, using `manage_runs.py record` with the run record shape
+defined in `contracts/run-record.schema.json`. Populate `task`, `modules`,
+`configuredDisabledModules`, and `blockers` from the same evidence already
+assembled for the coverage report and disclosure line, not from a separate
+pass. Populate `selfCheck` from what the self-check above actually found:
+whether it ran, whether the coverage report and disclosure line were
+already present or had to be produced retroactively, and whether a
+project-memory update was written, was not applicable, or was found
+missing. Do not fabricate a run record for trivial work and do not write
+more than one record per task; a later self-check correction in the same
+task replaces the earlier record rather than appending to it.
+
+A run record never contains prompts, responses, code, diffs, credentials,
+timestamps, or host/model identity: only the same closed fields already
+validated for coverage reporting, plus the operator's own single-line
+evidence summaries and blocker messages. It is not the measurement store,
+is never aggregated across projects, and is read only by the separate,
+strictly post-execution `sdlc-evaluator` skill through
+`evaluate_runs.py extract`, never inline, and never to influence this
+turn's own routing or evidence decisions. Storage follows the same
+git-local, gitfile-local, or non-git-local rules as measurement:
+`.git/sdlc/runs/<task-id>.json` when real git metadata exists, otherwise a
+git-ignore-verified `.sdlc/local/runs/<task-id>.json`. There is no global
+store. `outcome` (whether a human later corrected the work) is filled in
+afterward, asynchronously, by `manage_runs.py set-outcome`; never write it
+during the turn that produced the record.
 
 ## Orchestration rules
 

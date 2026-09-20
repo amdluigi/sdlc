@@ -27,11 +27,11 @@
     "files": [
       {
         "path": "SKILL.md",
-        "sha256": "3f339229671e9f748c809deab94e924f17a4258984978a0509a7168478383a0b"
+        "sha256": "66aedd261757abbed67b4c858ce7fb4560ebc188ac6e2306070e9ac70ffcc53c"
       },
       {
         "path": "assets/sdlc-config.template.json",
-        "sha256": "9e368206784ea808943c53220df58cd014e095a1c764ac77e278e2a2f741c973"
+        "sha256": "47c0ebff07454c73910220a6898f9869d921916f45fde5ca8efec0025b9dcf08"
       },
       {
         "path": "contracts/capability-provider.schema.json",
@@ -98,8 +98,12 @@
         "sha256": "62af39d57b2d01daf06c2360335a6776827ffdc6c389709a6e7c6ae3d3119ffd"
       },
       {
+        "path": "contracts/run-record.schema.json",
+        "sha256": "0d29852a436353eefc4d0da0be6abe12b62f8f0a3589f192b34240e75dca0daf"
+      },
+      {
         "path": "contracts/sdlc-config.schema.json",
-        "sha256": "5a5f4984825a483e91e6c7538e11a69bd61f598006ab1011ce25c9db8aaca335"
+        "sha256": "5c94cd7f49f4a37151bb3a16026ec7051fdef7b39df48dd654f57cd2fda8eca6"
       },
       {
         "path": "modules/registry.json",
@@ -119,11 +123,15 @@
       },
       {
         "path": "scripts/config_contract.py",
-        "sha256": "d78ec2637482e45eb0d35688177bac91b39ef81b910d35b6bb0a1116b336fc45"
+        "sha256": "a284460a4c6cec6f5c9ef24fcf45bbf9d2dad8f16441830220ded971b291e114"
       },
       {
         "path": "scripts/delivery_profile.py",
         "sha256": "84c3169318b582d0a0299a0c31552939800098ea48c28abb33ad8399ed1946ba"
+      },
+      {
+        "path": "scripts/evaluate_runs.py",
+        "sha256": "db545f538b8b4d2b4b532b7203889f70e8acadb79cb0e61e99985014ca3beea6"
       },
       {
         "path": "scripts/handoff_renderers.py",
@@ -142,6 +150,10 @@
         "sha256": "f0837e6dff2d3a69e5c7022aa4f3f690089ae24a3cdb0befba9e34b92fda9ef4"
       },
       {
+        "path": "scripts/manage_runs.py",
+        "sha256": "ed660d164929cb2a1e09ad1ed15ff0e0ed4f5829939faf7d983afb5b11bce264"
+      },
+      {
         "path": "scripts/operator_reports.py",
         "sha256": "9ce0ffbd9486fd82332e518fb249da29b32f72fbbdf6815ade3819c411c5774b"
       },
@@ -154,11 +166,15 @@
         "sha256": "796eb771dda4415dee09c3ccf4c29a51fcedcd52bc556b5b8aba2cfcc3c692eb"
       },
       {
+        "path": "scripts/run_record_contract.py",
+        "sha256": "24e063b5d7a9d1ca5010e185e4adf77d7f5e91b978d47d654e35c326e26ab894"
+      },
+      {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "38fc9f8d9ee3501aeec9cfcd9baf67169cb10b7f1bd9eb173e91b8344972ec72"
+    "bundleSha256": "23be7ae5b5fc729f9b65962535a1e574e6b13d7c264267640b8b2334569a9e4c"
   },
   "profiles": [
     {

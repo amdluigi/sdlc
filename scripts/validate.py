@@ -28,6 +28,23 @@ import delivery_profile
 import qualify
 
 
+def _implementation_skill_files():
+    """`sdlc-*/SKILL.md` files that are genuine bundled implementations.
+
+    Matches `qualify.discover_implementations`'s marker: a directory name
+    and `SKILL.md` alone would also sweep up any standalone, non-bundled
+    skill that happens to share the `sdlc-` prefix (for example
+    `sdlc-evaluator`, a companion meta-skill deliberately outside
+    `sdlc-requires` and this bundle's manifest).
+    """
+
+    return sorted(
+        path
+        for path in SKILLS.glob("sdlc-*/SKILL.md")
+        if (path.parent / "sdlc-capability.json").is_file()
+    )
+
+
 DOMAIN_MODULE_CASES = {
     "accessibility-browser": {
         "a11y-browser-dialog-flow-positive",
@@ -458,6 +475,40 @@ def validate_implementation_skills(paths) -> None:
             fail(f"{directory} must declare license MIT")
 
 
+def validate_standalone_skills(paths) -> None:
+    """A standalone `sdlc-*` skill still declares itself honestly.
+
+    It is not a bundled implementation (no `sdlc-capability.json`, no
+    `sdlc-provider-schema`/`sdlc-compatible`/`sdlc-modules` claims to make),
+    but it must still be a well-formed Agent Skill: correct name, a
+    description, and MIT licensing, the same baseline every skill in this
+    repository meets.
+    """
+
+    for path in paths:
+        directory = path.parent.name
+        text = path.read_text(encoding="utf-8")
+        if not text.startswith("---\n"):
+            fail(f"{directory} is missing opening frontmatter")
+        end = text.find("\n---\n", 4)
+        if end < 0:
+            fail(f"{directory} does not close its frontmatter")
+        frontmatter = text[4:end]
+        if not re.search(
+            rf"^name:\s+{re.escape(directory)}$", frontmatter, re.MULTILINE
+        ):
+            fail(f"{directory} must declare name {directory}")
+        if not re.search(r"^description:\s+\S", frontmatter, re.MULTILINE):
+            fail(f"{directory} must declare a description")
+        if not re.search(r"^license:\s+MIT$", frontmatter, re.MULTILINE):
+            fail(f"{directory} must declare license MIT")
+        if (path.parent / "sdlc-capability.json").is_file():
+            fail(
+                f"{directory} declares sdlc-capability.json; it would "
+                "then be treated as a bundled implementation"
+            )
+
+
 def _validate_declared_requirements(frontmatter, placement_entries) -> None:
     """The control plane's declared requirements match the registry exactly.
 
@@ -490,17 +541,18 @@ def _validate_declared_requirements(frontmatter, placement_entries) -> None:
 
 def validate_skill() -> None:
     skill_files = list(SKILLS.glob("**/SKILL.md"))
-    implementations = sorted(
-        path for path in SKILLS.glob("sdlc-*/SKILL.md")
-    )
-    if sorted(skill_files) != sorted([SKILL, *implementations]):
+    all_sdlc_prefixed = sorted(SKILLS.glob("sdlc-*/SKILL.md"))
+    if sorted(skill_files) != sorted([SKILL, *all_sdlc_prefixed]):
         fail(f"Unexpected skill documents: {skill_files}")
-    if len(implementations) != len(
-        {path.parent.name for path in implementations}
+    if len(all_sdlc_prefixed) != len(
+        {path.parent.name for path in all_sdlc_prefixed}
     ):
         fail("Duplicate implementation skill directories")
 
+    implementations = _implementation_skill_files()
+    standalone = sorted(set(all_sdlc_prefixed) - set(implementations))
     validate_implementation_skills(implementations)
+    validate_standalone_skills(standalone)
 
     text = SKILL.read_text(encoding="utf-8")
     if not text.startswith("---\n"):
@@ -590,8 +642,7 @@ def validate_skill() -> None:
             )
 
     available = {
-        path.parent.name.removeprefix("sdlc-")
-        for path in SKILLS.glob("sdlc-*/SKILL.md")
+        path.parent.name.removeprefix("sdlc-") for path in implementations
     }
     if registered != available:
         fail(
@@ -932,7 +983,7 @@ def validate_manifests() -> None:
     )
     expected_skills = ["./skills/sdlc"] + [
         f"./skills/{path.parent.name}"
-        for path in sorted(SKILLS.glob("sdlc-*/SKILL.md"))
+        for path in _implementation_skill_files()
     ]
     if plugin.get("skills") != expected_skills:
         fail(
@@ -1142,7 +1193,7 @@ def main() -> int:
         print(f"VALIDATION FAILED: {error}", file=sys.stderr)
         return 1
 
-    module_count = len(list(SKILLS.glob("sdlc-*/SKILL.md")))
+    module_count = len(_implementation_skill_files())
     command_count = len(list(COMMANDS.glob("*.md")))
     print(
         f"VALIDATION PASSED: {module_count + 1} skills "

@@ -130,7 +130,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 33
+BUNDLE_FILE_COUNT = 37
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {
@@ -282,6 +282,36 @@ def _reject_source_links(bundle: Path) -> None:
             candidate = base_path / name
             if is_directory_link(candidate) or candidate.is_symlink():
                 fail(f"Bundle contains a link: {candidate}")
+
+
+def discover_implementations(bundle: Path) -> list[dict[str, Any]]:
+    """Find bundled capability implementations beside the control-plane bundle.
+
+    A genuine implementation declares itself with `sdlc-capability.json`, the
+    same marker `inspect_install` already requires for every installed
+    capability directory. Matching on directory name and `SKILL.md` alone would also sweep up any standalone, non-bundled skill
+    that happens to share the `sdlc-` prefix without being a module of this
+    suite (for example a companion tool that is deliberately not part of
+    `sdlc-requires`), silently inflating the manifest.
+    """
+
+    implementations: list[dict[str, Any]] = []
+    for directory in sorted(Path(bundle).parent.glob("sdlc-*")):
+        if not (directory / "SKILL.md").is_file():
+            continue
+        if not (directory / "sdlc-capability.json").is_file():
+            continue
+        rows, bundle_digest = inventory_bundle(directory)
+        implementations.append(
+            {
+                "id": directory.name,
+                "capability": directory.name.removeprefix("sdlc-"),
+                "source": f"skills/{directory.name}",
+                "files": rows,
+                "bundleSha256": bundle_digest,
+            }
+        )
+    return implementations
 
 
 def inventory_bundle(bundle: Path) -> tuple[list[dict[str, str]], str]:
@@ -899,6 +929,7 @@ def inspect_install(
         "phases",
         "extensions",
         "measurement",
+        "evaluation",
     }:
         fail("Installed config template fields are invalid")
     installed_phase = {
@@ -1360,28 +1391,14 @@ def main(argv: list[str] | None = None) -> int:
             files, digest = inventory_bundle(args.bundle)
             value["skill"]["files"] = files
             value["skill"]["bundleSha256"] = digest
-            implementations = []
-            for directory in sorted(Path(args.bundle).parent.glob("sdlc-*")):
-                if not (directory / "SKILL.md").is_file():
-                    continue
-                rows, bundle_digest = inventory_bundle(directory)
-                implementations.append(
-                    {
-                        "id": directory.name,
-                        "capability": directory.name.removeprefix("sdlc-"),
-                        "source": f"skills/{directory.name}",
-                        "files": rows,
-                        "bundleSha256": bundle_digest,
-                    }
-                )
-            value["implementations"] = implementations
+            value["implementations"] = discover_implementations(args.bundle)
             validate_manifest(value, ROOT)
             _write_json_atomic(args.manifest, value)
             _emit(
                 {
                     "pass": True,
                     "files": len(files),
-                    "implementations": len(implementations),
+                    "implementations": len(value["implementations"]),
                     "bundleSha256": digest,
                 }
             )

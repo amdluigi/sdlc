@@ -109,6 +109,25 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(files, self.manifest["skill"]["files"])
         self.assertEqual(digest, self.manifest["skill"]["bundleSha256"])
 
+    def test_discover_implementations_excludes_standalone_skills_without_capability_json(self):
+        bundle_root = self.work / "skills"
+        bundle_root.mkdir()
+        bundle = bundle_root / "sdlc"
+        bundle.mkdir()
+        (bundle / "SKILL.md").write_text("# sdlc\n", encoding="utf-8")
+
+        real_impl = bundle_root / "sdlc-fake-impl"
+        real_impl.mkdir()
+        (real_impl / "SKILL.md").write_text("# fake-impl\n", encoding="utf-8")
+        (real_impl / "sdlc-capability.json").write_text("{}", encoding="utf-8")
+
+        standalone = bundle_root / "sdlc-standalone-tool"
+        standalone.mkdir()
+        (standalone / "SKILL.md").write_text("# standalone\n", encoding="utf-8")
+
+        implementations = qualify.discover_implementations(bundle)
+        self.assertEqual(["sdlc-fake-impl"], [row["id"] for row in implementations])
+
     def test_manifest_rejects_unknown_fields_unsafe_paths_and_unsorted_files(self):
         for mutate in (
             lambda value: value.update({"extra": True}),
