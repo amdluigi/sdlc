@@ -54,7 +54,7 @@ REQUIRED_FIELDS = (
     "evidence",
     "compatibleSdlc",
 )
-OPTIONAL_FIELDS = ("evaluations",)
+OPTIONAL_FIELDS = ("evaluations", "appliesTo")
 
 _ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _MAX_ID = 64
@@ -106,11 +106,32 @@ def _evidence(value, field):
     return list(value)
 
 
-def validate_declaration(declaration, *, capabilities=None, reserved=None):
+def _domains(value, field, known=None):
+    if not isinstance(value, list) or not value:
+        raise ContractError(f"{field} must be a non-empty array")
+    seen = []
+    for index, item in enumerate(value):
+        domain = _identifier(item, f"{field}[{index}]")
+        if domain in seen:
+            raise ContractError(f"{field} repeats domain: {domain}")
+        seen.append(domain)
+    if known is not None:
+        unknown = [domain for domain in seen if domain not in known]
+        if unknown:
+            raise ContractError(f"unknown domain: {unknown[0]}")
+    return seen
+
+
+def validate_declaration(
+    declaration, *, capabilities=None, reserved=None, domains=None
+):
     """Return the declaration normalized, or raise ContractError.
 
     ``capabilities`` constrains the served capability to known names.
     ``reserved`` names identities a third-party provider may not claim.
+    ``domains`` constrains ``appliesTo`` to the registry's closed domain
+    enum; a provider that does not declare ``appliesTo`` is domain-agnostic
+    and is unaffected by this check.
     """
 
     if not isinstance(declaration, dict):
@@ -175,6 +196,12 @@ def validate_declaration(declaration, *, capabilities=None, reserved=None):
         normalized["evaluations"] = _relative_path(
             evaluations, "evaluations", ".json"
         )
+
+    applies_to = declaration.get("appliesTo")
+    if applies_to is not None:
+        normalized["appliesTo"] = _domains(
+            applies_to, "appliesTo", known=domains
+        )
     return normalized
 
 
@@ -201,7 +228,9 @@ def bundled_declaration_path(modules_root, name):
     )
 
 
-def load_bundled_declaration(modules_root, entry, capabilities=None):
+def load_bundled_declaration(
+    modules_root, entry, capabilities=None, domains=None
+):
     """Load one bundled capability's own declaration from disk.
 
     The bundle is not exempt from the contract it publishes. Each capability
@@ -243,7 +272,7 @@ def load_bundled_declaration(modules_root, entry, capabilities=None):
                 )
 
     normalized = validate_declaration(
-        declaration, capabilities=capabilities
+        declaration, capabilities=capabilities, domains=domains
     )
     if normalized["capability"] != name:
         raise ContractError(
@@ -332,6 +361,10 @@ def load_registry(registry_path, root=None, on_missing="error"):
         row.get("name") for row in registry["modules"]
         if isinstance(row, dict)
     }
+    domain_names = registry.get("domains")
+    known_domains = (
+        set(domain_names) if isinstance(domain_names, list) else None
+    )
     assembled = []
     absent = []
     for entry in registry["modules"]:
@@ -342,7 +375,9 @@ def load_registry(registry_path, root=None, on_missing="error"):
             ).is_file():
                 absent.append(name)
                 continue
-        declaration = load_bundled_declaration(modules_root, entry, names)
+        declaration = load_bundled_declaration(
+            modules_root, entry, names, known_domains
+        )
         assembled.append(
             assemble_module(entry, declaration, entry["name"])
         )
@@ -463,10 +498,11 @@ class FilesystemProviders:
     and refuses a mismatch as an identity or metadata error.
     """
 
-    def __init__(self, roots, capabilities=None, reserved=None):
+    def __init__(self, roots, capabilities=None, reserved=None, domains=None):
         self.roots = [Path(root) for root in roots]
         self.capabilities = capabilities
         self.reserved = reserved
+        self.domains = domains
         self.skipped = []
         self._candidates = None
         self._tokens = {}
@@ -594,6 +630,7 @@ class FilesystemProviders:
             parse_declaration(declaration_path.read_bytes()),
             capabilities=self.capabilities,
             reserved=self.reserved,
+            domains=self.domains,
         )
         if declaration["mode"] == "default":
             raise ContractError(

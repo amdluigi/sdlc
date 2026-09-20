@@ -198,6 +198,43 @@ class DiscoveryTest(unittest.TestCase):
             self.assertEqual(providers.adapter()["candidates"], [])
             self.assertIn("mode default", providers.skipped[0]["reason"])
 
+    def test_a_domain_scoped_provider_declaring_a_known_domain_is_enumerated(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, appliesTo=["mobile"])
+            providers = capability_contract.FilesystemProviders(
+                [root],
+                capabilities=capability_names(),
+                domains={"web", "mobile", "desktop"},
+            )
+            self.assertEqual(len(providers.adapter()["candidates"]), 1)
+            self.assertEqual(providers.skipped, [])
+
+    def test_a_provider_declaring_an_unknown_domain_is_skipped(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, appliesTo=["quantum"])
+            providers = capability_contract.FilesystemProviders(
+                [root],
+                capabilities=capability_names(),
+                domains={"web", "mobile", "desktop"},
+            )
+            self.assertEqual(providers.adapter()["candidates"], [])
+            self.assertIn("domain", providers.skipped[0]["reason"])
+
+    def test_a_domain_scoped_declaration_without_a_known_domain_set_is_not_checked(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            write_provider(root, appliesTo=["anything-kebab-case"])
+            providers = capability_contract.FilesystemProviders(
+                [root], capabilities=capability_names()
+            )
+            self.assertEqual(len(providers.adapter()["candidates"]), 1)
+
     def test_a_missing_root_is_reported_not_fatal(self):
         providers = capability_contract.FilesystemProviders(
             [Path("does-not-exist-anywhere")]

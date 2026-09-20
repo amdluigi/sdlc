@@ -1,5 +1,13 @@
 {
   "schemaVersion": 1,
+  "domains": [
+    "web",
+    "mobile",
+    "desktop",
+    "cli",
+    "api",
+    "library"
+  ],
   "deliveryPhases": [
     "inception",
     "triage",
