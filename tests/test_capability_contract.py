@@ -322,6 +322,18 @@ class DomainScopedProviderTest(unittest.TestCase):
         self.assertTrue(domains)
         self.assertEqual(len(domains), len(set(domains)))
 
+    def test_registry_reserves_the_generic_domain(self):
+        """`generic` is the enum's answer to "what if none of these fit",
+        not a new named domain, so it needs no ADR to exist."""
+        self.assertIn("generic", placement_registry()["domains"])
+
+    def test_generic_applies_to_is_accepted(self):
+        declaration = capability_contract.validate_declaration(
+            valid_declaration(appliesTo=["generic"]),
+            domains=set(placement_registry()["domains"]),
+        )
+        self.assertEqual(declaration["appliesTo"], ["generic"])
+
     def test_no_bundled_capability_is_domain_scoped_yet(self):
         """Every bundled capability today is domain-agnostic.
 

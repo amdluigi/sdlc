@@ -6,7 +6,8 @@
     "desktop",
     "cli",
     "api",
-    "library"
+    "library",
+    "generic"
   ],
   "deliveryPhases": [
     "inception",

@@ -35,7 +35,7 @@
       },
       {
         "path": "contracts/capability-provider.schema.json",
-        "sha256": "8045ae0d376075454cffd41a21bb1c25b0ff39f7d8d83164bd8769988a58b948"
+        "sha256": "282dab4742dee12f39e99d9d6684fcb60bb14f4933a67a8cd6b335702510a6f6"
       },
       {
         "path": "contracts/delivery-profile.schema.json",
@@ -103,7 +103,7 @@
       },
       {
         "path": "modules/registry.json",
-        "sha256": "d3690d55ca60364f551e6273aff6779c237e9b73a23f08aa9afb969da36c5b8b"
+        "sha256": "cd2339e6ec8eefc8793b1504f905c0fba4eb6a28a2701f0587dea3af1d5585e7"
       },
       {
         "path": "scripts/adaptive_extensions.py",
@@ -158,7 +158,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "248728429c748c82e395b5eae5d8c2a6193df9559c51c99a029d56ea42ea1af9"
+    "bundleSha256": "6943dad1e0836afff8d2db20507556df577b9ec05a1df23691ece0313ea3fb5a"
   },
   "profiles": [
     {
