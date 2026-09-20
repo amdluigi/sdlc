@@ -497,6 +497,37 @@ trigger, evidence, status, extension eligibility, reconciliation, or
 readiness. Their stable neutral classes do not contain absolute project or
 user paths.
 
+## Run-Record Boundary for sdlc-evaluator
+
+`evaluation.enabled` is a separate, optional configuration flag, independent
+of `measurement.enabled` and defaulting to false. When enabled, the
+turn-end self-check writes exactly one run record per non-trivial task,
+using the same task, module, trigger, evidence, and blocker fields already
+validated for the coverage ledger (`operator_reports.validate_operator_state`),
+plus an additive `selfCheck` block describing whether the self-check itself
+ran cleanly or had to retroactively fill a gap. `contracts/run-record.schema.json`
+documents the full shape; `run_record_contract.py` validates it by reusing
+the operator-state validator rather than duplicating its rules.
+
+Storage follows the identical git-local, gitfile-local, or non-git-local
+rules as measurement, under `sdlc/runs/` instead of `sdlc/metrics.json`, with
+one file per task ID rather than one shared counter store; `manage_runs.py`
+implements `record`, `set-outcome`, and `list`. A run record is replaced in
+full on each write, not appended to, so a later self-check correction in the
+same task supersedes rather than duplicates the earlier record. `outcome`
+(whether a human later corrected the work) is filled in afterward, and only
+afterward, by an explicit `set-outcome` call; the orchestrator never writes
+it during the turn that produced the record.
+
+`evaluate_runs.py extract` is the only supported way to read run-record data
+in bulk: it walks the store, validates every record, and reduces it to a
+single bounded digest of closed-enum counts and short evidence/blocker text
+before any model reasoning happens, so the separate, strictly
+post-execution `sdlc-evaluator` skill (outside this bundle, undiscovered by
+`discover_implementations` because it intentionally ships without
+`sdlc-capability.json`) never needs to read raw run records or influence
+`sdlc`'s own routing or evidence decisions.
+
 ## Test-First Boundary
 
 The `tdd` module sits between planning and implementation. For new behavior

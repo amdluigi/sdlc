@@ -44,5 +44,8 @@
   },
   "measurement": {
     "enabled": false
+  },
+  "evaluation": {
+    "enabled": false
   }
 }

@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:run-record:1",
+  "title": "SDLC run record",
+  "description": "A per-completed-task snapshot for the sdlc-evaluator meta-skill. Written only when project configuration sets evaluation.enabled: true, and only once, at the point the turn-end self-check confirms (or retroactively produces) the coverage report for a non-trivial task. Distinct from the ephemeral coverage ledger (never persisted) and from the private local aggregate measurement store (closed anonymized counters, no task identity). A run record intentionally carries no prompts, responses, raw code, credentials, exact wall-clock timestamps, or host/model identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "task", "modules", "configuredDisabledModules",
+    "blockers", "selfCheck"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "task": {"$ref": "#/$defs/task"},
+    "modules": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/module"}
+    },
+    "configuredDisabledModules": {"$ref": "#/$defs/ids"},
+    "blockers": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/blocker"}
+    },
+    "selfCheck": {"$ref": "#/$defs/selfCheck"},
+    "outcome": {"$ref": "#/$defs/outcome"}
+  },
+  "$defs": {
+    "ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"}
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["bundled", "disabled", "replacement"]},
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "replacement"}}},
+          "then": {"required": ["id"]},
+          "else": {"not": {"required": ["id"]}}
+        }
+      ]
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rigor", "facts"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "rigor": {"enum": ["trivial", "standard", "significant"]},
+        "facts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "nonTrivial": {"type": "boolean"},
+            "beforeCompletion": {"type": "boolean"},
+            "bugOrUnexplainedFailure": {"type": "boolean"},
+            "newCapability": {"type": "boolean"},
+            "userOrProductFacing": {"type": "boolean"},
+            "significantInternalCapability": {"type": "boolean"},
+            "codeOrConfigurationChange": {"type": "boolean"},
+            "newOrChangedBehavior": {"type": "boolean"},
+            "verificationInScope": {"type": "boolean"},
+            "securitySurfaceAffected": {"type": "boolean"},
+            "operationalSurfaceAffected": {"type": "boolean"},
+            "learningSignalPresent": {"type": "boolean"},
+            "coreUpgrade": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {"source": {"const": "core"}},
+            "required": ["source"]
+          },
+          "else": {"not": {"required": ["provider"]}}
+        },
+        {
+          "if": {
+            "properties": {"configured": {"const": "disabled"}},
+            "required": ["configured", "provider"]
+          },
+          "then": {
+            "properties": {
+              "provider": {
+                "properties": {"type": {"const": "disabled"}}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"configured": {"const": "enabled"}},
+            "required": ["configured", "provider"]
+          },
+          "then": {
+            "properties": {
+              "provider": {
+                "properties": {
+                  "type": {"enum": ["bundled", "replacement"]}
+                }
+              }
+            }
+          }
+        }
+      ],
+      "required": ["id", "source", "order", "configured", "trigger", "evidence", "instruction"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "source": {"enum": ["core", "project-extension", "global-extension"]},
+        "order": {"type": "integer", "minimum": 0},
+        "configured": {"enum": ["enabled", "disabled"]},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "evidence": {"$ref": "#/$defs/evidence"},
+        "instruction": {"$ref": "#/$defs/instruction"},
+        "provider": {"$ref": "#/$defs/provider"}
+      }
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "basis", "assertedBy"],
+      "properties": {
+        "state": {"enum": ["matched", "not-matched", "undetermined"]},
+        "basis": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "assertedBy": {"enum": ["deterministic-core-rule", "runtime"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "items", "gaps"],
+      "properties": {
+        "status": {
+          "enum": ["satisfied", "partial", "missing", "stale/unverified", "configured-disabled", "not-applicable"]
+        },
+        "items": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidenceItem"}
+        },
+        "gaps": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reference", "summary", "current"],
+      "properties": {
+        "kind": {"type": "string", "minLength": 1},
+        "reference": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1},
+        "current": {"type": "boolean"}
+      }
+    },
+    "instruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reason"],
+      "properties": {
+        "state": {"enum": ["would-load", "loaded", "reused", "skipped", "blocked", "undetermined"]},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "message"],
+      "properties": {
+        "module": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "message": {"type": "string", "minLength": 1}
+      }
+    },
+    "selfCheck": {
+      "description": "Reports whether the turn-end self-check (see SKILL.md's Turn-end self-check section) ran and what it found, so an evaluation pass can distinguish a run where the coverage report/disclosure/memory update were produced normally from one where the self-check had to catch and retroactively fill a gap.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "performed", "producedCoverageReport", "producedDisclosureLine",
+        "producedMemoryUpdate", "retroactive"
+      ],
+      "properties": {
+        "performed": {"type": "boolean"},
+        "producedCoverageReport": {"type": "boolean"},
+        "producedDisclosureLine": {"type": "boolean"},
+        "producedMemoryUpdate": {"enum": [true, false, "not-applicable"]},
+        "retroactive": {
+          "type": "boolean",
+          "description": "true only when the self-check caught a gap and produced the missing report, disclosure line, or memory update after the fact."
+        }
+      }
+    },
+    "outcome": {
+      "description": "Filled in asynchronously by a later, read-only reconciliation pass against merged PR/CI history (see reconcile_runs.py). Never written by the orchestrator in the same turn that wrote the rest of the record. Absent until that pass runs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["humanCorrected", "correctionReferences"],
+      "properties": {
+        "humanCorrected": {"type": "boolean"},
+        "correctionReferences": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1},
+          "description": "PR review thread URLs, commit SHAs, or CI run URLs only. No comment text, no diff content, no prompts."
+        }
+      }
+    }
+  }
+}

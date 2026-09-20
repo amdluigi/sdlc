@@ -734,6 +734,34 @@ Disabling stops new writes but retains existing local aggregates for
 inspection, reset, or deletion. To stop and erase measurement, disable it
 first and then delete the store.
 
+### Run records and sdlc-evaluator
+
+SDLC does not write run records by default. Optional `evaluation` support
+stores one project-local record per task after an explicit, committed
+configuration change. A record captures the same closed-enum module and
+blocker shape as an operator state, plus the turn-end self-check result and,
+once known, the task outcome. It never stores prompts, code, credentials, or
+timestamps.
+
+```powershell
+$runs = ".agents\skills\sdlc\scripts\manage_runs.py"
+
+python $runs record --project-root . --input .sdlc\run-record-draft.json
+python $runs set-outcome --project-root . --task <task-id> --human-corrected false
+python $runs list --project-root .
+```
+
+Run records exist to feed [`sdlc-evaluator`](skills/sdlc-evaluator), a
+separate, standalone skill that audits completed runs for control-plane
+routing failures and specialized-skill execution failures, and proposes
+targeted diffs to the affected skills. It is not part of the `sdlc` bundle
+and is not installed by `--skill '*'`; install it on its own when you want
+post-execution audits:
+
+```bash
+npx skills add amdluigi/sdlc --skill sdlc-evaluator
+```
+
 ### Artifact commands
 
 The bundled helper validates SDLC artifacts and renders local handoff text.

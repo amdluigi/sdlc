@@ -287,6 +287,72 @@ class PhaseTemplateTest(unittest.TestCase):
         self.assertEqual(set(flat), set(index))
         self.assertTrue(all(value is True for value in flat.values()))
 
+    def test_template_disables_evaluation_by_default(self):
+        self.assertEqual(TEMPLATE["evaluation"], {"enabled": False})
+
+
+class EvaluationConfigTest(unittest.TestCase):
+    """evaluation.enabled gates the sdlc-evaluator run-record capture,
+    independent of measurement.enabled."""
+
+    def config(self, **overrides) -> dict:
+        base = {
+            "schemaVersion": 3,
+            "modules": {},
+            "extensions": {"project": {}, "global": {}},
+            "measurement": {"enabled": False},
+        }
+        base.update(overrides)
+        return base
+
+    def test_defaults_to_disabled_when_absent(self):
+        normalized = config_contract.normalize_config(
+            self.config(), set(phase_of())
+        )
+        self.assertEqual(normalized["evaluation"], {"enabled": False})
+
+    def test_accepts_an_explicit_enabled_flag(self):
+        normalized = config_contract.normalize_config(
+            self.config(evaluation={"enabled": True}), set(phase_of())
+        )
+        self.assertEqual(normalized["evaluation"], {"enabled": True})
+
+    def test_rejects_a_non_boolean_enabled_value(self):
+        with self.assertRaises(config_contract.ConfigError) as caught:
+            config_contract.normalize_config(
+                self.config(evaluation={"enabled": "yes"}), set(phase_of())
+            )
+        self.assertIn("evaluation.enabled must be boolean", str(caught.exception))
+
+    def test_rejects_an_unknown_evaluation_field(self):
+        with self.assertRaises(config_contract.ConfigError) as caught:
+            config_contract.normalize_config(
+                self.config(evaluation={"enabled": True, "window": 30}),
+                set(phase_of()),
+            )
+        self.assertIn("unknown evaluation field", str(caught.exception))
+
+    def test_is_independent_of_measurement(self):
+        normalized = config_contract.normalize_config(
+            self.config(
+                measurement={"enabled": True}, evaluation={"enabled": False}
+            ),
+            set(phase_of()),
+        )
+        self.assertEqual(normalized["measurement"], {"enabled": True})
+        self.assertEqual(normalized["evaluation"], {"enabled": False})
+
+    def test_round_trips_through_the_phase_shape(self):
+        normalized = config_contract.normalize_config(
+            self.config(evaluation={"enabled": True}), set(phase_of())
+        )
+        document = config_contract.config_to_document(normalized, phase_of())
+        self.assertEqual(document["evaluation"], {"enabled": True})
+        again = config_contract.normalize_config(
+            document, set(phase_of()), phase_of()
+        )
+        self.assertEqual(again["evaluation"], {"enabled": True})
+
 
 if __name__ == "__main__":
     unittest.main()

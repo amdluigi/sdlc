@@ -237,7 +237,7 @@ def normalize_config(config, registry_names, phase_of=None):
 
     allowed = {"schemaVersion", "phases" if version >= 4 else "modules"}
     if version >= 2:
-        allowed.update({"extensions", "measurement"})
+        allowed.update({"extensions", "measurement", "evaluation"})
     unknown = set(config) - allowed
     if unknown:
         raise ConfigError(f"unknown config field: {sorted(unknown)[0]}")
@@ -323,11 +323,26 @@ def normalize_config(config, registry_names, phase_of=None):
     if type(measurement["enabled"]) is not bool:
         raise ConfigError("measurement.enabled must be boolean")
 
+    evaluation = config.get("evaluation", {"enabled": False})
+    if not isinstance(evaluation, dict):
+        raise ConfigError("evaluation must be an object")
+    if set(evaluation) != {"enabled"}:
+        unknown_evaluation = set(evaluation) - {"enabled"}
+        if unknown_evaluation:
+            raise ConfigError(
+                "unknown evaluation field: "
+                f"{sorted(unknown_evaluation)[0]}"
+            )
+        raise ConfigError("evaluation.enabled is required")
+    if type(evaluation["enabled"]) is not bool:
+        raise ConfigError("evaluation.enabled must be boolean")
+
     return {
         "schemaVersion": 3,
         "modules": normalized_modules,
         "extensions": extensions,
         "measurement": {"enabled": measurement["enabled"]},
+        "evaluation": {"enabled": evaluation["enabled"]},
     }
 
 
@@ -356,6 +371,7 @@ def config_to_document(normalized, phase_of=None):
         "phases": phases,
         "extensions": normalized["extensions"],
         "measurement": normalized["measurement"],
+        "evaluation": normalized.get("evaluation", {"enabled": False}),
     }
 
 
