@@ -960,6 +960,97 @@ class ProviderResolutionTests(unittest.TestCase):
             replacement,
         )
 
+    def shortlist_config(self):
+        return config_contract.normalize_config(
+            self.config({"prd": {"replaceWith": ["acme-a", "acme-b"]}}),
+            CORE_MODULES,
+        )
+
+    def test_module_provider_reports_an_unresolved_shortlist(self):
+        config = self.shortlist_config()
+        self.assertEqual(
+            {"type": "replacement", "id": None, "candidates": ["acme-a", "acme-b"]},
+            resolve_providers.module_provider(config, "prd"),
+        )
+
+    def test_the_only_installed_candidate_resolves_silently(self):
+        _, _, digest = self.install_provider()
+        result = resolve_providers.resolve(
+            self.shortlist_config(),
+            [{"name": "prd"}],
+            self.adapter([self.candidate("acme-a", digest)]),
+            "1.0.0",
+        )
+        binding = result["providers"]["prd"]
+        self.assertEqual("acme-a", binding["id"])
+        self.assertEqual(digest, binding["contentDigest"])
+
+    def test_no_installed_candidate_is_unavailable(self):
+        with self.assertRaisesRegex(
+            resolve_providers.ProviderError, "provider-unavailable"
+        ):
+            resolve_providers.resolve(
+                self.shortlist_config(),
+                [{"name": "prd"}],
+                self.adapter([]),
+                "1.0.0",
+            )
+
+    def test_two_eligible_installed_candidates_require_a_developer_choice(self):
+        _, _, digest_a = self.install_provider("scope-a")
+        _, _, digest_b = self.install_provider("scope-b")
+        with self.assertRaisesRegex(
+            resolve_providers.ProviderError, "provider-choice-required"
+        ):
+            resolve_providers.resolve(
+                self.shortlist_config(),
+                [{"name": "prd"}],
+                self.adapter(
+                    [
+                        self.candidate("acme-a", digest_a, "a"),
+                        self.candidate("acme-b", digest_b, "b"),
+                    ]
+                ),
+                "1.0.0",
+            )
+
+    def test_a_shortlisted_id_installed_twice_is_ambiguous_before_any_choice(
+        self,
+    ):
+        _, _, digest_a = self.install_provider("scope-a")
+        _, _, digest_b = self.install_provider("scope-b")
+        with self.assertRaisesRegex(
+            resolve_providers.ProviderError, "provider-ambiguous"
+        ):
+            resolve_providers.resolve(
+                self.shortlist_config(),
+                [{"name": "prd"}],
+                self.adapter(
+                    [
+                        self.candidate("acme-a", digest_a, "a"),
+                        self.candidate("acme-a", digest_b, "b"),
+                    ]
+                ),
+                "1.0.0",
+            )
+
+    def test_the_only_installed_candidate_still_reports_its_own_problem(self):
+        _, _, digest = self.install_provider()
+        candidate = self.metadata_candidate(
+            digest,
+            declaredName="acme-a",
+            providerMetadata=provider_metadata(modules="testing"),
+        )
+        with self.assertRaisesRegex(
+            resolve_providers.ProviderError, "provider-module-unsupported"
+        ):
+            resolve_providers.resolve(
+                self.shortlist_config(),
+                [{"name": "prd"}],
+                self.adapter([candidate]),
+                "1.0.0",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

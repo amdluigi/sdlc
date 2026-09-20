@@ -103,14 +103,26 @@
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
     "moduleState": {
-      "description": "true enables the bundled module as the default and leaves the choice open, so a competing installed provider is raised as a question. An object records an explicit decision and settles it.",
+      "description": "true enables the bundled module as the default and leaves the choice open, so a competing installed provider is raised as a question. An object records an explicit decision and settles it. replaceWith may be a single ID (decided) or an array of two or more unique IDs (an undecided shortlist of acceptable candidates; resolution binds whichever one is installed and eligible, or asks the developer when more than one is).",
       "oneOf": [
         {"type": "boolean"},
         {
           "type": "object",
           "additionalProperties": false,
           "required": ["replaceWith"],
-          "properties": {"replaceWith": {"$ref": "#/$defs/id"}}
+          "properties": {
+            "replaceWith": {
+              "oneOf": [
+                {"$ref": "#/$defs/id"},
+                {
+                  "type": "array",
+                  "items": {"$ref": "#/$defs/id"},
+                  "minItems": 2,
+                  "uniqueItems": true
+                }
+              ]
+            }
+          }
         },
         {
           "type": "object",

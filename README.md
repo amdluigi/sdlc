@@ -385,6 +385,7 @@ Each module takes one of four values:
 | `false` | Disable the module. Disclosed in SDLC's final report |
 | `{"provider": "bundled"}` | Keep the bundled implementation, decided. SDLC stops asking |
 | `{"replaceWith": "<skill-id>"}` | An external skill serves this module |
+| `{"replaceWith": ["<skill-id>", "<skill-id>", ...]}` | You have committed to replacing this module but not yet to which of two or more candidates should do it |
 
 `true` and `{"provider": "bundled"}` run identical instructions. They differ
 only in whether you have made a decision.
@@ -543,6 +544,60 @@ Or keep the bundled module and stop being asked:
 Re-run the survey to confirm; `decision` becomes `settled`. Until you record
 one, SDLC keeps using its own module and raises the choice rather than
 switching by itself.
+
+### Choosing between two or more candidate skills
+
+Sometimes you know you want a module replaced but not which of several
+installed skills should do it, for example three specialists for `testing`
+written for different project domains. Configure a shortlist instead of a
+single ID:
+
+```json
+      "testing": { "replaceWith": ["acme-testing", "beta-testing"] },
+```
+
+A shortlist is not a fourth kind of decision alongside the three above; it
+is `replaceWith` still, just not yet narrowed to one ID. Resolution reads it
+against what is actually installed:
+
+- exactly one shortlisted skill installed and eligible: SDLC binds it, no
+  question asked;
+- none installed: SDLC reports the module as unavailable, the same as
+  configuring a single skill ID that is not installed. There is nothing to
+  choose between yet, only something to install;
+- more than one installed and eligible: SDLC cannot guess, so it asks you.
+
+The survey reports a genuine tie the same way it reports any other open
+decision, under `decision: "developer-choice-required"`, with `active`
+carrying `candidates` (the tied IDs) instead of `id`:
+
+```json
+{
+  "active": {
+    "candidates": ["acme-testing", "beta-testing"],
+    "type": "replacement"
+  },
+  "decision": "developer-choice-required"
+}
+```
+
+When none of the shortlisted skills are installed, the survey instead
+reports `decision: "settled"`, exactly as a single configured ID that is
+not installed does, since there is no choice to make until something is
+installed; the survey's `missing` list still names the gap.
+
+Once you decide, record the answer by collapsing the array back down to the
+single winning ID, the same field, now settled:
+
+```json
+      "testing": { "replaceWith": "acme-testing" },
+```
+
+`resolve_providers.py resolve`, the step that actually binds a provider for
+real work, never prompts for input itself; a shortlist that is still tied
+at resolution time fails closed with `provider-choice-required` instead,
+naming the tied candidates, so the agent running SDLC can ask you and record
+the answer exactly as it would for `survey`.
 
 A replacement changes only the instructions for that module. The SDLC
 registry still owns its trigger, evidence contract, freshness, and readiness

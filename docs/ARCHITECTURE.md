@@ -147,7 +147,12 @@ Bundled implementations are named after the interface they serve, so
 implementation is a configuration decision, and
 [the delivery profile](DELIVERY-PROFILE.md) reports the current binding for
 every interface. The `sdlc-` prefix is reserved to the bundle, which is what
-keeps a bundled name unclaimable by an external skill.
+keeps a bundled name unclaimable by an external skill. That binding is
+usually a single provider ID, but configuration may instead name an
+undecided shortlist of two or more candidate IDs; resolution narrows it to
+the one installed, eligible candidate when exactly one qualifies, and
+refuses rather than guessing when none or more than one do, so a shortlist
+stays open until a developer decision collapses it back to a single ID.
 
 Named implementations are not separate release units. All of them ship in one
 qualified bundle at one version.

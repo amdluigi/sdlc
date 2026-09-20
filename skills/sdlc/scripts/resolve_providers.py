@@ -62,6 +62,11 @@ def _error(failure_class, module, provider, profile, remediation):
     )
 
 
+def _error_label(provider):
+    """A provider or list of candidate providers, formatted for one error."""
+    return provider if isinstance(provider, str) else "/".join(provider)
+
+
 def _phase_of(registry):
     """Delivery phase per module, or None when the registry omits it."""
     try:
@@ -99,7 +104,10 @@ def module_provider(config, module):
         return {"type": "disabled", "id": None}
     if state is True or "provider" in state:
         return {"type": "bundled", "id": None}
-    return {"type": "replacement", "id": state["replaceWith"]}
+    provider = state["replaceWith"]
+    if isinstance(provider, list):
+        return {"type": "replacement", "id": None, "candidates": list(provider)}
+    return {"type": "replacement", "id": provider}
 
 
 def _validate_adapter(adapter):
@@ -335,6 +343,14 @@ def _required_providers(entry, configured, absent, installed):
         return None
     if isinstance(configured, dict) and "replaceWith" in configured:
         provider = configured["replaceWith"]
+        if isinstance(provider, list):
+            if any(candidate in installed for candidate in provider):
+                return None
+            return {
+                "capability": name,
+                "requires": _error_label(provider),
+                "source": "external",
+            }
         if provider in installed:
             return None
         return {
@@ -349,6 +365,50 @@ def _required_providers(entry, configured, absent, installed):
         "requires": bundled_provider_id(name),
         "source": "bundled",
     }
+
+
+def _shortlist_winner(module, pool, sdlc_version):
+    """Classify a configured candidate shortlist's installed eligibility.
+
+    ``pool`` is already filtered to installed candidates whose declared
+    name is one of the shortlisted ids. Returns ``(winner, tied)``:
+
+    - exactly one shortlisted id installed once and eligible: that id as
+      ``winner``, ``tied`` is ``None``;
+    - two or more shortlisted ids installed once and eligible: ``winner``
+      is ``None``, ``tied`` is their sorted ids, a genuine developer
+      decision;
+    - anything else (nothing eligible, including a shortlisted id that
+      matched more than one installed candidate, which is
+      ``resolve``'s ``provider-ambiguous`` and never counts toward a
+      winner): both are ``None``, reported the same as an ordinary
+      settled-but-not-installed replacement, since there is nothing
+      installed yet to ask the developer to choose between.
+    """
+
+    counts = {}
+    for candidate in pool:
+        counts[candidate["declaredName"]] = (
+            counts.get(candidate["declaredName"], 0) + 1
+        )
+    eligible = sorted({
+        candidate["declaredName"]
+        for candidate in pool
+        if counts[candidate["declaredName"]] == 1
+        and _metadata_problem(
+            candidate["declaredName"],
+            candidate.get("providerMetadata"),
+            module,
+            candidate["declaredName"],
+            sdlc_version,
+        )
+        is None
+    })
+    if len(eligible) == 1:
+        return eligible[0], None
+    if len(eligible) > 1:
+        return None, eligible
+    return None, None
 
 
 def survey(
@@ -407,8 +467,27 @@ def survey(
         configured = config["modules"].get(name, True)
         replaceable = bool(entry.get("replaceable", True))
         explicit = isinstance(configured, dict)
+        pool = by_capability.get(name, [])
+        shortlist_tied = None
         if explicit and "replaceWith" in configured:
-            active = {"type": "replacement", "id": configured["replaceWith"]}
+            provider = configured["replaceWith"]
+            if isinstance(provider, list):
+                pool = [
+                    candidate for candidate in pool
+                    if candidate["declaredName"] in provider
+                ]
+                winner, shortlist_tied = _shortlist_winner(
+                    name, pool, sdlc_version
+                )
+                if winner is not None:
+                    active = {"type": "replacement", "id": winner}
+                else:
+                    active = {
+                        "type": "replacement",
+                        "candidates": list(provider),
+                    }
+            else:
+                active = {"type": "replacement", "id": provider}
         else:
             active = {"type": "bundled"}
         state = "disabled" if configured is False else "enabled"
@@ -427,7 +506,7 @@ def survey(
 
         alternatives = []
         for candidate in sorted(
-            by_capability.get(name, []),
+            pool,
             key=lambda item: item["declaredName"],
         ):
             provider = candidate["declaredName"]
@@ -456,6 +535,9 @@ def survey(
         offered = [item for item in alternatives if item["eligible"]]
         if alternatives and not replaceable:
             decision = "refused"
+        elif shortlist_tied:
+            decision = "developer-choice-required"
+            choices.append(name)
         elif (
             offered
             and state == "enabled"
@@ -545,6 +627,64 @@ def survey_install(
     )
 
 
+def _resolve_candidate_list(module, candidate_ids, candidates, profile,
+                             sdlc_version):
+    """Narrow a configured candidate shortlist down to one provider to bind.
+
+    A single configured id with more than one filesystem match is a plain
+    install-integrity problem, checked first so it is reported exactly as
+    it would be for a single-string ``replaceWith``, independent of the
+    shortlist mechanism. Once every id has at most one match, exactly one
+    configured id being installed at all resolves the shortlist outright,
+    leaving the existing matches/metadata code below to report the precise
+    problem if the one installed candidate turns out to be ineligible.
+    Otherwise the shortlist resolves the same way ``survey`` reports it:
+    the one eligible installed candidate wins silently, none eligible
+    refuses with ``provider-unavailable``, and more than one tied refuses
+    with ``provider-choice-required`` so the caller can ask the developer
+    and record the answer as a single ``replaceWith`` string.
+    """
+
+    by_id = {}
+    for candidate_id in candidate_ids:
+        matches = [
+            candidate for candidate in candidates
+            if candidate["declaredName"] == candidate_id
+        ]
+        if len(matches) > 1:
+            _error(
+                "provider-ambiguous", module, candidate_id, profile,
+                "remove duplicate installed candidates",
+            )
+        if matches:
+            by_id[candidate_id] = matches[0]
+
+    if len(by_id) == 1:
+        return next(iter(by_id))
+
+    eligible = [
+        candidate_id for candidate_id, candidate in by_id.items()
+        if _metadata_problem(
+            candidate_id, candidate["providerMetadata"], module,
+            candidate_id, sdlc_version,
+        )
+        is None
+    ]
+    if not eligible:
+        _error(
+            "provider-unavailable", module, _error_label(candidate_ids),
+            profile, "install exactly one skill from the configured "
+            "candidates",
+        )
+    if len(eligible) > 1:
+        _error(
+            "provider-choice-required", module, _error_label(eligible),
+            profile, "ask the developer which candidate to use, then "
+            "record the answer as a single replaceWith string",
+        )
+    return eligible[0]
+
+
 def resolve(
     config,
     registry_modules,
@@ -569,7 +709,8 @@ def resolve(
         profile = host_profile or "unknown"
         module, provider = next(iter(replacements.items()))
         _error(
-            "provider-resolution-unsupported", module, provider, profile,
+            "provider-resolution-unsupported", module, _error_label(provider),
+            profile,
             "use a host adapter that enumerates exact IDs and binds loading",
         )
     profile, candidates = _validate_adapter(adapter)
@@ -586,8 +727,12 @@ def resolve(
         provider = replacements[module]
         if module not in core_names:
             _error(
-                "provider-module-unknown", module, provider, profile,
-                "remove the unknown core module replacement",
+                "provider-module-unknown", module, _error_label(provider),
+                profile, "remove the unknown core module replacement",
+            )
+        if isinstance(provider, list):
+            provider = _resolve_candidate_list(
+                module, provider, candidates, profile, sdlc_version
             )
         matches = [
             candidate for candidate in candidates
