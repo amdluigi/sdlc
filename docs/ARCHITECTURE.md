@@ -162,6 +162,19 @@ Phase is a grouping and presentation layer above category. Resolution and
 replacement happen per module, so a phase never binds a provider. A category
 with a null gate sits outside the per-change state machine.
 
+It also declares the domain vocabulary a provider may specialize against:
+
+- `domains`, a closed enum of project domains (for example `web`, `mobile`,
+  `desktop`), reserved so a `testing` provider written for one platform's
+  conventions can distinguish itself from one written for another's, without
+  every author inventing an incompatible name for the same idea. `generic`
+  is a standing member of the enum meaning explicitly that no named domain
+  applies; it is not a wildcard and does not match any named domain.
+  Extending the named domains requires an ADR and a registry change, the
+  same bar as adding a delivery phase. A capability provider declares which
+  domains it applies to in its own `appliesTo` field; omitting it means the
+  provider is domain-agnostic.
+
 The default project configuration must list the same core module IDs. The
 repository validator rejects registry, configuration, and filesystem drift,
 including drift between the registry and the generated delivery profile at
