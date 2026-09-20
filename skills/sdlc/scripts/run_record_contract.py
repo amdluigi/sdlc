@@ -38,7 +38,10 @@ def _validate_self_check(value):
                 "E_SELF_CHECK", f"/selfCheck/{name}", "expected boolean"
             )
     produced_memory = self_check["producedMemoryUpdate"]
-    if produced_memory not in (True, False, "not-applicable"):
+    if not (
+        type(produced_memory) is bool
+        or produced_memory == "not-applicable"
+    ):
         raise ContractIssue(
             "E_SELF_CHECK", "/selfCheck/producedMemoryUpdate",
             "expected true, false, or not-applicable",

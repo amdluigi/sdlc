@@ -131,7 +131,7 @@
       },
       {
         "path": "scripts/evaluate_runs.py",
-        "sha256": "30a4745f36d9221ebe6dfaa3b13a618a6ad34020efdaef978eb1ad1920a33cd4"
+        "sha256": "7247eb4392bf192e953d3c793eaa9248ab484cacd148d25fb318750ffd6ff83b"
       },
       {
         "path": "scripts/handoff_renderers.py",
@@ -151,7 +151,7 @@
       },
       {
         "path": "scripts/manage_runs.py",
-        "sha256": "e8a45d6e0658f92060fcba3349a8b259158cd765da2fc692246481e756d3ec3f"
+        "sha256": "ab17e358b77800fdf930e21ba0ab3790440a9b8baecaa7ffe73e681d6ddde3da"
       },
       {
         "path": "scripts/operator_reports.py",
@@ -167,14 +167,14 @@
       },
       {
         "path": "scripts/run_record_contract.py",
-        "sha256": "12458032e8954da1ad2edfb76eed0b761752dbc03680b71e70f51b2c8d35935a"
+        "sha256": "09670d0e1f45a29ef73e39bb0b9eabd62e683efaa4fd01e49a193e38a2788402"
       },
       {
         "path": "scripts/validate_artifacts.py",
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "9c048bd66f49cd44a2e11b630ff709048501d0570ca69ac07c707c74ce833770"
+    "bundleSha256": "96c536f640760fe4adf93d561b73c3d6208926b2cdceecc13b0e609f3d28b73e"
   },
   "profiles": [
     {

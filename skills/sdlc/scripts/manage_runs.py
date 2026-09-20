@@ -27,7 +27,7 @@ from adaptive_extensions import AdaptiveError, load_json_strict
 from config_contract import ConfigError, normalize_config
 import manage_metrics
 from manage_metrics import MetricsError
-from artifact_contracts import ContractIssue, strict_load_json
+from artifact_contracts import ContractIssue, ID_PATTERN, strict_load_json
 from run_record_contract import validate_run_record
 
 MAX_RUN_RECORD_BYTES = 65_536
@@ -149,12 +149,18 @@ def _read_run_record(path):
         raise RunsError(f"run-record-corrupt:{error.code}") from error
 
 
+def _serialized_size(data):
+    return len(json.dumps(data, sort_keys=True, indent=2).encode("utf-8")) + 1
+
+
 def record(project_root, input_path):
     try:
         data = strict_load_json(input_path)
         data = validate_run_record(data)
     except ContractIssue as error:
         raise RunsError(f"run-record-invalid:{error.code}:{error.pointer}") from error
+    if _serialized_size(data) > MAX_RUN_RECORD_BYTES:
+        raise RunsError("run-record-invalid:too-large")
     if not evaluation_enabled(project_root):
         return {"status": "disabled", "written": False}
     _, directory, _ = locate_runs_directory(project_root)
@@ -163,7 +169,14 @@ def record(project_root, input_path):
     return {"status": "written", "written": True, "path": str(path)}
 
 
+def _validate_task_id(task_id):
+    if not isinstance(task_id, str) or not ID_PATTERN.fullmatch(task_id):
+        raise RunsError("task id must be a kebab-case identifier")
+    return task_id
+
+
 def set_outcome(project_root, task_id, human_corrected, references):
+    _validate_task_id(task_id)
     if type(human_corrected) is not bool:
         raise RunsError("human-corrected must be boolean")
     if not isinstance(references, list) or not all(
@@ -181,6 +194,8 @@ def set_outcome(project_root, task_id, human_corrected, references):
         "correctionReferences": references,
     }
     data = validate_run_record(data)
+    if _serialized_size(data) > MAX_RUN_RECORD_BYTES:
+        raise RunsError("run-record-invalid:too-large")
     _write_atomic(path, data)
     return {"status": "written", "written": True, "path": str(path)}
 

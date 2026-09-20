@@ -56,6 +56,12 @@ class RunRecordContractTest(unittest.TestCase):
         with self.assertRaises(ContractIssue):
             validate_run_record(record)
 
+    def test_rejects_numeric_produced_memory_update_masquerading_as_boolean(self):
+        record = sample_run_record()
+        record["selfCheck"]["producedMemoryUpdate"] = 1
+        with self.assertRaises(ContractIssue):
+            validate_run_record(record)
+
     def test_accepts_an_optional_outcome_block(self):
         record = sample_run_record(
             outcome={
@@ -178,6 +184,29 @@ class ManageRunsCliTest(unittest.TestCase):
         )
         self.assertEqual(2, result.returncode)
 
+    def test_set_outcome_rejects_a_path_traversal_task_id(self):
+        self.write_config(True)
+        result = self.run_cli(
+            MANAGE_RUNS, "set-outcome",
+            "--task", "../../victim",
+            "--human-corrected", "false",
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertFalse((self.project / "victim.json").exists())
+
+    def test_record_rejects_a_record_larger_than_the_storage_limit(self):
+        self.write_config(True)
+        record = sample_run_record(
+            outcome={
+                "humanCorrected": False,
+                "correctionReferences": ["x" * 70_000],
+            }
+        )
+        input_path = self.write_input("run.json", record)
+        result = self.run_cli(MANAGE_RUNS, "record", "--input", str(input_path))
+        self.assertEqual(2, result.returncode)
+        self.assertFalse(self.store.exists())
+
 
 class EvaluateRunsCliTest(unittest.TestCase):
     def setUp(self):
@@ -243,6 +272,10 @@ class EvaluateRunsCliTest(unittest.TestCase):
         value = json.loads(result.stdout)
         self.assertEqual(0, value["runsConsidered"])
         self.assertEqual([], value["runsSkipped"])
+
+    def test_extract_rejects_a_path_traversal_task_id(self):
+        result = self.run_cli(EVALUATE_RUNS, "extract", "--task", "../../secret")
+        self.assertEqual(2, result.returncode)
 
 
 if __name__ == "__main__":

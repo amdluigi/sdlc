@@ -21,7 +21,7 @@ import argparse
 import json
 import sys
 
-from manage_runs import RunsError, locate_runs_directory, _read_run_record
+from manage_runs import RunsError, _validate_task_id, locate_runs_directory, _read_run_record
 from manage_metrics import MetricsError
 from adaptive_extensions import AdaptiveError
 from config_contract import ConfigError
@@ -71,6 +71,9 @@ def _reduce_module(module, aggregate):
 
 def extract(project_root, task_ids=None):
     _, directory, category = locate_runs_directory(project_root, require_safe=False)
+    if task_ids:
+        for task_id in task_ids:
+            _validate_task_id(task_id)
     if not directory.is_dir():
         paths = []
     elif task_ids:
