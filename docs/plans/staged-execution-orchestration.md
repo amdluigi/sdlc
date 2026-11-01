@@ -75,6 +75,15 @@ acceptance contracts, corresponding tests and `EXECUTION-MANAGEMENT.md`.
 Update only required exact inventories, qualification and architecture links.
 M2-M4 public interfaces are locked at their integration seams before coding.
 
+## M2 optional SDK decision
+
+The maintainer explicitly selected a separate isolated official Copilot SDK
+adapter. Its [locked qualification boundary](../../integrations/copilot-sdk/README.md)
+keeps dependencies outside the portable bundle and prohibits automatic
+runtime downloads, global installation or paid worker trials before concrete
+limits are approved. Non-inference transport qualification is a prerequisite,
+not completion of M2's real worker/tool/receipt acceptance.
+
 ## Safety, verification and reversal
 
 New execution is opt-in; detailed telemetry is separately disabled. Approval
