@@ -15,6 +15,7 @@
       "scripts/capability_contract.py",
       "scripts/config_contract.py",
       "scripts/delivery_profile.py",
+      "scripts/execution_contracts.py",
       "scripts/handoff_renderers.py",
       "scripts/manage_extensions.py",
       "scripts/manage_install.py",
@@ -40,6 +41,14 @@
       {
         "path": "contracts/delivery-profile.schema.json",
         "sha256": "43a419401a654fa10666d325437ebb937c750abcee48e95df53f76444ba66a97"
+      },
+      {
+        "path": "contracts/execution-event.schema.json",
+        "sha256": "dd93000df135e267e18788f52afcbf21869d50e78a1e22dd26618de36c39e983"
+      },
+      {
+        "path": "contracts/execution-plan.schema.json",
+        "sha256": "f939b608bb5340343edb2a83408a69f0724703fcaf92030a0220d6e3051eb129"
       },
       {
         "path": "contracts/handoff-result.schema.json",
@@ -106,6 +115,14 @@
         "sha256": "5c94cd7f49f4a37151bb3a16026ec7051fdef7b39df48dd654f57cd2fda8eca6"
       },
       {
+        "path": "contracts/task-brief.schema.json",
+        "sha256": "127285cb02300f1ab2ee75c731e6a1ea3972867823746a901528b0bebef2443f"
+      },
+      {
+        "path": "contracts/task-result.schema.json",
+        "sha256": "1aa4aa64d57300ac0fd736e764cb7ced8c769ce934b6b1ba371c1271e18ced4d"
+      },
+      {
         "path": "modules/registry.json",
         "sha256": "cd2339e6ec8eefc8793b1504f905c0fba4eb6a28a2701f0587dea3af1d5585e7"
       },
@@ -132,6 +149,10 @@
       {
         "path": "scripts/evaluate_runs.py",
         "sha256": "db545f538b8b4d2b4b532b7203889f70e8acadb79cb0e61e99985014ca3beea6"
+      },
+      {
+        "path": "scripts/execution_contracts.py",
+        "sha256": "0fe9722cabed4df8871ee0fce99ecf0d46c5774352f358ec63956b6e3467af52"
       },
       {
         "path": "scripts/handoff_renderers.py",
@@ -174,7 +195,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "93174677bb6984a9a577be2c839bf8b9bfd3cea25b8cd7b039441fae303968f3"
+    "bundleSha256": "305517c4fa7e454cd78713a91ca06b825f532ff1f31174e6121804013f0411a7"
   },
   "profiles": [
     {

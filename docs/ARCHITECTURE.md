@@ -57,6 +57,14 @@ rather than replace, operational readiness and debugging.
 
 ## Repository Components
 
+### Inactive execution data boundary
+
+The [execution contracts](EXECUTION-CONTRACTS.md) define version-1 plans,
+task briefs, unaccepted worker results, and unapplied events. Their explicitly
+called Python validators check structure and declared relationships only.
+No existing skill or command invokes them. They do not add a scheduler,
+agent/model routing, execution state, telemetry, or approval authority.
+
 ```text
 commands/                       the operating surface, where hosts support it
 ├── sdlc-init.md
