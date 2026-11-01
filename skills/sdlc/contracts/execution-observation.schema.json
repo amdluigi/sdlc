@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-observation:1",
+  "title": "Supplied attributable execution observation, version 1",
+  "description": "Runtime validation also checks native receipts, requested model, supplied inventory, clock arithmetic and non-overlapping window identity. This is cooperative consistency evidence, not host authentication.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "id", "binding", "taskId", "attemptId", "source", "requestedModel", "observedModel", "inventoryDigest", "window", "durationMs", "usage", "pricing"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "id": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "hostId", "hostBuild", "callId"],
+      "properties": {
+        "kind": {"enum": ["manual-declaration", "host-observation"]},
+        "hostId": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}]},
+        "hostBuild": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"}]},
+        "callId": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-plan:1#/$defs/text", "maxLength": 256}]}
+      },
+      "allOf": [{
+        "if": {"properties": {"kind": {"const": "manual-declaration"}}},
+        "then": {"properties": {"hostId": {"type": "null"}, "hostBuild": {"type": "null"}, "callId": {"type": "null"}}},
+        "else": {"properties": {"hostId": {"type": "string"}, "hostBuild": {"type": "string"}, "callId": {"type": "string"}}}
+      }]
+    },
+    "requestedModel": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"}]},
+    "observedModel": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:model-inventory:1#/$defs/modelId"}]},
+    "inventoryDigest": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}]},
+    "window": {
+      "type": "object", "additionalProperties": false, "required": ["clockId", "startMs", "endMs"],
+      "properties": {
+        "clockId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "startMs": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "endMs": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}
+      }
+    },
+    "durationMs": {"$ref": "#/$defs/nullableQuantity"},
+    "usage": {
+      "type": "object", "additionalProperties": false, "required": ["requests", "inputTokens", "outputTokens"],
+      "properties": {
+        "requests": {"$ref": "#/$defs/nullableQuantity"},
+        "inputTokens": {"$ref": "#/$defs/nullableQuantity"},
+        "outputTokens": {"$ref": "#/$defs/nullableQuantity"}
+      }
+    },
+    "pricing": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:model-inventory:1#/$defs/pricing"}]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"source": {"properties": {"kind": {"const": "manual-declaration"}}}}},
+      "then": {"properties": {
+        "observedModel": {"type": "null"}, "inventoryDigest": {"type": "null"}, "pricing": {"type": "null"},
+        "usage": {"properties": {"requests": {"type": "null"}, "inputTokens": {"type": "null"}, "outputTokens": {"type": "null"}}}
+      }}
+    },
+    {
+      "if": {"properties": {"observedModel": {"type": "null"}}},
+      "then": {"properties": {"inventoryDigest": {"type": "null"}, "pricing": {"type": "null"}}},
+      "else": {"properties": {"inventoryDigest": {"type": "string"}}}
+    }
+  ],
+  "$defs": {
+    "nullableQuantity": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}]}
+  }
+}
