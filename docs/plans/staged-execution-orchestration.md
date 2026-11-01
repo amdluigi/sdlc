@@ -87,6 +87,44 @@ VS Code packaging is the first supported format, not evidence that all hosts
 or models have identical tools, routing, cancellation or background execution.
 Actual host qualification remains necessary before M2 acceptance.
 
+## M3 portable controls boundary
+
+The [execution controls](../EXECUTION-CONTROLS.md) slice provides separately
+approved manual attempt limits, escalation checks, persistent pause and
+cancellation-intent barriers, read-only reconciliation, and pure resolution
+of supplied model inventory/pricing. These portable checks can be verified
+while live host qualification is blocked. They do not qualify supervised or
+autonomous mode, host cancellation, effective runtime routing or billing.
+
+## Independent telemetry and insights boundary
+
+[Detailed telemetry](../EXECUTION-TELEMETRY.md) has separately disabled consent,
+generation-bound capture, exact stored native attribution, supplied model/rate
+consistency, non-overlapping identified-clock windows and explicit retention.
+It is a portable supplied-observation interface, not a live collector or proof
+of host authentication, runtime routing or billing.
+
+[Execution insights](../EXECUTION-INSIGHTS.md) operate on explicitly selected
+local history. Keep estimates, manager event intervals, supplied host timing
+and rate-specific costs distinct; missing evidence stays unavailable.
+Proposals remain inactive and provenance-bound. Proposal review must never
+adopt a policy or authorize execution.
+
+Optional native UI consumes an explicitly exported local snapshot, not a
+worker API or automatic discovery. Its installed-host file/TreeView transport
+requires independent qualification; portable tests alone cannot establish UI
+accessibility or actual host capabilities. These independent seams may
+advance while live M2/M3 gates remain blocked, without completing those gates
+or claiming the full roadmap is accepted.
+
+The [optional dashboard](../../packages/sdlc-dashboard/README.md) has actual
+isolated VS Code 1.131.0 file/TreeView, keyboard, error/recovery and two-viewport
+evidence, plus Python Unicode/int64 interoperability. Qualification remains
+partial for arbitrary reparse tags, screen-reader instrumentation and exact
+focused-child restoration; see its
+[qualification limits](../../packages/sdlc-dashboard/QUALIFICATION.md).
+This does not qualify live worker execution or full AC-15.
+
 ## Safety, verification and reversal
 
 New execution is opt-in; detailed telemetry is separately disabled. Approval

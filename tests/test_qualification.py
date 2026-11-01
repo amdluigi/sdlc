@@ -111,7 +111,7 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(digest, self.manifest["skill"]["bundleSha256"])
 
     def test_execution_contracts_are_in_exact_copy_and_link_inventory(self):
-        self.assertEqual(61, len(self.manifest["skill"]["files"]))
+        self.assertEqual(77, len(self.manifest["skill"]["files"]))
         self.assertIn("scripts/execution_contracts.py", self.manifest["skill"]["helperScripts"])
         paths = [
             "scripts/execution_contracts.py",
@@ -128,6 +128,16 @@ class QualificationTests(unittest.TestCase):
             "contracts/execution-policy.schema.json",
             "contracts/execution-record.schema.json",
             "contracts/execution-state.schema.json",
+            "scripts/execution_insights.py",
+            "scripts/execution_telemetry.py",
+            "scripts/manage_insights.py",
+            "scripts/manage_telemetry.py",
+            "contracts/execution-snapshot.schema.json",
+            "contracts/execution-analysis.schema.json",
+            "contracts/execution-proposal.schema.json",
+            "contracts/execution-observation.schema.json",
+            "contracts/execution-telemetry-policy.schema.json",
+            "contracts/execution-telemetry-record.schema.json",
         ]
         for mode in ("copy", "link"):
             with self.subTest(mode=mode):

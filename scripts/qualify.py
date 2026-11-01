@@ -122,23 +122,29 @@ HELPERS = {
     "scripts/config_contract.py",
     "scripts/delivery_profile.py",
     "scripts/execution_contracts.py",
+    "scripts/execution_controls.py",
+    "scripts/execution_insights.py",
     "scripts/execution_manager.py",
     "scripts/execution_profiles.py",
     "scripts/execution_renderers.py",
     "scripts/execution_state.py",
+    "scripts/execution_telemetry.py",
     "scripts/handoff_renderers.py",
+    "scripts/manage_controls.py",
     "scripts/manage_extensions.py",
     "scripts/manage_execution.py",
     "scripts/manage_install.py",
+    "scripts/manage_insights.py",
     "scripts/manage_metrics.py",
     "scripts/manage_native.py",
+    "scripts/manage_telemetry.py",
     "scripts/native_execution.py",
     "scripts/operator_reports.py",
     "scripts/reconcile_artifacts.py",
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 61
+BUNDLE_FILE_COUNT = 77
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {

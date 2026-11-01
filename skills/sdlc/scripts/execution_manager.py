@@ -200,7 +200,9 @@ def _unresolved(projected):
                for item in projected["tasks"].values())
 
 
-def _project_attempt_available(root, execution_id):
+def _project_attempt_available(root, execution_id, task_id=None, attempt_id=None, native=False):
+    import execution_controls
+    execution_controls.enforce_start(root, execution_id, task_id, attempt_id, native)
     for identifier in _record_ids(root):
         if identifier != execution_id and _unresolved(_projection(_load(root, identifier)["revisions"][-1])):
             raise ContractIssue("E_EXECUTION_CONFLICT", "/executionId",
@@ -350,8 +352,11 @@ def record_task(project_root, execution_id, task_id, action, attempt_id=None, re
             payload[field] = contracts._text(reason, "/reason")
     with _transaction(project_root, execution_id, require_binding=action != "cancel") as (root, _, revision):
         if action == "start":
-            _project_attempt_available(root, execution_id)
+            _project_attempt_available(root, execution_id, task_id, attempt_id)
             _ownership(root, revision["plan"], task_id)
+        if action in ("cancel", "fail", "reject"):
+            import execution_controls
+            execution_controls.enforce_terminal(root, execution_id, task_id, action)
         if action == "reject":
             planned = next((item for item in revision["plan"]["tasks"] if item["id"] == task_id), None)
             if planned is None:
@@ -363,7 +368,7 @@ def record_task(project_root, execution_id, task_id, action, attempt_id=None, re
 
 def receive_result(project_root, execution_id, result_id, brief, result):
     contracts._id(result_id, "/resultId")
-    with _transaction(project_root, execution_id) as (_, record, revision):
+    with _transaction(project_root, execution_id) as (root, record, revision):
         validated_brief = contracts.validate_task_brief(brief, revision["plan"])["data"]
         validated_result = contracts.validate_task_result(result, revision["plan"], validated_brief)["data"]
         receipt = {"brief": validated_brief, "result": validated_result}
@@ -374,6 +379,8 @@ def receive_result(project_root, execution_id, result_id, brief, result):
             return {**semantic_fields(), "idempotent": True}
         if any(result_id in old["receipts"] for old in record["revisions"][:-1]):
             raise ContractIssue("E_EXECUTION_DUPLICATE", "/resultId", "receipt identity belongs to an earlier revision")
+        import execution_controls
+        execution_controls.enforce_terminal(root, execution_id, validated_result["taskId"], "manual-receipt")
         revision["receipts"][result_id] = receipt
         _append(revision, "TASK_RESULT_RECEIVED", validated_result["taskId"], validated_result["attemptId"],
                 {"resultId": result_id})
@@ -382,7 +389,9 @@ def receive_result(project_root, execution_id, result_id, brief, result):
 
 def accept_task(project_root, execution_id, acceptance):
     acceptance = state.validate_acceptance(acceptance)
-    with _transaction(project_root, execution_id) as (_, _, revision):
+    with _transaction(project_root, execution_id) as (root, _, revision):
+        import execution_controls
+        execution_controls.enforce_terminal(root, execution_id, acceptance["taskId"], "accept")
         event_id = _append(revision, "VALIDATION_PASSED", acceptance["taskId"], acceptance["attemptId"],
                            {"acceptanceCriteria": acceptance["acceptanceCriteria"]})
         revision["acceptances"][event_id] = acceptance
@@ -395,7 +404,10 @@ def delete_execution(project_root, execution_id):
         _safe(root, path)
         if not path.is_file():
             raise ContractIssue("E_EXECUTION_READ", "/", "selected execution record does not exist")
-        if _unresolved(_projection(_load(root, execution_id)["revisions"][-1])):
+        record = _load(root, execution_id)
+        import execution_controls
+        execution_controls.enforce_deletion(root, record)
+        if _unresolved(_projection(record["revisions"][-1])):
             raise ContractIssue("E_EXECUTION_TRANSITION", "/", "resolve unfinished manual work before deletion")
         path.unlink()
     return {**semantic_fields(), "deleted": execution_id}

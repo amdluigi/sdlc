@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-proposal:1",
+  "title": "Inactive provenance-bound execution estimate proposal, version 1",
+  "description": "At most 2 MiB canonical bytes. Review is an artifact judgment, never policy adoption. Estimates and digests must be reproduced from the embedded analysis.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "kind", "active", "status", "analysis", "estimates",
+    "routingRecommendations", "limits", "review", "proposalDigest"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "sdlc-execution-proposal"},
+    "active": {"const": false},
+    "status": {"enum": ["proposed", "approved", "rejected"]},
+    "analysis": {"$ref": "urn:sdlc:execution-analysis:1"},
+    "estimates": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["executionId", "taskId", "taskDefinitionDigest", "basis", "source", "sampleCount", "estimateMs", "samples"],
+        "properties": {
+          "executionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+          "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+          "taskDefinitionDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "basis": {"enum": ["manager-recorded-interval", "host-observed-duration"]},
+          "source": {
+            "anyOf": [
+              {"type": "null"},
+              {
+                "type": "object", "additionalProperties": false,
+                "required": ["hostId", "hostBuild", "observedModel", "inventoryDigest"],
+                "properties": {
+                  "hostId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+                  "hostBuild": {"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"},
+                  "observedModel": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"}, {"type": "null"}]},
+                  "inventoryDigest": {"$ref": "urn:sdlc:execution-analysis:1#/$defs/nullableDigest"}
+                }
+              }
+            ]
+          },
+          "sampleCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger", "maximum": 256},
+          "estimateMs": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}, {"type": "null"}]},
+          "samples": {
+            "type": "array", "minItems": 1, "maxItems": 256,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["binding", "taskId", "attemptId", "observationId", "durationMs"],
+              "properties": {
+                "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+                "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+                "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+                "observationId": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}, {"type": "null"}]},
+                "durationMs": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "routingRecommendations": {"type": "array", "maxItems": 0},
+    "limits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["minimumSamples", "sampling", "quality", "timing", "routing", "adoption"],
+      "properties": {
+        "minimumSamples": {"type": "integer", "const": 3},
+        "sampling": {"const": "selected-local-records"},
+        "quality": {"const": "independent-acceptance-required"},
+        "timing": {"const": "separate-sources-no-speed-or-savings-claim"},
+        "routing": {"const": "qualified-comparable-model-evidence-unavailable"},
+        "adoption": {"const": "inactive-review-is-not-adoption"}
+      }
+    },
+    "review": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["decision", "reason", "proposalDigest"],
+          "properties": {
+            "decision": {"enum": ["approved", "rejected"]},
+            "reason": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+            "proposalDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+          }
+        }
+      ]
+    },
+    "proposalDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+  },
+  "oneOf": [
+    {"properties": {"status": {"const": "proposed"}, "review": {"type": "null"}}},
+    {"properties": {"status": {"const": "approved"}, "review": {"type": "object", "properties": {"decision": {"const": "approved"}}}}},
+    {"properties": {"status": {"const": "rejected"}, "review": {"type": "object", "properties": {"decision": {"const": "rejected"}}}}}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-controls-policy:1",
+  "title": "Opt-in execution controls policy, version 1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "enabled", "mode", "maxAttempts", "allowEscalation", "permittedModels"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "enabled": {"type": "boolean"},
+    "mode": {"enum": ["manual", "supervised", "autonomous"]},
+    "maxAttempts": {"type": "integer", "minimum": 1, "maximum": 256},
+    "allowEscalation": {"type": "boolean"},
+    "permittedModels": {
+      "type": "array", "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "urn:sdlc:model-inventory:1#/$defs/modelId"}
+    }
+  }
+}

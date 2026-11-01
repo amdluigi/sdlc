@@ -120,7 +120,7 @@ def start_request(project_root, request, approved_request_digest):
             raise ContractIssue("E_NATIVE_APPROVAL", "/", "consent changed after request preparation")
         _validate(root, request, revision)
         brief = request["brief"]
-        manager._project_attempt_available(root, execution_id)
+        manager._project_attempt_available(root, execution_id, brief["taskId"], brief["attemptId"], native=True)
         projected = manager._projection(revision)["tasks"][brief["taskId"]]
         if projected["status"] == "waiting":
             manager._append(revision, "TASK_READY", brief["taskId"])

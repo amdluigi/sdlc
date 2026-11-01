@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-telemetry-policy:1",
+  "title": "Explicit detailed telemetry consent, version 1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "enabled"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "enabled": {"type": "boolean"}
+  }
+}
