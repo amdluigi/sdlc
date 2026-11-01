@@ -75,6 +75,18 @@ acceptance contracts, corresponding tests and `EXECUTION-MANAGEMENT.md`.
 Update only required exact inventories, qualification and architecture links.
 M2-M4 public interfaces are locked at their integration seams before coding.
 
+## M2 native execution boundary
+
+Use the [supervised native flow](../NATIVE-EXECUTION.md): opt-in host-neutral
+roles, collision-safe project profile installation, separately approved
+digest-bound requests, one actual native host invocation and attributable
+receipts reconciled by the existing manager. No SDK is required. Preserve
+manual execution policy and all existing version-1 formats; progress markers
+bind native requests without adding event types or granting worker authority.
+VS Code packaging is the first supported format, not evidence that all hosts
+or models have identical tools, routing, cancellation or background execution.
+Actual host qualification remains necessary before M2 acceptance.
+
 ## Safety, verification and reversal
 
 New execution is opt-in; detailed telemetry is separately disabled. Approval

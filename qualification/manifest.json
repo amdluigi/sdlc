@@ -17,6 +17,7 @@
       "scripts/delivery_profile.py",
       "scripts/execution_contracts.py",
       "scripts/execution_manager.py",
+      "scripts/execution_profiles.py",
       "scripts/execution_renderers.py",
       "scripts/execution_state.py",
       "scripts/handoff_renderers.py",
@@ -24,6 +25,8 @@
       "scripts/manage_extensions.py",
       "scripts/manage_install.py",
       "scripts/manage_metrics.py",
+      "scripts/manage_native.py",
+      "scripts/native_execution.py",
       "scripts/operator_reports.py",
       "scripts/reconcile_artifacts.py",
       "scripts/resolve_providers.py",
@@ -33,6 +36,26 @@
       {
         "path": "SKILL.md",
         "sha256": "bc8cf0020b96a5f3b0d1610c14ecc1084a65677720a1edb9a36ce1c4b421f8cc"
+      },
+      {
+        "path": "assets/native-profiles/sdlc-architecture.agent.md",
+        "sha256": "a384d67e9d38142e6a1a0f006d773ecf7cd95b7aad3a46d24b93ec9ee3614baf"
+      },
+      {
+        "path": "assets/native-profiles/sdlc-controller.agent.md",
+        "sha256": "898a674253f89bfce976e2fd023925e610349feb6a0c84f7757e9a6da804cdd3"
+      },
+      {
+        "path": "assets/native-profiles/sdlc-developer.agent.md",
+        "sha256": "7fa679de6032cba7dcb4edc22fae3fd959e7d5f3c88114c1e2f2194c458d7dc9"
+      },
+      {
+        "path": "assets/native-profiles/sdlc-review.agent.md",
+        "sha256": "a537c9dd128a45bb050831251369a872e419911984f04f2e2b87232930b79d0a"
+      },
+      {
+        "path": "assets/native-profiles/sdlc-testing.agent.md",
+        "sha256": "e47b67c60a65ec11a47d3d92e72b2594a40a90d44a0b6193bbbcae32641f027e"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -85,6 +108,14 @@
       {
         "path": "contracts/metrics.schema.json",
         "sha256": "48946d3f8fb0e94e9612d44d42ff9a46b9fa869197933a11273f804295eb56fc"
+      },
+      {
+        "path": "contracts/native-receipt.schema.json",
+        "sha256": "5dc34eb8c8849e606e6d192d9a9fc9dd1e7a4fa7d5c28b263c63537818bd848f"
+      },
+      {
+        "path": "contracts/native-request.schema.json",
+        "sha256": "1f3243d61bf7f4df18e74226de7ca6061e90896f4fafd9a6def98975e52c6e37"
       },
       {
         "path": "contracts/operator-result.schema.json",
@@ -183,6 +214,10 @@
         "sha256": "dcaaa1f93042587ac22c977b531db936cc5f2fe4759bc9c9dd6144eeae692e44"
       },
       {
+        "path": "scripts/execution_profiles.py",
+        "sha256": "4459fe63968d676b5db6c267410105d832cf58eed3d70ee680b4ee42255cf752"
+      },
+      {
         "path": "scripts/execution_renderers.py",
         "sha256": "1df7caeb2731dae9255c6e139aca3f255f8500bf5d87553c0efab9f72bb94090"
       },
@@ -211,8 +246,16 @@
         "sha256": "f0837e6dff2d3a69e5c7022aa4f3f690089ae24a3cdb0befba9e34b92fda9ef4"
       },
       {
+        "path": "scripts/manage_native.py",
+        "sha256": "f3e5700050da215bba22462e4a25e02f70987ed338da3e2bab9d042f475cd36c"
+      },
+      {
         "path": "scripts/manage_runs.py",
         "sha256": "ed660d164929cb2a1e09ad1ed15ff0e0ed4f5829939faf7d983afb5b11bce264"
+      },
+      {
+        "path": "scripts/native_execution.py",
+        "sha256": "b9f64b6ed237fdfd19bc52c9a83f296e99c557b5d568814514965c40cb25d505"
       },
       {
         "path": "scripts/operator_reports.py",
@@ -235,7 +278,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "a84c591506bae1819258c581763f39a88278f3b5dde3835bf424aca9f271dc83"
+    "bundleSha256": "b1bf95dbf7e49cf198dda7be38e7dcd8e45335dcb48763a223de6fb6367a5668"
   },
   "profiles": [
     {
