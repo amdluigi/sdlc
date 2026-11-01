@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-analysis:1",
+  "title": "Reproducible selected local execution analysis, version 1",
+  "description": "At most 2 MiB canonical bytes. Retained sources include all revisions and evidence. Derived summary, costs and digest are rechecked by proposal validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "sources", "telemetry", "summary", "analysisDigest"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "sdlc-execution-analysis"},
+    "sources": {
+      "type": "array", "minItems": 1, "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["executionId", "recordDigest", "currentPolicyDigest", "record"],
+        "properties": {
+          "executionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+          "recordDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "currentPolicyDigest": {"$ref": "#/$defs/nullableDigest"},
+          "record": {"$ref": "urn:sdlc:execution-record:1"}
+        }
+      }
+    },
+    "telemetry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled", "storeDigest", "observations", "costs"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "storeDigest": {"$ref": "#/$defs/nullableDigest"},
+        "observations": {
+          "type": "array", "maxItems": 256,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["consentGeneration", "observation"],
+            "properties": {
+              "consentGeneration": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+              "observation": {"$ref": "urn:sdlc:execution-observation:1"}
+            }
+          }
+        },
+        "costs": {
+          "type": "array", "maxItems": 256,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["observationId", "costMinor", "currency", "rateVersion", "unit"],
+            "properties": {
+              "observationId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+              "costMinor": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}, {"type": "null"}]},
+              "currency": {"anyOf": [{"type": "string", "pattern": "^[A-Z]{3}(?![\\s\\S])"}, {"type": "null"}]},
+              "rateVersion": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"}, {"type": "null"}]},
+              "unit": {"enum": ["request", "input-token", "output-token", null]}
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "executionCount", "revisionCount", "taskCount", "attemptCount", "acceptedCount",
+        "failedCount", "rejectedCount", "cancelledCount", "reportedCount", "reworkTaskCount",
+        "missingEstimateCount", "missingRecordedIntervalCount", "missingTelemetryAttemptCount"
+      ],
+      "properties": {
+        "executionCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "revisionCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "taskCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "attemptCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "acceptedCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "failedCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "rejectedCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "cancelledCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "reportedCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "reworkTaskCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "missingEstimateCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "missingRecordedIntervalCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "missingTelemetryAttemptCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}
+      }
+    },
+    "analysisDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+  },
+  "$defs": {
+    "nullableDigest": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}, {"type": "null"}]}
+  }
+}

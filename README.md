@@ -22,6 +22,11 @@ that discipline without the gates the control plane enforces.
 | Use SDLC in a project | [Use SDLC](#use-sdlc) |
 | Check or repair the installation | [Operating commands](#operating-commands) |
 | Configure modules or organization behavior | [Configure or extend SDLC](#configure-or-extend-sdlc) |
+| Inspect the opt-in supervised execution preview | [Native execution](docs/NATIVE-EXECUTION.md) |
+| Inspect opt-in retry, pause and cancellation-intent controls | [Execution controls](docs/EXECUTION-CONTROLS.md) |
+| Record separately consented, explicitly supplied execution observations | [Execution telemetry](docs/EXECUTION-TELEMETRY.md) |
+| Analyze selected execution history and review inactive estimate proposals | [Execution insights](docs/EXECUTION-INSIGHTS.md) |
+| View an explicitly exported snapshot in an optional native VS Code tree | [Snapshot dashboard](packages/sdlc-dashboard/README.md) |
 | Contribute to the skill or prepare a release | [Maintain and release SDLC](#maintain-and-release-sdlc) |
 
 ## Start here
@@ -711,10 +716,17 @@ code, raw prompts, and unnecessary project identifiers.
 
 ### Privacy
 
-SDLC does not enable telemetry by default. Optional measurement stores only
+SDLC does not enable telemetry by default. Existing optional aggregate measurement stores only
 closed aggregate counters locally after an explicit, committed configuration
 change. It does not collect prompts, code, credentials, paths, repository
 names, task identifiers, model identifiers, timestamps, or exact durations.
+
+[Detailed execution observations](docs/EXECUTION-TELEMETRY.md) have separate
+explicit local consent. They retain selected execution/task/attempt identity
+and supplied timing, nullable model, usage and pricing data under private,
+bounded project storage. They do not collect anything automatically or change
+aggregate measurement consent. Explicit deletion and revocation are separate
+operations; no prompts, transcripts, code or environment dumps are accepted.
 
 To manage local measurement explicitly:
 

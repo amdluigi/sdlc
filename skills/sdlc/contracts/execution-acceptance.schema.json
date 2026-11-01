@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-acceptance:1",
+  "title": "Explicit independent manual acceptance judgment, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "taskId", "attemptId", "resultId", "acceptanceCriteria", "revision", "command", "summary"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "resultId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "acceptanceCriteria": {"$ref": "urn:sdlc:execution-plan:1#/$defs/acceptanceRefs"},
+    "revision": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+    "command": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+    "summary": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}
+  }
+}

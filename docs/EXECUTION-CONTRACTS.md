@@ -4,6 +4,10 @@ Version 1 defines data for a possible execution manager. It does not implement
 or enable that manager. Existing SDLC skills, commands, configuration,
 providers, plan cursors, metrics, and evaluator run records are unchanged.
 
+The separately opt-in [local manual manager](EXECUTION-MANAGEMENT.md) now
+consumes these unchanged contracts. Its replay/storage/controller judgments
+are additional boundaries, not authority granted by these validators.
+
 The approved scope is recorded in
 [the PRD](prds/execution-contracts-foundation.md) and
 [implementation plan](plans/execution-contracts-foundation.md).

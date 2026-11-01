@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:model-resolution:1",
+  "title": "Pure supplied model resolution input, version 1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "inventory", "profile", "permittedModels", "requestedModel", "observation"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "inventory": {"$ref": "urn:sdlc:model-inventory:1"},
+    "profile": {
+      "type": "object", "additionalProperties": false, "required": ["id", "candidates"],
+      "properties": {
+        "id": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "candidates": {
+          "type": "array", "maxItems": 256, "uniqueItems": true,
+          "items": {"$ref": "urn:sdlc:model-inventory:1#/$defs/modelId"}
+        }
+      }
+    },
+    "permittedModels": {
+      "type": "array", "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "urn:sdlc:model-inventory:1#/$defs/modelId"}
+    },
+    "requestedModel": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:model-inventory:1#/$defs/modelId"}]},
+    "observation": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["hostId", "hostBuild", "inventoryDigest", "modelId"],
+          "properties": {
+            "hostId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "hostBuild": {"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"},
+            "inventoryDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+            "modelId": {"$ref": "urn:sdlc:model-inventory:1#/$defs/modelId"}
+          }
+        }
+      ]
+    }
+  }
+}

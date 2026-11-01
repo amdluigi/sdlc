@@ -111,14 +111,33 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(digest, self.manifest["skill"]["bundleSha256"])
 
     def test_execution_contracts_are_in_exact_copy_and_link_inventory(self):
-        self.assertEqual(42, len(self.manifest["skill"]["files"]))
+        self.assertEqual(77, len(self.manifest["skill"]["files"]))
         self.assertIn("scripts/execution_contracts.py", self.manifest["skill"]["helperScripts"])
         paths = [
             "scripts/execution_contracts.py",
+            "scripts/execution_manager.py",
+            "scripts/execution_renderers.py",
+            "scripts/execution_state.py",
+            "scripts/manage_execution.py",
             "contracts/execution-plan.schema.json",
             "contracts/task-brief.schema.json",
             "contracts/task-result.schema.json",
             "contracts/execution-event.schema.json",
+            "contracts/execution-acceptance.schema.json",
+            "contracts/execution-consent.schema.json",
+            "contracts/execution-policy.schema.json",
+            "contracts/execution-record.schema.json",
+            "contracts/execution-state.schema.json",
+            "scripts/execution_insights.py",
+            "scripts/execution_telemetry.py",
+            "scripts/manage_insights.py",
+            "scripts/manage_telemetry.py",
+            "contracts/execution-snapshot.schema.json",
+            "contracts/execution-analysis.schema.json",
+            "contracts/execution-proposal.schema.json",
+            "contracts/execution-observation.schema.json",
+            "contracts/execution-telemetry-policy.schema.json",
+            "contracts/execution-telemetry-record.schema.json",
         ]
         for mode in ("copy", "link"):
             with self.subTest(mode=mode):
@@ -143,7 +162,10 @@ class QualificationTests(unittest.TestCase):
                         sys.executable, "-B", "-c",
                         "import sys; sys.path.insert(0, sys.argv[1]); "
                         "import execution_contracts; "
-                        "assert callable(execution_contracts.validate_execution_plan)",
+                        "import execution_manager, execution_state, execution_renderers; "
+                        "assert callable(execution_contracts.validate_execution_plan); "
+                        "assert callable(execution_manager.import_plan); "
+                        "assert callable(execution_renderers.render_execution)",
                         str(destination / "scripts"),
                     ],
                     capture_output=True, text=True,

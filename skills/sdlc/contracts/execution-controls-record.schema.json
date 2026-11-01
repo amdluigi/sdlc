@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-controls-record:1",
+  "title": "Private execution controls state, version 1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "policy", "safetyActivated", "paused", "pauseReason", "approvals", "cancelRequests"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "generation": {"type": "integer", "minimum": 1, "maximum": 9223372036854775807},
+    "policy": {
+      "allOf": [
+        {"$ref": "urn:sdlc:execution-controls-policy:1"},
+        {"properties": {"mode": {"const": "manual"}}}
+      ]
+    },
+    "paused": {"type": "boolean"},
+    "safetyActivated": {"type": "boolean"},
+    "pauseReason": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}]},
+    "approvals": {
+      "type": "object", "maxProperties": 256,
+      "propertyNames": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false,
+        "required": ["planDigest", "executionPolicyDigest", "controlsDigest"],
+        "properties": {
+          "planDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "executionPolicyDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "controlsDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+        }
+      }
+    },
+    "cancelRequests": {
+      "type": "array", "maxItems": 256, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["binding", "taskId", "attemptId", "reason", "status"],
+        "properties": {
+          "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+          "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+          "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+          "reason": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+          "status": {"enum": ["pending", "resolved"]}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"policy": {"properties": {"enabled": {"const": true}}}}},
+      "then": {"properties": {"safetyActivated": {"const": true}}}
+    },
+    {
+      "if": {"properties": {"paused": {"const": true}}},
+      "then": {"properties": {"pauseReason": {"type": "string"}}},
+      "else": {"properties": {"pauseReason": {"type": "null"}}}
+    }
+  ]
+}
