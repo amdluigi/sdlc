@@ -17,17 +17,21 @@
       "scripts/delivery_profile.py",
       "scripts/execution_contracts.py",
       "scripts/execution_controls.py",
+      "scripts/execution_insights.py",
       "scripts/execution_manager.py",
       "scripts/execution_profiles.py",
       "scripts/execution_renderers.py",
       "scripts/execution_state.py",
+      "scripts/execution_telemetry.py",
       "scripts/handoff_renderers.py",
       "scripts/manage_controls.py",
       "scripts/manage_execution.py",
       "scripts/manage_extensions.py",
+      "scripts/manage_insights.py",
       "scripts/manage_install.py",
       "scripts/manage_metrics.py",
       "scripts/manage_native.py",
+      "scripts/manage_telemetry.py",
       "scripts/native_execution.py",
       "scripts/operator_reports.py",
       "scripts/reconcile_artifacts.py",
@@ -76,6 +80,10 @@
         "sha256": "7c6bd164592e9b00ab761e7059bff49aec145c6ae28db842a53398867ab5edf9"
       },
       {
+        "path": "contracts/execution-analysis.schema.json",
+        "sha256": "f23128b75cefedf63c41663861c8c5ef7be3423f9dfd86bffcf1842d8a8835df"
+      },
+      {
         "path": "contracts/execution-consent.schema.json",
         "sha256": "70048f026a625a75636dac8d0d5b01f22ce2bb919aef76d2c9a7431c4c4dabc8"
       },
@@ -92,6 +100,10 @@
         "sha256": "dd93000df135e267e18788f52afcbf21869d50e78a1e22dd26618de36c39e983"
       },
       {
+        "path": "contracts/execution-observation.schema.json",
+        "sha256": "e44a4fb94d38c65058987d2c807443fc5014aa634e11f0aef2331958d6cd6852"
+      },
+      {
         "path": "contracts/execution-plan.schema.json",
         "sha256": "f939b608bb5340343edb2a83408a69f0724703fcaf92030a0220d6e3051eb129"
       },
@@ -100,12 +112,28 @@
         "sha256": "3946ffc0d8e8905db3d1884cbca627fb96cbc23feedcb26457c0ad77227d87b7"
       },
       {
+        "path": "contracts/execution-proposal.schema.json",
+        "sha256": "0aafb1b3a1088fb539d50f6f1d6f98aa2f04a3c2bd8154921ee54a0bf69fa947"
+      },
+      {
         "path": "contracts/execution-record.schema.json",
         "sha256": "f63f9253535805176e3c25a4f0eda9e19dcc9abe93cedf39053896d56c6dba39"
       },
       {
+        "path": "contracts/execution-snapshot.schema.json",
+        "sha256": "52ba4fe5f43c9407388a13f546acb68711a14efefaeb5718413ab81a1bea57b4"
+      },
+      {
         "path": "contracts/execution-state.schema.json",
         "sha256": "c7ae4d65640474072702b3819ec4f4f7be2ef4ec77d4439519991d1a37f2f97d"
+      },
+      {
+        "path": "contracts/execution-telemetry-policy.schema.json",
+        "sha256": "663ac65fa72486d9d22061b56b8f76c97c34cae5d60f8f418597d5b80b8c1d7c"
+      },
+      {
+        "path": "contracts/execution-telemetry-record.schema.json",
+        "sha256": "46aaa45d23f4671dda0f9e1ac8f410c95b275a6936388be54f1481ca486c8186"
       },
       {
         "path": "contracts/handoff-result.schema.json",
@@ -232,6 +260,10 @@
         "sha256": "d61ee7b5d9b4b93ce7adf059c11f7789fc258a1ee7d342cdb42000df6e56c8a1"
       },
       {
+        "path": "scripts/execution_insights.py",
+        "sha256": "f96a2ffe6bc122ee72d4169b6a2fae60532d4659c253d7e00f6078300f2e3ffd"
+      },
+      {
         "path": "scripts/execution_manager.py",
         "sha256": "eaba4f9b750a1497698ea48fce72054c4c0c289ab784ddcb29d7b9691e398f29"
       },
@@ -246,6 +278,10 @@
       {
         "path": "scripts/execution_state.py",
         "sha256": "a82bd4a61e3870c1deb91513e433685996380f9e4062fb7bb552c510534a4f57"
+      },
+      {
+        "path": "scripts/execution_telemetry.py",
+        "sha256": "5e19c77d838a084198d5f995e2ea4b67e4156c15b5f988003cfe60d7e5b6fe9b"
       },
       {
         "path": "scripts/handoff_renderers.py",
@@ -264,6 +300,10 @@
         "sha256": "4a67498c53ef044697a509e4e757074bb95f396e8f2552d99c6492d6c50b06a6"
       },
       {
+        "path": "scripts/manage_insights.py",
+        "sha256": "6a0554e5aa0b2af5bad71529525a310f134909466f727ccfe0b77ab1fe411560"
+      },
+      {
         "path": "scripts/manage_install.py",
         "sha256": "e7aee4fe0afcdd2359a8e7b0d370191dc793903259093392754fe1510568b26c"
       },
@@ -278,6 +318,10 @@
       {
         "path": "scripts/manage_runs.py",
         "sha256": "ed660d164929cb2a1e09ad1ed15ff0e0ed4f5829939faf7d983afb5b11bce264"
+      },
+      {
+        "path": "scripts/manage_telemetry.py",
+        "sha256": "fb14039d170e7ab2b263867c942b8ba8fd8737ccc146974aa4b0c1e735addaf7"
       },
       {
         "path": "scripts/native_execution.py",
@@ -304,7 +348,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "c686fda458a720863372b38c7884034b82775e59645a65d48ac1fe08bd5c9159"
+    "bundleSha256": "d222b8743c12a3a87eeaacb02a4f2c24c6b2e0cbf0c8cec79e97eea6d48912e6"
   },
   "profiles": [
     {

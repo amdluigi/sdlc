@@ -1,0 +1,34 @@
+{
+  "name": "sdlc-dashboard",
+  "displayName": "SDLC Execution Snapshots",
+  "description": "Optional, explicitly opened, read-only local execution snapshot tree.",
+  "version": "0.1.0",
+  "publisher": "sdlc",
+  "license": "MIT",
+  "engines": {"vscode": "^1.85.0", "node": ">=20"},
+  "main": "./extension.js",
+  "activationEvents": [
+    "onCommand:sdlc.execution.openSnapshot",
+    "onCommand:sdlc.execution.refreshSnapshot"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {"supported": false},
+    "virtualWorkspaces": {"supported": false}
+  },
+  "contributes": {
+    "commands": [
+      {"command": "sdlc.execution.openSnapshot", "title": "SDLC: Open Execution Snapshot"},
+      {"command": "sdlc.execution.refreshSnapshot", "title": "SDLC: Refresh Execution Snapshot"}
+    ],
+    "views": {
+      "explorer": [
+        {"id": "sdlc.execution.snapshot", "name": "SDLC Execution Snapshot", "when": "sdlc.execution.snapshotOpened"}
+      ]
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "qualify": "node --test test/*.test.js",
+    "check": "node --check extension.js && node --check snapshot.js && node --check provider.js"
+  }
+}

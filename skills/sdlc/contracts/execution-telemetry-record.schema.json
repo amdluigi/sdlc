@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-telemetry-record:1",
+  "title": "Private detailed telemetry state, version 1",
+  "description": "The portable validator additionally enforces observation identity, generation and non-overlapping windows; authoritative storage is bounded to 2 MiB.",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "enabled", "observations"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "generation": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "enabled": {"type": "boolean"},
+    "observations": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["consentGeneration", "observation"],
+        "properties": {
+          "consentGeneration": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+          "observation": {"$ref": "urn:sdlc:execution-observation:1"}
+        }
+      }
+    }
+  }
+}
