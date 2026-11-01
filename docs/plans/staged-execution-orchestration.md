@@ -87,6 +87,15 @@ VS Code packaging is the first supported format, not evidence that all hosts
 or models have identical tools, routing, cancellation or background execution.
 Actual host qualification remains necessary before M2 acceptance.
 
+## M3 portable controls boundary
+
+The [execution controls](../EXECUTION-CONTROLS.md) slice provides separately
+approved manual attempt limits, escalation checks, persistent pause and
+cancellation-intent barriers, read-only reconciliation, and pure resolution
+of supplied model inventory/pricing. These portable checks can be verified
+while live host qualification is blocked. They do not qualify supervised or
+autonomous mode, host cancellation, effective runtime routing or billing.
+
 ## Safety, verification and reversal
 
 New execution is opt-in; detailed telemetry is separately disabled. Approval

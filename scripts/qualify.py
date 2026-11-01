@@ -122,11 +122,13 @@ HELPERS = {
     "scripts/config_contract.py",
     "scripts/delivery_profile.py",
     "scripts/execution_contracts.py",
+    "scripts/execution_controls.py",
     "scripts/execution_manager.py",
     "scripts/execution_profiles.py",
     "scripts/execution_renderers.py",
     "scripts/execution_state.py",
     "scripts/handoff_renderers.py",
+    "scripts/manage_controls.py",
     "scripts/manage_extensions.py",
     "scripts/manage_execution.py",
     "scripts/manage_install.py",
@@ -138,7 +140,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 61
+BUNDLE_FILE_COUNT = 67
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {

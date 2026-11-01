@@ -1,0 +1,138 @@
+# Opt-in execution controls
+
+This M3 slice adds local safety controls and pure model resolution around the
+existing manual/native manager. It does not complete live M2 qualification,
+dispatch workers, enable telemetry, or claim autonomous execution or spend
+enforcement. Absence of controls preserves existing behavior.
+
+## Locked interfaces and invariants
+
+The separate version-1 controls policy contains `schemaVersion`, `enabled`,
+`mode`, `maxAttempts`, `allowEscalation`, and `permittedModels`. Limits are
+explicit, not inferred. The policy validator recognizes manual, supervised
+and autonomous modes; only manual configuration is currently supported.
+Unsupported modes fail before any write. Enabled manual controls block native
+dispatch preparation from being promoted to a worker invocation.
+
+`configure_controls(root, policy, dry_run=False)` stores a generation-bound
+policy in private metadata beside the existing manager lock. Every configure
+changes the generation and invalidates controls approvals. Enabled controls
+also require enabled execution policy. Dry run never writes.
+`approve_controls(root, execution_id, plan_digest, execution_policy_digest,
+controls_digest)` separately binds the approved current plan, execution
+consent and controls generation. It never approves the base plan itself.
+
+`set_pause(root, paused, reason)` controls a project-wide start barrier.
+`request_cancel(root, execution_id, task_id, reason)` records intent, not a
+worker-stop acknowledgment or task cancellation. Pending cancellation blocks
+new work across executions, including after disabling controls. Pauses also
+remain latched until explicitly resumed; disabling controls never silently
+releases either safety barrier.
+The private `safetyActivated` latch records that controls were explicitly
+enabled. Native stop protection remains latched after disabling controls:
+neither legacy cancel nor an unreported failure can free an unknown worker.
+Native acceptance or reported failure/rejection requires a bound native host
+receipt; an ordinary manual receipt cannot stand in for that observation.
+
+`resolve_manual_cancel(root, execution_id, task_id, reason)` clears only
+intent associated with a terminal, purely manual attempt. Native attempts
+remain pending without supported host-stop evidence. Legacy cancellation
+cannot relabel a controlled native attempt as stopped.
+`inspect_controls(root)` and `reconcile_execution(root, execution_id)` are
+read-only. Reconciliation reports active/unknown work and pending intent;
+it never redispatches, steals a lock, truncates records or calls a host.
+Historical native starts without bound host receipts remain unknown even
+after a legacy manual terminal declaration. Once controls are activated,
+such history blocks new work across executions. Read-only reconciliation
+reports these attempts; it cannot certify their stops or erase their history.
+
+Start checks and controls mutations share the existing project writer lock.
+Retry counts are rebuilt from task starts across every immutable revision,
+not maintained in a second reservation ledger. Changing plan revisions or
+restoring an old controls policy cannot reset consumed attempts. Assignment
+escalation requires explicit consent, and explicit model identifiers must be
+permitted. A fresh controls approval is required after plan or policy changes.
+Existing version-1 execution records/events retain their meaning.
+After activation, started execution history cannot be deleted through the
+manager, even after controls are disabled. It is the consumed-attempt ledger.
+Pending cancellation also retains its referenced history. There is no implicit
+pruning or retry-counter reset operation.
+
+## CLI
+
+Use the installed `scripts/manage_controls.py` with an explicit project root.
+For example, inspect without activating controls:
+
+```text
+python scripts/manage_controls.py inspect --project-root PROJECT
+python scripts/manage_controls.py configure --input controls-policy.json --dry-run --project-root PROJECT
+```
+
+An example policy is:
+
+```json
+{"schemaVersion":1,"enabled":true,"mode":"manual","maxAttempts":2,"allowEscalation":false,"permittedModels":[]}
+```
+
+After explicitly configuring base execution consent and approving its plan,
+configure controls without `--dry-run`, inspect both sets of digests, and
+approve their exact bindings:
+
+```text
+python scripts/manage_controls.py approve --execution-id EXECUTION --plan-digest PLAN_DIGEST --execution-policy-digest POLICY_DIGEST --controls-digest CONTROLS_DIGEST --project-root PROJECT
+python scripts/manage_controls.py pause --reason "Review pending" --project-root PROJECT
+python scripts/manage_controls.py resume --reason "Review complete" --project-root PROJECT
+python scripts/manage_controls.py request-cancel --execution-id EXECUTION --task-id TASK --reason "Stop requested" --project-root PROJECT
+python scripts/manage_controls.py reconcile --execution-id EXECUTION --project-root PROJECT
+```
+
+Record a terminal manual outcome separately using the
+[execution manager](EXECUTION-MANAGEMENT.md), then use
+`resolve-manual-cancel` with the same execution/task IDs and an explicit
+`--reason`. This does not resolve native cancellation. `resolve --input`
+accepts `schemaVersion`, `inventory`, `profile`, `permittedModels`,
+`requestedModel`, and `observation`; `estimate --input` accepts `model`
+and `units`. Both are offline JSON operations, not host calls.
+
+## Model resolution
+
+`resolve_model(inventory, profile, permitted_models, requested_model=None,
+observation=None)` operates only on supplied strict data. Inventory contains
+`schemaVersion`, `hostId`, `hostBuild`, `source`, and `models`; unavailable
+inventory has null host identity and no models. Each model has `id`,
+`available`, and nullable `pricing`. Profiles contain `id` and ordered
+`candidates`. Missing/disallowed models fail explicitly.
+
+Pricing, when supplied, contains `currency`, `rateVersion`, `unit`, `units`,
+and `priceMinor`. Currency is a three-letter uppercase code, rate identity is
+required, units are positive integers and monetary values are bounded integer
+minor units. Missing pricing remains null, never free.
+`estimate_cost(model, units)` preserves unavailable prices and checks integer
+overflow. Estimates do not prove a billing charge or authorize dispatch.
+
+An observation contains `hostId`, `hostBuild`, `inventoryDigest`, and
+`modelId`. Mismatched host, snapshot or effective model is rejected. Results
+distinguish the requested candidate from a matching supplied observation;
+they do not authenticate observations or launch an optimized route. Model
+selection and pricing need actual attributable host evidence before runtime
+activation. No Copilot SDK or provider-specific model client is required.
+
+## Exposure, failure and reversal
+
+Controls storage is a bounded, strict record under `.git/sdlc`, or a confined
+fallback proven ignored for its exact path. It uses the shared atomic-write
+and confinement helpers. Corrupt inputs, locks, stale approvals, exhausted
+attempts, pending cancellation and failed promotions produce explicit errors.
+It retains cancellation bindings and does not silently reset or prune data.
+
+Existing workflows remain unchanged when controls are absent or cleanly
+disabled without prior activation. Pause/cancellation barriers and activated
+native stop protection deliberately survive disabling.
+Rollback of an opted-in project requires inspecting unresolved work and
+explicitly resolving manual intent/resuming first; never remove a barrier
+to pretend a native worker stopped. No production data migration is needed.
+
+Automated evidence must cover absent/disabled behavior, dry run, approvals,
+cross-revision retry/escalation, pause/cancel bypasses, corrupt/failed writes,
+model identity/pricing and real CLI operation. Telemetry, live routing,
+autonomous policies and host cancellation remain separate unfinished gates.
