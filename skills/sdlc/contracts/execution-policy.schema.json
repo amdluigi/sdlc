@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-policy:1",
+  "title": "Explicit manual execution policy, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "enabled", "mode", "retention", "detailedTelemetry"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "enabled": {"type": "boolean"},
+    "mode": {"const": "manual"},
+    "retention": {"const": "manual"},
+    "detailedTelemetry": {"const": false}
+  }
+}

@@ -110,10 +110,19 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue((destination_root / "sdlc" / "SKILL.md").is_file())
         for relative in (
             "scripts/execution_contracts.py",
+            "scripts/execution_manager.py",
+            "scripts/execution_renderers.py",
+            "scripts/execution_state.py",
+            "scripts/manage_execution.py",
             "contracts/execution-plan.schema.json",
             "contracts/task-brief.schema.json",
             "contracts/task-result.schema.json",
             "contracts/execution-event.schema.json",
+            "contracts/execution-acceptance.schema.json",
+            "contracts/execution-consent.schema.json",
+            "contracts/execution-policy.schema.json",
+            "contracts/execution-record.schema.json",
+            "contracts/execution-state.schema.json",
         ):
             self.assertEqual(
                 (ROOT / "skills" / "sdlc" / relative).read_bytes(),

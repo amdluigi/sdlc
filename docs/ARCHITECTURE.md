@@ -62,8 +62,20 @@ rather than replace, operational readiness and debugging.
 The [execution contracts](EXECUTION-CONTRACTS.md) define version-1 plans,
 task briefs, unaccepted worker results, and unapplied events. Their explicitly
 called Python validators check structure and declared relationships only.
-No existing skill or command invokes them. They do not add a scheduler,
+No legacy skill or command invokes them. They do not add a scheduler,
 agent/model routing, execution state, telemetry, or approval authority.
+
+### Opt-in local execution plane
+
+The separate [manual execution manager](EXECUTION-MANAGEMENT.md) explicitly
+consumes those contracts. It adds a pure replay projection, confined atomic
+revision/event/receipt records, current plan/policy binding approvals,
+independent manual evidence acceptance and escaped read-only reports.
+The project-local execution policy is separate and disabled when absent.
+Configure and record operations share a single-writer consent boundary.
+No worker, command, model routing, telemetry, global storage or legacy
+workflow invocation is added. This is a cooperative same-user controller
+boundary, not authentication or a filesystem sandbox.
 
 ```text
 commands/                       the operating surface, where hosts support it

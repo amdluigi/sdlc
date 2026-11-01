@@ -16,7 +16,11 @@
       "scripts/config_contract.py",
       "scripts/delivery_profile.py",
       "scripts/execution_contracts.py",
+      "scripts/execution_manager.py",
+      "scripts/execution_renderers.py",
+      "scripts/execution_state.py",
       "scripts/handoff_renderers.py",
+      "scripts/manage_execution.py",
       "scripts/manage_extensions.py",
       "scripts/manage_install.py",
       "scripts/manage_metrics.py",
@@ -43,12 +47,32 @@
         "sha256": "43a419401a654fa10666d325437ebb937c750abcee48e95df53f76444ba66a97"
       },
       {
+        "path": "contracts/execution-acceptance.schema.json",
+        "sha256": "7c6bd164592e9b00ab761e7059bff49aec145c6ae28db842a53398867ab5edf9"
+      },
+      {
+        "path": "contracts/execution-consent.schema.json",
+        "sha256": "70048f026a625a75636dac8d0d5b01f22ce2bb919aef76d2c9a7431c4c4dabc8"
+      },
+      {
         "path": "contracts/execution-event.schema.json",
         "sha256": "dd93000df135e267e18788f52afcbf21869d50e78a1e22dd26618de36c39e983"
       },
       {
         "path": "contracts/execution-plan.schema.json",
         "sha256": "f939b608bb5340343edb2a83408a69f0724703fcaf92030a0220d6e3051eb129"
+      },
+      {
+        "path": "contracts/execution-policy.schema.json",
+        "sha256": "3946ffc0d8e8905db3d1884cbca627fb96cbc23feedcb26457c0ad77227d87b7"
+      },
+      {
+        "path": "contracts/execution-record.schema.json",
+        "sha256": "f63f9253535805176e3c25a4f0eda9e19dcc9abe93cedf39053896d56c6dba39"
+      },
+      {
+        "path": "contracts/execution-state.schema.json",
+        "sha256": "c7ae4d65640474072702b3819ec4f4f7be2ef4ec77d4439519991d1a37f2f97d"
       },
       {
         "path": "contracts/handoff-result.schema.json",
@@ -155,8 +179,24 @@
         "sha256": "0fe9722cabed4df8871ee0fce99ecf0d46c5774352f358ec63956b6e3467af52"
       },
       {
+        "path": "scripts/execution_manager.py",
+        "sha256": "dcaaa1f93042587ac22c977b531db936cc5f2fe4759bc9c9dd6144eeae692e44"
+      },
+      {
+        "path": "scripts/execution_renderers.py",
+        "sha256": "1df7caeb2731dae9255c6e139aca3f255f8500bf5d87553c0efab9f72bb94090"
+      },
+      {
+        "path": "scripts/execution_state.py",
+        "sha256": "a82bd4a61e3870c1deb91513e433685996380f9e4062fb7bb552c510534a4f57"
+      },
+      {
         "path": "scripts/handoff_renderers.py",
         "sha256": "f4d054e02784aa540ff6320bed4d620b278624ea02948885e134d4350db211f2"
+      },
+      {
+        "path": "scripts/manage_execution.py",
+        "sha256": "3eb8b5b5116d7a432e1977c5ecb2607da911d2856bffa68dd545024395a11a3b"
       },
       {
         "path": "scripts/manage_extensions.py",
@@ -195,7 +235,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "305517c4fa7e454cd78713a91ca06b825f532ff1f31174e6121804013f0411a7"
+    "bundleSha256": "a84c591506bae1819258c581763f39a88278f3b5dde3835bf424aca9f271dc83"
   },
   "profiles": [
     {

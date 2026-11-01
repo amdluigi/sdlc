@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-state:1",
+  "title": "Rebuilt manual execution projection, not an authoritative store",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "executionId", "planRevision", "planDigest", "policyDigest", "approved", "sequence", "lastRecordedAt", "attemptIds", "tasks"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "executionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "planRevision": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "planDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+    "policyDigest": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}, {"type": "null"}]},
+    "approved": {"type": "boolean"},
+    "sequence": {"type": "integer", "minimum": 0, "maximum": 256},
+    "lastRecordedAt": {"$ref": "#/$defs/time"},
+    "attemptIds": {"type": "array", "maxItems": 256, "uniqueItems": true, "items": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}},
+    "tasks": {
+      "type": "object", "minProperties": 1, "maxProperties": 256,
+      "propertyNames": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false,
+        "required": ["status", "attemptId", "resultId", "reportedStatus", "startedAt", "endedAt", "blockedFrom", "acceptance"],
+        "properties": {
+          "status": {"enum": ["waiting", "ready", "running", "blocked", "reported", "accepted", "failed", "cancelled"]},
+          "attemptId": {"$ref": "#/$defs/nullableId"},
+          "resultId": {"$ref": "#/$defs/nullableId"},
+          "reportedStatus": {"enum": ["completed", "failed", "blocked", "cancelled", null]},
+          "startedAt": {"$ref": "#/$defs/time"},
+          "endedAt": {"$ref": "#/$defs/time"},
+          "blockedFrom": {"enum": ["waiting", "ready", "running", null]},
+          "acceptance": {"anyOf": [{"$ref": "urn:sdlc:execution-acceptance:1"}, {"type": "null"}]}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nullableId": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}, {"type": "null"}]},
+    "time": {"anyOf": [{"$ref": "urn:sdlc:execution-event:1#/$defs/time"}, {"type": "null"}]}
+  }
+}

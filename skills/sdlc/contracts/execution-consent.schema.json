@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-consent:1",
+  "title": "Generated local execution consent snapshot, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "policy"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "generation": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "policy": {"$ref": "urn:sdlc:execution-policy:1"}
+  }
+}
