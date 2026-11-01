@@ -22,6 +22,7 @@ that discipline without the gates the control plane enforces.
 | Use SDLC in a project | [Use SDLC](#use-sdlc) |
 | Check or repair the installation | [Operating commands](#operating-commands) |
 | Configure modules or organization behavior | [Configure or extend SDLC](#configure-or-extend-sdlc) |
+| Inspect the opt-in supervised execution preview | [Native execution](docs/NATIVE-EXECUTION.md) |
 | Contribute to the skill or prepare a release | [Maintain and release SDLC](#maintain-and-release-sdlc) |
 
 ## Start here
