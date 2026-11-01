@@ -6,6 +6,7 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -108,6 +109,46 @@ class QualificationTests(unittest.TestCase):
         files, digest = qualify.inventory_bundle(ROOT / "skills" / "sdlc")
         self.assertEqual(files, self.manifest["skill"]["files"])
         self.assertEqual(digest, self.manifest["skill"]["bundleSha256"])
+
+    def test_execution_contracts_are_in_exact_copy_and_link_inventory(self):
+        self.assertEqual(42, len(self.manifest["skill"]["files"]))
+        self.assertIn("scripts/execution_contracts.py", self.manifest["skill"]["helperScripts"])
+        paths = [
+            "scripts/execution_contracts.py",
+            "contracts/execution-plan.schema.json",
+            "contracts/task-brief.schema.json",
+            "contracts/task-result.schema.json",
+            "contracts/execution-event.schema.json",
+        ]
+        for mode in ("copy", "link"):
+            with self.subTest(mode=mode):
+                destination = self.work / mode / "skills" / "sdlc"
+                qualify.install_suite(ROOT, self.manifest, destination, mode)
+                inspected = qualify.inspect_install(
+                    self.manifest, destination, "generic-agent-skills", "project", mode
+                )
+                self.assertEqual("pass", inspected["installation"]["status"])
+                if mode == "link":
+                    self.assertEqual((ROOT / "skills" / "sdlc").resolve(), destination.resolve())
+                installed, digest = qualify.inventory_bundle(destination.resolve())
+                self.assertEqual(self.manifest["skill"]["files"], installed)
+                self.assertEqual(self.manifest["skill"]["bundleSha256"], digest)
+                for path in paths:
+                    self.assertEqual(
+                        (ROOT / "skills" / "sdlc" / path).read_bytes(),
+                        (destination / path).read_bytes(),
+                    )
+                process = subprocess.run(
+                    [
+                        sys.executable, "-B", "-c",
+                        "import sys; sys.path.insert(0, sys.argv[1]); "
+                        "import execution_contracts; "
+                        "assert callable(execution_contracts.validate_execution_plan)",
+                        str(destination / "scripts"),
+                    ],
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(0, process.returncode, process.stderr)
 
     def test_discover_implementations_excludes_standalone_skills_without_capability_json(self):
         bundle_root = self.work / "skills"

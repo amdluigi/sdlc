@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-event:1",
+  "title": "Unapplied execution event declarations, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "eventId", "binding", "sequence", "occurredAt", "recordedAt",
+    "actor", "type", "taskId", "attemptId", "payload"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "eventId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "sequence": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "occurredAt": {"$ref": "#/$defs/time"},
+    "recordedAt": {"$ref": "#/$defs/time"},
+    "actor": {
+      "type": "object", "additionalProperties": false, "required": ["role", "id"],
+      "properties": {
+        "role": {"enum": ["user", "host", "manager", "worker", "validator"]},
+        "id": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}
+      }
+    },
+    "type": {"enum": [
+      "PLAN_PROPOSED", "PLAN_UPDATED", "PLAN_APPROVED", "TASK_READY", "TASK_STARTED",
+      "TASK_PROGRESS_UPDATED", "TASK_BLOCKED", "TASK_UNBLOCKED", "TASK_RESULT_RECEIVED",
+      "VALIDATION_PASSED", "VALIDATION_FAILED", "TASK_COMPLETED", "TASK_FAILED",
+      "TASK_CANCELLED", "APPROVAL_REQUESTED", "APPROVAL_GRANTED", "APPROVAL_REJECTED"
+    ]},
+    "taskId": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}, {"type": "null"}]},
+    "attemptId": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}, {"type": "null"}]},
+    "payload": {"type": "object"}
+  },
+  "$defs": {
+    "time": {
+      "type": "string", "format": "date-time",
+      "pattern": "^[0-9]{4}(?:-[0-9]{2}){2}T[0-9]{2}(?::[0-9]{2}){2}Z(?![\\s\\S])"
+    },
+    "empty": {"type": "object", "additionalProperties": false},
+    "reason": {
+      "type": "object", "additionalProperties": false, "required": ["reason"],
+      "properties": {"reason": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}}
+    },
+    "decision": {
+      "type": "object", "additionalProperties": false, "required": ["decisionId"],
+      "properties": {"decisionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}}
+    },
+    "decisionReason": {
+      "type": "object", "additionalProperties": false, "required": ["decisionId", "reason"],
+      "properties": {
+        "decisionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "reason": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}
+      }
+    },
+    "criteria": {
+      "type": "object", "additionalProperties": false, "required": ["acceptanceCriteria"],
+      "properties": {"acceptanceCriteria": {"$ref": "urn:sdlc:execution-plan:1#/$defs/acceptanceRefs"}}
+    },
+    "criteriaReason": {
+      "type": "object", "additionalProperties": false, "required": ["acceptanceCriteria", "reason"],
+      "properties": {
+        "acceptanceCriteria": {"$ref": "urn:sdlc:execution-plan:1#/$defs/acceptanceRefs"},
+        "reason": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"type": {"enum": [
+        "PLAN_PROPOSED", "PLAN_UPDATED", "PLAN_APPROVED",
+        "APPROVAL_REQUESTED", "APPROVAL_GRANTED", "APPROVAL_REJECTED"
+      ]}}},
+      "then": {"properties": {"taskId": {"type": "null"}, "attemptId": {"type": "null"}}},
+      "else": {"properties": {"taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}}}
+    },
+    {
+      "if": {"properties": {"type": {"enum": [
+        "TASK_STARTED", "TASK_PROGRESS_UPDATED", "TASK_RESULT_RECEIVED",
+        "VALIDATION_PASSED", "VALIDATION_FAILED", "TASK_COMPLETED", "TASK_FAILED"
+      ]}}},
+      "then": {"properties": {"attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}}},
+      "else": {"properties": {"attemptId": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"type": {"enum": ["PLAN_APPROVED", "APPROVAL_GRANTED", "APPROVAL_REJECTED"]}}},
+      "then": {"properties": {"actor": {"properties": {"role": {"enum": ["user", "host"]}}}}}
+    }
+  ],
+  "oneOf": [
+    {"properties": {"type": {"enum": ["PLAN_PROPOSED", "TASK_READY", "TASK_STARTED", "TASK_UNBLOCKED", "TASK_COMPLETED"]}, "payload": {"$ref": "#/$defs/empty"}}},
+    {"properties": {
+      "type": {"const": "PLAN_UPDATED"},
+      "payload": {
+        "type": "object", "additionalProperties": false, "required": ["previousRevision"],
+        "properties": {"previousRevision": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"}}
+      }
+    }},
+    {"properties": {"type": {"enum": ["PLAN_APPROVED", "APPROVAL_GRANTED"]}, "payload": {"$ref": "#/$defs/decision"}}},
+    {"properties": {
+      "type": {"const": "TASK_PROGRESS_UPDATED"},
+      "payload": {
+        "type": "object", "additionalProperties": false, "required": ["message"],
+        "properties": {"message": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}}
+      }
+    }},
+    {"properties": {"type": {"enum": ["TASK_BLOCKED", "TASK_FAILED", "TASK_CANCELLED"]}, "payload": {"$ref": "#/$defs/reason"}}},
+    {"properties": {
+      "type": {"const": "TASK_RESULT_RECEIVED"},
+      "payload": {
+        "type": "object", "additionalProperties": false, "required": ["resultId"],
+        "properties": {"resultId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}}
+      }
+    }},
+    {"properties": {"type": {"const": "VALIDATION_PASSED"}, "payload": {"$ref": "#/$defs/criteria"}}},
+    {"properties": {"type": {"const": "VALIDATION_FAILED"}, "payload": {"$ref": "#/$defs/criteriaReason"}}},
+    {"properties": {"type": {"enum": ["APPROVAL_REQUESTED", "APPROVAL_REJECTED"]}, "payload": {"$ref": "#/$defs/decisionReason"}}}
+  ]
+}

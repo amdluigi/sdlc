@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-plan:1",
+  "title": "Inactive execution plan declarations, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "executionId", "revision", "sourcePlan", "tasks"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "executionId": {"$ref": "#/$defs/id"},
+    "revision": {"$ref": "#/$defs/positiveInteger"},
+    "sourcePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "digest", "prd"],
+      "properties": {
+        "path": {"$ref": "#/$defs/path"},
+        "digest": {"$ref": "#/$defs/digest"},
+        "prd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "version"],
+          "properties": {
+            "id": {"$ref": "#/$defs/id"},
+            "version": {"$ref": "#/$defs/positiveInteger"}
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {"$ref": "#/$defs/task"}
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string", "minLength": 1, "maxLength": 2048,
+      "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+    },
+    "shortText": {"$ref": "#/$defs/text", "maxLength": 128},
+    "id": {"type": "string", "maxLength": 128, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"},
+    "ref": {"type": "string", "maxLength": 128, "pattern": "^(?:FR|AC)-[1-9][0-9]*(?![\\s\\S])"},
+    "acceptanceRef": {"type": "string", "maxLength": 128, "pattern": "^AC-[1-9][0-9]*(?![\\s\\S])"},
+    "positiveInteger": {"type": "integer", "minimum": 1, "maximum": 9223372036854775807},
+    "nonnegativeInteger": {"type": "integer", "minimum": 0, "maximum": 9223372036854775807},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}(?![\\s\\S])"},
+    "path": {
+      "type": "string", "minLength": 1, "maxLength": 1024,
+      "pattern": "^(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*(?:^|/) )(?!.* (?:/|$))[A-Za-z0-9_.@ -]+(?:/[A-Za-z0-9_.@ -]+)*(?![\\s\\S])"
+    },
+    "ids": {"type": "array", "maxItems": 256, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "paths": {"type": "array", "maxItems": 256, "uniqueItems": true, "items": {"$ref": "#/$defs/path"}},
+    "texts": {"type": "array", "maxItems": 256, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "acceptanceRefs": {
+      "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/acceptanceRef"}
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["executionId", "planRevision", "planDigest"],
+      "properties": {
+        "executionId": {"$ref": "#/$defs/id"},
+        "planRevision": {"$ref": "#/$defs/positiveInteger"},
+        "planDigest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "task": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "id", "title", "outcome", "prdRefs", "prerequisites", "consumes", "produces",
+        "execution", "assignment", "estimateMs", "ownership", "acceptanceCriteria", "verification"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title": {"$ref": "#/$defs/text"},
+        "outcome": {"$ref": "#/$defs/text"},
+        "prdRefs": {
+          "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/ref"},
+          "allOf": [
+            {"contains": {"type": "string", "pattern": "^FR-"}},
+            {"contains": {"type": "string", "pattern": "^AC-"}}
+          ]
+        },
+        "prerequisites": {"$ref": "#/$defs/ids"},
+        "consumes": {"$ref": "#/$defs/ids"},
+        "produces": {"$ref": "#/$defs/ids"},
+        "execution": {
+          "type": "object", "additionalProperties": false, "required": ["mode", "group"],
+          "properties": {
+            "mode": {"enum": ["sequential", "parallel"]},
+            "group": {"anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]}
+          },
+          "oneOf": [
+            {"properties": {"mode": {"const": "sequential"}, "group": {"type": "null"}}},
+            {"properties": {"mode": {"const": "parallel"}, "group": {"$ref": "#/$defs/id"}}}
+          ]
+        },
+        "assignment": {
+          "type": "object", "additionalProperties": false,
+          "required": ["agent", "modelProfile", "model"],
+          "properties": {
+            "agent": {"$ref": "#/$defs/shortText"},
+            "modelProfile": {"$ref": "#/$defs/id"},
+            "model": {"anyOf": [{"$ref": "#/$defs/shortText"}, {"type": "null"}]}
+          }
+        },
+        "estimateMs": {"anyOf": [{"$ref": "#/$defs/nonnegativeInteger"}, {"type": "null"}]},
+        "ownership": {"$ref": "#/$defs/paths"},
+        "acceptanceCriteria": {"$ref": "#/$defs/acceptanceRefs"},
+        "verification": {"$ref": "#/$defs/text"}
+      }
+    }
+  }
+}

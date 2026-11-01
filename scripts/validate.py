@@ -102,6 +102,7 @@ REQUIRED_HELPERS = {
     "capability_contract.py",
     "config_contract.py",
     "delivery_profile.py",
+    "execution_contracts.py",
     "handoff_renderers.py",
     "manage_extensions.py",
     "manage_metrics.py",
@@ -113,6 +114,8 @@ REQUIRED_HELPERS = {
 REQUIRED_CONTRACTS = {
     "capability-provider.schema.json",
     "delivery-profile.schema.json",
+    "execution-event.schema.json",
+    "execution-plan.schema.json",
     "handoff-result.schema.json",
     "handoff.schema.json",
     "metrics.schema.json",
@@ -128,6 +131,8 @@ REQUIRED_CONTRACTS = {
     "provider-survey.schema.json",
     "reconciliation-report.schema.json",
     "sdlc-config.schema.json",
+    "task-brief.schema.json",
+    "task-result.schema.json",
 }
 SECRET_LIKE_KEY = re.compile(
     r"(?:authorization|credential|password|passwd|secret|token|api[_-]?key)",

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:task-brief:1",
+  "title": "Inactive task brief declarations, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "binding", "taskId", "attemptId", "allowedActions",
+    "ownership", "guidance", "acceptanceCriteria", "verification"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "allowedActions": {
+      "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+      "items": {"enum": ["read", "search", "edit", "execute"]}
+    },
+    "ownership": {"$ref": "urn:sdlc:execution-plan:1#/$defs/paths"},
+    "guidance": {"$ref": "urn:sdlc:execution-plan:1#/$defs/paths"},
+    "acceptanceCriteria": {"$ref": "urn:sdlc:execution-plan:1#/$defs/acceptanceRefs"},
+    "verification": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}
+  },
+  "allOf": [{
+    "if": {"properties": {"allowedActions": {"contains": {"const": "edit"}}}},
+    "then": {"properties": {"ownership": {"minItems": 1}}}
+  }]
+}

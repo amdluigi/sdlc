@@ -121,6 +121,7 @@ HELPERS = {
     "scripts/capability_contract.py",
     "scripts/config_contract.py",
     "scripts/delivery_profile.py",
+    "scripts/execution_contracts.py",
     "scripts/handoff_renderers.py",
     "scripts/manage_extensions.py",
     "scripts/manage_install.py",
@@ -130,7 +131,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 37
+BUNDLE_FILE_COUNT = 42
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {

@@ -108,6 +108,17 @@ class InstallerTests(unittest.TestCase):
         ])
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertTrue((destination_root / "sdlc" / "SKILL.md").is_file())
+        for relative in (
+            "scripts/execution_contracts.py",
+            "contracts/execution-plan.schema.json",
+            "contracts/task-brief.schema.json",
+            "contracts/task-result.schema.json",
+            "contracts/execution-event.schema.json",
+        ):
+            self.assertEqual(
+                (ROOT / "skills" / "sdlc" / relative).read_bytes(),
+                (destination_root / "sdlc" / relative).read_bytes(),
+            )
         self.assertFalse((project / ".agents" / "skills" / "sdlc").exists())
 
 
