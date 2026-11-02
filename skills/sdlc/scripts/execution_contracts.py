@@ -335,11 +335,21 @@ def validate_task_result(data: object, plan: object, brief: object) -> dict[str,
     """Check a worker report, not whether verification ran or completion was accepted."""
     validated, tasks = _plan(plan)
     supplied = _brief(brief, validated, tasks)
-    value = _object(data, "", (
+    base_fields = (
         "schemaVersion", "binding", "taskId", "attemptId", "status",
         "artifacts", "verification", "findings", "blockers",
-    ))
-    _version(value)
+    )
+    if not isinstance(data, dict):
+        _issue("E_SCHEMA_TYPE", "/", "expected an object")
+    if "schemaVersion" not in data:
+        _issue("E_SCHEMA_REQUIRED", "/", "required field 'schemaVersion' is missing")
+    version = data.get("schemaVersion")
+    if type(version) is not int or version not in (1, 2):
+        _issue("E_EXECUTION_VERSION", "/schemaVersion", "worker results require schema version 1 or 2")
+    fields = base_fields if version == 1 else base_fields + ("contextUpdate",)
+    value = _object(data, "", fields)
+    if version == 1:
+        _version(value)
     _bound_task(value, validated, tasks)
     _id(value["attemptId"], "/attemptId")
     for field in ("taskId", "attemptId"):
@@ -365,6 +375,8 @@ def validate_task_result(data: object, plan: object, brief: object) -> dict[str,
         _text(entry["summary"], f"{pointer}/summary")
     for field in ("findings", "blockers"):
         _strings(value[field], f"/{field}")
+    if version == 2 and value["contextUpdate"] is not None:
+        _text(value["contextUpdate"], "/contextUpdate", 2048)
     return _result(value)
 
 

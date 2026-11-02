@@ -1,15 +1,18 @@
 # Opt-in local execution management
 
-The local preview provides one manual flow: configure, import, inspect,
+The local manager provides one explicit flow: configure, import, inspect,
 approve, record an attempt, receive its result, independently accept evidence,
-and report. It never dispatches a worker, runs a verification command or
-modifies a project file on a task's behalf.
+and report. Its project Gantt and bounded context notes use the same manager
+record and writer. The manual path never dispatches a worker, runs a
+verification command or modifies a project file on a task's behalf.
 
 The approved [roadmap requirements](prds/staged-execution-orchestration.md)
-and [implementation plan](plans/staged-execution-orchestration.md) separate
-this milestone from future host delegation, routing, controls and dashboards.
-Legacy skills, configuration, metrics, run records and cursors stay unchanged.
-Installing these helpers does not activate them or automatically collect data.
+and [implementation plan](plans/staged-execution-orchestration.md) describe
+the project-level plan, reusable specialist context, ownership and Gantt
+experience. Existing host and automation limits remain separate qualification
+gates. Legacy skills, configuration, metrics, run records and cursors stay
+unchanged. Installing these helpers does not activate them or automatically
+collect data.
 
 ## Policy and explicit consent
 
@@ -49,8 +52,9 @@ not claimed to have this linearizable boundary.
 
 ## Manual walkthrough
 
-Prepare [version-1 plan/brief/result data](EXECUTION-CONTRACTS.md) with matching
-execution, revision and canonical plan bindings. Then:
+Prepare [version-1 plan and brief data plus a version-1 or version-2 task
+result](EXECUTION-CONTRACTS.md) with matching execution, revision and
+canonical plan bindings. Then:
 
 ```text
 python <installed-helper> import --project-root <project> --input plan.json
@@ -119,6 +123,45 @@ start unapproved and cannot replace running, blocked or unassessed reported
 attempts. Changed policy requires a newer immutable plan revision and new
 approval. Disable/re-enable cannot revive approval through digest reuse.
 
+## Project Gantt and context
+
+Render the same dependency-based relative Gantt for a proposed plan, the
+current manager state or the final report:
+
+```text
+python <installed-helper> gantt --project-root <project> --input plan.json
+python <installed-helper> gantt --project-root <project> --execution-id example
+python <installed-helper> report --project-root <project> --execution-id example
+```
+
+Planned offsets use only declared estimates and prerequisites. Actual
+intervals use manager event timestamps, not host timing. Unknown estimates,
+starts or durations stay unknown. This is a readable projection, not a
+resource-aware scheduler, calendar forecast or dispatch command.
+
+Shared and specialist context are bounded, attributed notes stored under the
+existing manager writer. A note is limited to 2048 characters. Read current
+context with `inspect` or the explicitly selected manager dashboard. Update a
+note only with the current plan digest and context revision:
+
+```json
+{
+  "scope": "shared",
+  "agentId": null,
+  "content": "API contract agreed; add consumer compatibility tests.",
+  "expectedPlanDigest": "sha256:<current-plan-digest>",
+  "expectedContextRevision": 0
+}
+```
+
+Pass that file to `context-update --input context.json`. For specialist notes,
+use `"scope": "agent"` and the exact role ID in `agentId`. A stale binding or
+revision fails without overwriting newer context. Version-2 worker results
+may include an optional `contextUpdate`; the manager stores it as an
+attributed, unaccepted note for the worker's specialist role. Context is not
+approval, acceptance evidence or an instruction override. Keep notes concise;
+never store secrets, transcripts or raw task output in them.
+
 ## Storage, failure and recovery boundary
 
 Regular Git metadata uses `.git/sdlc/executions/<execution-id>.json`.
@@ -128,9 +171,12 @@ excluded. Negated record rules block writes. Unsupported Git/ignore inspection,
 links/reparse points and unsafe paths fail closed. There is no global store.
 
 One [execution record](../skills/sdlc/contracts/execution-record.schema.json)
-holds immutable revision history, consent snapshots, version-1 events,
-receipts and independent approval/acceptance records. No stored projection
-has authority. Reads validate the full history and rebuild state.
+holds immutable revision history, consent snapshots, events, receipts and
+independent approval/acceptance records. Version 4 adds the digest-checked
+context object; versions 1 through 3 remain readable. A context update or
+version-2 task result upgrades the record through a validated manager
+transaction. No stored projection has authority. Reads validate the full
+history and rebuild state.
 Atomic replacement is physical storage; manager operations cannot edit earlier
 logical entries. Receipt re-delivery with matching identity/content is a
 no-write idempotent operation; conflicting content fails.
@@ -213,13 +259,16 @@ publish local records inadvertently. Validation is not a secret detector.
 New [policy](../skills/sdlc/contracts/execution-policy.schema.json),
 [consent](../skills/sdlc/contracts/execution-consent.schema.json),
 [acceptance](../skills/sdlc/contracts/execution-acceptance.schema.json),
-[record](../skills/sdlc/contracts/execution-record.schema.json) and
+[record](../skills/sdlc/contracts/execution-record.schema.json),
+[record version 4](../skills/sdlc/contracts/execution-record-v4.schema.json),
+[task result version 2](../skills/sdlc/contracts/task-result-v2.schema.json)
+and
 [state](../skills/sdlc/contracts/execution-state.schema.json) schemas have
-separate version-1 identities. Register all schemas by `$id` for offline
-Draft 2020-12 validation. Existing execution contracts are unchanged.
-Python additionally validates relationships, transitions, evidence and
-canonical byte limits, and rejects floating-point integer tokens. No schema
-validation is approval, authentication or evidence-quality assessment.
+separate versioned identities. Register all schemas by `$id` for offline
+Draft 2020-12 validation. Version-1 task results remain valid. Python
+additionally validates context digests, relationships, transitions, evidence
+and canonical byte limits, and rejects floating-point integer tokens. No
+schema validation is approval, authentication or evidence-quality assessment.
 
 ## Reversal and later milestones
 
@@ -235,12 +284,13 @@ validation is approval, authentication or evidence-quality assessment.
 | AC-12 | Reports retain evidence and explicitly disclaim PR/release/deployment authority |
 | AC-13 | Strict policy refuses detailed telemetry; legacy measurement/evaluation configuration is unchanged |
 
-Other roadmap criteria, live worker/model attribution and UI/analytics
-acceptance remain later-milestone work, not completed by these local tests.
+The project-level Gantt and context behaviors have focused local tests and a
+native dashboard tree presentation. This does not qualify a real editor host,
+screen reader, worker invocation, provider billing, remote cancellation or
+host timing. Those remain separate, evidence-gated capabilities.
 
-This additive preview can be removed with its inventory/manifest additions,
-without changing legacy behavior or deleting retained local data. Keep
-version-aware inspection available when retained records need examination.
-Later profiles, real host dispatch, model routing, limits/cancellation,
-attributed telemetry, UI transport and analytics remain separately qualified
-and inactive until their respective gates are satisfied.
+Reverting this code must retain version-4 records and must not silently
+downgrade them. Keep version-aware inspection available when retained records
+need examination. Earlier record versions and version-1 requests remain
+supported; version-1 native requests are refused after context has been
+recorded because they cannot bind that context.

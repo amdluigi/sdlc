@@ -173,6 +173,23 @@ class ExecutionContractTests(unittest.TestCase):
         outputs[0]["data"]["tasks"].clear()
         self.assertEqual(original[0], self.plan)
 
+    def test_ac23_version_two_worker_result_accepts_bounded_context_note(self):
+        worker_result = {
+            **result(self.plan),
+            "schemaVersion": 2,
+            "contextUpdate": "Implementation is complete; review the migration test.",
+        }
+
+        validated = self.api.validate_task_result(worker_result, self.plan, self.brief)
+
+        self.assertEqual(2, validated["data"]["schemaVersion"])
+        self.assertEqual(worker_result["contextUpdate"], validated["data"]["contextUpdate"])
+        oversized = {**worker_result, "contextUpdate": "x" * 2049}
+        self.assert_issue(
+            lambda: self.api.validate_task_result(oversized, self.plan, self.brief),
+            "E_SCHEMA_STRING",
+        )
+
     def test_ac2_accepts_chain_and_independent_diamond(self):
         second = task("verify")
         second.update(prerequisites=["implement"], consumes=["implementation"],
@@ -355,13 +372,15 @@ class ExecutionContractTests(unittest.TestCase):
 
     def test_ac5_all_contracts_reject_versions_unknown_fields_and_wrong_roots(self):
         cases = [
-            (plan(), self.api.validate_execution_plan),
-            (brief(self.plan), lambda value: self.api.validate_task_brief(value, self.plan)),
-            (result(self.plan), lambda value: self.api.validate_task_result(value, self.plan, self.brief)),
-            (event(self.plan), lambda value: self.api.validate_execution_event(value, self.plan)),
+            (plan(), self.api.validate_execution_plan, (1,)),
+            (brief(self.plan), lambda value: self.api.validate_task_brief(value, self.plan), (1,)),
+            (result(self.plan), lambda value: self.api.validate_task_result(value, self.plan, self.brief), (1, 2)),
+            (event(self.plan), lambda value: self.api.validate_execution_event(value, self.plan), (1,)),
         ]
-        for fixture, validate in cases:
+        for fixture, validate, supported_versions in cases:
             for version in (True, 1.0, 0, 2, "1", None):
+                if version in supported_versions and type(version) is int:
+                    continue
                 with self.subTest(contract=set(fixture), version=version):
                     value = copy.deepcopy(fixture)
                     value["schemaVersion"] = version

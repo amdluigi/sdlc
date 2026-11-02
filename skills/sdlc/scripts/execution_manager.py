@@ -1,6 +1,7 @@
 """Confined cooperative single-writer management; no command or worker execution."""
 
 import os
+import re
 import stat
 import tempfile
 from contextlib import contextmanager
@@ -272,6 +273,7 @@ def inspect_execution(project_root, execution_id):
     )
     return {
         **semantic_fields(), "record": record, "plan": revision["plan"],
+        "context": _context_for_record(record, revision["plan"]["revision"]),
         "planDigest": state.digest(revision["plan"]), "policyDigest": policy_digest,
         "recordedPolicyDigest": state.digest(revision["consent"]),
         "events": revision["events"], "receipts": revision["receipts"],
@@ -279,6 +281,79 @@ def inspect_execution(project_root, execution_id):
         "state": projected, "writerLockPresent": lock_path(root).exists(),
         "mode": "manual",
     }
+
+
+def _context_for_record(record, plan_revision):
+    context = record.get("context", state.empty_context())
+    return state.validate_context(context, plan_revision)
+
+
+def _context_agent_id(agent):
+    normalized = re.sub(r"[^a-z0-9]+", "-", agent.casefold()).strip("-")
+    native_roles = ("architecture", "developer", "testing", "review")
+    if normalized.startswith("sdlc-") and normalized[5:] in native_roles:
+        normalized = normalized[5:]
+    if not normalized:
+        normalized = "specialist-" + state.digest(agent)[7:23]
+    if len(normalized) > 128:
+        normalized = normalized[:111].rstrip("-") + "-" + state.digest(agent)[7:23]
+    return contracts._id(normalized, "/assignment/agent")
+
+
+def _set_context(record, scope, agent_id, content, source, plan_revision):
+    context = _context_for_record(record, plan_revision)
+    if scope == "shared":
+        agent_id = None
+        if source != "operator":
+            raise ContractIssue("E_EXECUTION_CONTEXT", "/source",
+                                "only the operator may update shared project context")
+        author = "operator"
+    else:
+        contracts._id(agent_id, "/agentId")
+        author = "operator" if source == "operator" else agent_id
+    contracts._text(content, "/content", 2048)
+    when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    entry = {
+        "content": content, "source": source, "author": author, "agent": agent_id,
+        "updatedAt": when, "planRevision": plan_revision, "digest": state.digest(content),
+    }
+    context["revision"] += 1
+    if scope == "shared":
+        context["shared"] = entry
+    else:
+        context["agents"][agent_id] = entry
+    context["digest"] = state.context_digest(context)
+    record["schemaVersion"] = 4
+    record["context"] = state.validate_context(context, plan_revision)
+    return record["context"]
+
+
+def update_context(project_root, execution_id, scope, agent_id, content,
+                   expected_plan_digest, expected_context_revision, *, expected_binding=None):
+    contracts._enum(scope, "/scope", ("shared", "agent"))
+    if scope == "shared" and agent_id is not None:
+        raise ContractIssue("E_EXECUTION_CONTEXT", "/agentId", "shared context has no specialist role")
+    if scope == "agent":
+        contracts._id(agent_id, "/agentId")
+    contracts._text(content, "/content", 2048)
+    contracts._digest(expected_plan_digest, "/expectedPlanDigest")
+    contracts._number(expected_context_revision, "/expectedContextRevision", 0)
+    with _transaction(project_root, execution_id, require_binding=False) as (root, record, revision):
+        if expected_binding is not None:
+            _check_live_binding(root, execution_id, revision, expected_binding)
+        if state.digest(revision["plan"]) != expected_plan_digest:
+            raise ContractIssue("E_EXECUTION_STALE_VIEW", "/expectedPlanDigest",
+                                "context update is bound to a stale plan")
+        current = _context_for_record(record, revision["plan"]["revision"])
+        if current["revision"] != expected_context_revision:
+            raise ContractIssue("E_EXECUTION_STALE_VIEW", "/expectedContextRevision",
+                                "context changed after the current view was read")
+        current_entry = current["shared"] if scope == "shared" else current["agents"].get(agent_id)
+        if current_entry is not None and current_entry["content"] == content and current_entry["source"] == "operator":
+            return {**semantic_fields(), "idempotent": True, "context": current}
+        updated = _set_context(record, scope, agent_id, content, "operator", revision["plan"]["revision"])
+    return {**semantic_fields(), "context": updated, "contextDigest": updated["digest"]}
+
 
 def _check_live_binding(root, execution_id, revision, expected):
     expected = contracts._object(expected, "/expectedBinding", (
@@ -481,6 +556,16 @@ def receive_result(project_root, execution_id, result_id, brief, result):
             return {**semantic_fields(), "idempotent": True}
         if any(result_id in old["receipts"] for old in record["revisions"][:-1]):
             raise ContractIssue("E_EXECUTION_DUPLICATE", "/resultId", "receipt identity belongs to an earlier revision")
+        if validated_result["schemaVersion"] == 2:
+            if record["schemaVersion"] < 4:
+                record["context"] = state.empty_context()
+            record["schemaVersion"] = 4
+            if validated_result["contextUpdate"] is not None:
+                task = next(item for item in revision["plan"]["tasks"]
+                            if item["id"] == validated_result["taskId"])
+                agent_id = _context_agent_id(task["assignment"]["agent"])
+                _set_context(record, "agent", agent_id, validated_result["contextUpdate"],
+                             "worker", revision["plan"]["revision"])
         import execution_controls
         execution_controls.enforce_terminal(root, execution_id, validated_result["taskId"], "manual-receipt")
         revision["receipts"][result_id] = receipt

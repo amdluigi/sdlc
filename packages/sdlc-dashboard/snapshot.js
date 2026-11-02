@@ -97,6 +97,9 @@ function number(value, minimum = 0) {
 }
 function boolean(value) {if (typeof value !== 'boolean') reject();}
 function digest(value) {if (typeof value !== 'string' || !DIGEST.test(value)) reject();}
+function digestValue(value) {
+  return 'sha256:' + crypto.createHash('sha256').update(canonical(value),'ascii').digest('hex');
+}
 function binding(value) {
   shape(value,['executionId','planRevision','planDigest']);
   id(value.executionId); number(value.planRevision,1); digest(value.planDigest);
@@ -140,9 +143,10 @@ function parseSnapshot(bytes) {
   return validateSnapshot(strictJSON(decoded));
 }
 function validateLiveView(value) {
-  shape(value,['schemaVersion','kind','binding','planDigest','policyDigest','controlsDigest',
-    'controlsStateDigest','planApproved','writerLockPresent','controls','progress','tasks','events','snapshotDigest']);
-  if (value.schemaVersion !== 1 || value.kind !== 'sdlc-live-execution-view') reject();
+  const baseFields = ['schemaVersion','kind','binding','planDigest','policyDigest','controlsDigest',
+    'controlsStateDigest','planApproved','writerLockPresent','controls','progress','tasks','events','snapshotDigest'];
+  shape(value,value.schemaVersion === 2 ? baseFields.concat(['context','gantt']) : baseFields);
+  if (![1,2].includes(value.schemaVersion) || value.kind !== 'sdlc-live-execution-view') reject();
   binding(value.binding); digest(value.planDigest);
   if (value.planDigest !== value.binding.planDigest) reject();
   for (const field of ['policyDigest','controlsDigest','controlsStateDigest']) {
@@ -205,12 +209,114 @@ function validateLiveView(value) {
     if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(event.recordedAt) ||
         !Number.isFinite(Date.parse(event.recordedAt))) reject();
   }
+  if (value.schemaVersion === 2) {
+    validateContext(value.context,value.binding.planRevision);
+    validateGantt(value.gantt,value);
+  }
   if (value.snapshotDigest !== undefined) digest(value.snapshotDigest);
   const unsigned = {...value}; delete unsigned.snapshotDigest;
   const encoded = canonical(unsigned);
   if (Buffer.byteLength(encoded) > MAX_BYTES ||
       'sha256:' + crypto.createHash('sha256').update(encoded,'ascii').digest('hex') !== value.snapshotDigest) reject();
   return value;
+}
+function validateContextEntry(value, role, planRevision) {
+  shape(value,['content','source','author','agent','updatedAt','planRevision','digest']);
+  text(value.content);
+  if (!['operator','worker'].includes(value.source)) reject();
+  text(value.author,128);
+  if (role === null) {
+    if (value.agent !== null || value.source !== 'operator' || value.author !== 'operator') reject();
+  } else {
+    id(role);
+    if (value.agent !== role ||
+        (value.source === 'worker' && value.author !== role) ||
+        (value.source === 'operator' && value.author !== 'operator')) reject();
+  }
+  text(value.updatedAt,32);
+  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(value.updatedAt) ||
+      !Number.isFinite(Date.parse(value.updatedAt))) reject();
+  number(value.planRevision,1);
+  if (BigInt(value.planRevision) > BigInt(planRevision)) reject();
+  digest(value.digest);
+  if (digestValue(value.content) !== value.digest) reject();
+}
+function validateContext(value, planRevision) {
+  shape(value,['schemaVersion','revision','shared','agents','digest']);
+  if (value.schemaVersion !== 1) reject();
+  number(value.revision);
+  if (value.shared !== null) validateContextEntry(value.shared,null,planRevision);
+  if (!value.agents || Array.isArray(value.agents) || typeof value.agents !== 'object' ||
+      Object.keys(value.agents).length > 256) reject();
+  for (const [role,entry] of Object.entries(value.agents)) validateContextEntry(entry,role,planRevision);
+  if (value.revision === 0 && (value.shared !== null || Object.keys(value.agents).length)) reject();
+  digest(value.digest);
+  const unsigned = {
+    schemaVersion:value.schemaVersion, revision:value.revision, shared:value.shared, agents:value.agents
+  };
+  if (digestValue(unsigned) !== value.digest) reject();
+}
+function validateGantt(value, liveView) {
+  shape(value,['schemaVersion','kind','executionId','planRevision','plannedDurationMs','plannedComplete',
+    'plannedBasis','actualOrigin','actualDurationMs','actualBasis','tasks']);
+  if (value.schemaVersion !== 1 || value.kind !== 'sdlc-project-gantt' ||
+      value.executionId !== liveView.binding.executionId ||
+      value.planRevision !== liveView.binding.planRevision) reject();
+  for (const field of ['plannedDurationMs','actualDurationMs']) {
+    if (value[field] !== null) number(value[field]);
+  }
+  boolean(value.plannedComplete);
+  text(value.plannedBasis); text(value.actualBasis);
+  if (value.actualOrigin !== null) {
+    text(value.actualOrigin,32);
+    if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(value.actualOrigin) ||
+        !Number.isFinite(Date.parse(value.actualOrigin))) reject();
+  }
+  if (!Array.isArray(value.tasks) || value.tasks.length !== liveView.tasks.length) reject();
+  const liveTasks = new Map(liveView.tasks.map(task => [task.id,task]));
+  const ganttIds = new Set();
+  const plannedEnds = [], actualEnds = [];
+  let hasActualStart = false;
+  const proposed = !liveView.planApproved && liveView.tasks.every(task => task.status === 'waiting');
+  for (const task of value.tasks) {
+    shape(task,['id','title','agent','status','executionMode','executionGroup','prerequisites',
+      'estimateMs','plannedStartMs','plannedEndMs','actualStartOffsetMs','actualDurationMs']);
+    id(task.id); text(task.title); text(task.agent,128);
+    if (!Array.isArray(task.prerequisites) || task.prerequisites.length > 256 ||
+        new Set(task.prerequisites).size !== task.prerequisites.length) reject();
+    task.prerequisites.forEach(id);
+    const liveTask = liveTasks.get(task.id);
+    if (!liveTask || ganttIds.has(task.id) || liveTask.title !== task.title ||
+        (proposed ? task.status !== 'proposed' : liveTask.status !== task.status) ||
+        liveTask.estimateMs !== task.estimateMs ||
+        task.prerequisites.length !== liveTask.prerequisites.length ||
+        task.prerequisites.some((dependency,index) => dependency !== liveTask.prerequisites[index])) reject();
+    ganttIds.add(task.id);
+    if (!['proposed',...STATUSES].includes(task.status) ||
+        !['sequential','parallel'].includes(task.executionMode)) reject();
+    if (task.executionGroup !== null) id(task.executionGroup);
+    if ((task.executionMode === 'parallel') !== (task.executionGroup !== null)) reject();
+    for (const field of ['estimateMs','plannedStartMs','plannedEndMs','actualStartOffsetMs','actualDurationMs']) {
+      if (task[field] !== null) number(task[field]);
+    }
+    if (task.plannedEndMs !== null && (task.plannedStartMs === null || task.estimateMs === null ||
+        BigInt(task.plannedEndMs) !== BigInt(task.plannedStartMs) + BigInt(task.estimateMs))) reject();
+    if (task.actualDurationMs !== null && task.actualStartOffsetMs === null) reject();
+    if (task.plannedEndMs !== null) plannedEnds.push(BigInt(task.plannedEndMs));
+    if (task.actualStartOffsetMs !== null) hasActualStart = true;
+    if (task.actualStartOffsetMs !== null && task.actualDurationMs !== null) {
+      actualEnds.push(BigInt(task.actualStartOffsetMs) + BigInt(task.actualDurationMs));
+    }
+  }
+  const plannedComplete = value.tasks.every(task => task.plannedEndMs !== null);
+  if (plannedComplete !== value.plannedComplete ||
+      (plannedEnds.length === 0 ? value.plannedDurationMs !== null :
+        value.plannedDurationMs === null ||
+        BigInt(value.plannedDurationMs) !== plannedEnds.reduce((maximum,end) => end > maximum ? end : maximum)) ||
+      (value.actualOrigin === null) !== !hasActualStart ||
+      (actualEnds.length === 0 ? value.actualDurationMs !== null :
+        value.actualDurationMs === null ||
+        BigInt(value.actualDurationMs) !== actualEnds.reduce((maximum,end) => end > maximum ? end : maximum))) reject();
 }
 function parseLiveView(bytes) {
   if (!(bytes instanceof Uint8Array) || bytes.byteLength > MAX_BYTES) reject();

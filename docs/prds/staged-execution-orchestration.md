@@ -2,7 +2,7 @@
 type: prd
 id: staged-execution-orchestration
 status: approved
-version: 2
+version: 3
 ---
 
 # Product requirements: Staged execution orchestration
@@ -20,18 +20,22 @@ optional qualified delegation, controls, dashboards and historical proposals.
 
 ## Outcome
 
-Deliver opt-in execution management in four milestones: local management and
-reporting; supervised workers; routing and lifecycle controls; optional
-dashboard and analytics. Close the remaining original roadmap scope with
-finite autonomous dispatch and a manager-connected native dashboard. A
-prerequisite implementation does not by itself satisfy a later live-host
-acceptance criterion.
+Deliver opt-in execution management and a project-level orchestration
+experience. A substantial project is planned as a reviewable set of major
+activities, assigned across a reusable specialist roster, with shared context,
+per-agent context, safe ownership, and one Gantt view from proposal through
+execution and final review. Preserve the existing staged execution, manager,
+and host safety boundaries.
 
 ## Goals
 
 - Preserve current workflows, evidence gates and controller/worker boundaries.
 - Deliver coherent milestones with current tests and qualified integrations.
 - Make failures, blocked activation and missing host observations explicit.
+- Make a large feature's activity plan, dependencies, shared context, and
+  progress understandable in one project-level view.
+- Reuse a small specialist roster across activities instead of creating one
+  agent session per activity.
 
 ## Non-goals
 
@@ -55,6 +59,15 @@ acceptance criterion.
    explicit blockers rather than simulated successful dispatch.
 6. A user separately approves telemetry, runtime limits and analytical policy
    proposals before they take effect.
+7. For a substantial feature, a user reviews a plan of major activities,
+   approves the assignments and dependencies, and sees specialist roles reused
+   across those activities.
+8. Each worker receives current shared project context and its role-specific
+   context. Context notes remain bounded, attributed, visible to other workers,
+   and separate from approval or acceptance.
+9. A user inspects one Gantt view before execution, while work is in progress,
+   and after completion. Unknown estimates and actual intervals stay visibly
+   unknown rather than being fabricated.
 
 ## Functional requirements
 
@@ -86,6 +99,31 @@ acceptance criterion.
 - **FR-19**: Revalidate dashboard approvals, acceptance judgments, pause/resume,
   and cancellation intent against current manager state; opening the dashboard
   alone must not enable live updates or start work.
+- **FR-20**: For a user-identified substantial project, decompose the scope
+  into 10 to 20 independently reviewable major activities when the scope
+  supports it. Do not pad smaller projects to meet a count.
+- **FR-21**: Assign activities to a reusable specialist roster; a specialist
+  may own multiple activities, and the number of agents need not equal the
+  number of activities.
+- **FR-22**: Maintain bounded, attributed shared project context and
+  per-specialist context under the execution manager's existing writer
+  boundary. Limit each note to the existing 2048-character execution-text
+  bound. Make current context readable by the orchestrator and every delegated
+  worker, without granting context any approval authority.
+- **FR-23**: Let the manager record worker-reported context separately from
+  operator-authored context. Bind context reads and writes to the selected
+  execution and current plan, reject stale updates, and preserve previous
+  records without interpreting worker notes as accepted evidence.
+- **FR-24**: Prevent conflicting active file ownership across tasks and
+  executions in the same project before dispatch, while preserving the
+  existing exact-path and manager-lock checks.
+- **FR-25**: Provide a single time-scaled Gantt projection for proposed,
+  active, and completed project plans. Show dependencies, declared estimates,
+  observed intervals, and current status; label unknown or incomplete timing
+  rather than inventing calendar dates or observations.
+- **FR-26**: Make the Gantt and shared context available in the optional
+  manager-connected dashboard with accessible names, keyboard-operable
+  selection, readable text alternatives, and explicit refresh behavior.
 
 ## Acceptance criteria
 
@@ -141,12 +179,36 @@ acceptance criterion.
   an open confirmation or report a false failure after a successful write;
   polling is suspended during confirmation and mutation, and a changed
   selection invalidates the pending action.
+- **AC-20** (`FR-20`): Large-project planning examples produce 10 to 20
+  distinct, outcome-oriented activities with dependencies and verification;
+  small-project examples remain concise and contain no filler activities.
+- **AC-21** (`FR-21`): Contract and controller tests demonstrate that the same
+  specialist may be assigned to multiple activities, while unrelated task
+  count does not force additional agent sessions.
+- **AC-22** (`FR-22`): Shared and per-specialist context can be read by a
+  prepared delegated worker, is bounded and attributed, and is included in
+  the digest-bound request without changing approval or acceptance state.
+- **AC-23** (`FR-23`): Manager tests cover operator and worker-reported notes,
+  stale plan/context bindings, invalid or over-2048-character content,
+  persistence and replay. Worker notes remain unaccepted and cannot approve a
+  plan or task.
+- **AC-24** (`FR-24`): Isolated competing starts with overlapping paths are
+  rejected before dispatch, including across execution IDs. Disjoint paths
+  remain valid planned ownership, while the existing serialized-work barrier
+  stays in force until an earlier unresolved task is resolved.
+- **AC-25** (`FR-25`): Renderer and dashboard tests show one Gantt for a
+  proposal, an active execution, and a final execution report; dependencies,
+  estimates, actual intervals, and unknown values retain their provenance.
+- **AC-26** (`FR-26`): Dashboard tests and runtime checks prove keyboard
+  operability, accessible task names and text alternatives, explicit refresh,
+  empty/error states, and no dispatch from opening the Gantt.
 
 ## Data, permissions, privacy, and security
 
 Execution and detailed telemetry are disabled by default. Structured metadata
 is local only, under safe Git metadata or proven ignored project-local storage.
-No code, secrets, raw prompts/transcripts or raw command-output retention.
+Context notes are bounded local metadata, not transcripts. No code, secrets,
+raw prompts/transcripts or raw command-output retention.
 Titles, paths and verification descriptions may still be sensitive metadata.
 Retain records until explicit deletion; no automatic deletion/export.
 Automation requires explicit concurrency, timing, attempts and spend policies.
@@ -179,9 +241,10 @@ activation decisions that block their respective activation/completion claims.
 
 - Status: Approved
 - Approver: Maintainer
-- Evidence: Version 1 was explicitly approved for the safe default-disabled
-  baseline and staged development on 2026-11-01. The maintainer's explicit
-  instruction in the implementation request on 2026-11-02 approves only the
-  stated original-roadmap outcomes in FR-18, FR-19 and their mapped criteria.
-  It does not authorize any additional risky behavior or deferred capability.
-- Approved version: 2
+- Evidence: Version 1 was approved for the safe default-disabled baseline on
+  2026-11-01. Version 2 added finite autonomous dispatch and the native
+  manager dashboard. The maintainer explicitly approved the clarified
+  project-level orchestration scope on 2026-11-02, including major activities,
+  reusable specialist assignments, shared and per-agent context, ownership
+  protection, and one Gantt view across planning, execution, and review.
+- Approved version: 3

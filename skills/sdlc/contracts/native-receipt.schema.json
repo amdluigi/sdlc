@@ -11,6 +11,11 @@
     "hostId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
     "hostBuild": {"type": "string", "minLength": 1, "maxLength": 128},
     "callId": {"type": "string", "minLength": 1, "maxLength": 256},
-    "result": {"$ref": "urn:sdlc:task-result:1"}
+    "result": {
+      "oneOf": [
+        {"$ref": "urn:sdlc:task-result:1"},
+        {"$ref": "urn:sdlc:task-result:2"}
+      ]
+    }
   }
 }

@@ -85,6 +85,7 @@ class ExecutionManagementTests(unittest.TestCase):
         inspected = self.manager.inspect_execution(self.root, "feature-one")
         self.assertEqual("accepted", inspected["state"]["tasks"]["implement"]["status"])
         report = self.renderer.render_execution(inspected)
+        self.assertIn("## Gantt", report)
         self.assertIn("| implement |", report)
         self.assertIn("accepted", report)
         self.assertIn("unavailable", report)

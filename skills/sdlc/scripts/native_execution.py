@@ -27,10 +27,18 @@ def _host(value):
 
 
 def _request(value):
-    request = contracts._object(value, "", (
+    base_fields = (
         "schemaVersion", "projectRoot", "binding", "policyDigest", "role", "profileDigest", "host", "brief", "outcome",
-    ))
-    contracts._version(request)
+    )
+    if not isinstance(value, dict):
+        raise ContractIssue("E_SCHEMA_TYPE", "/", "expected an object")
+    version = value.get("schemaVersion")
+    if type(version) is not int or version not in (1, 2):
+        raise ContractIssue("E_EXECUTION_VERSION", "/schemaVersion", "native requests require schema version 1 or 2")
+    request = contracts._object(json.loads(contracts._encoded(value)), "",
+                                base_fields if version == 1 else base_fields + ("context",))
+    if version == 1:
+        contracts._version(request)
     binding = contracts._object(request["binding"], "/binding", ("executionId", "planRevision", "planDigest"))
     contracts._id(binding["executionId"], "/binding/executionId")
     contracts._number(binding["planRevision"], "/binding/planRevision")
@@ -50,10 +58,12 @@ def _request(value):
     contracts._enum(request["role"], "/role", ("architecture", "developer", "testing", "review"))
     _host(request["host"])
     contracts._text(request["outcome"], "/outcome")
+    if version == 2:
+        request["context"] = state.validate_context(request["context"], binding["planRevision"])
     return json.loads(contracts._encoded(request))
 
 
-def _validate(root, request, revision, *, check_guidance=True):
+def _validate(root, request, revision, *, check_guidance=True, record=None):
     request = _request(request)
     if request["projectRoot"] != str(root) or request["policyDigest"] != state.digest(revision["consent"]):
         raise ContractIssue("E_NATIVE_APPROVAL", "/", "request root or consent binding changed")
@@ -61,6 +71,14 @@ def _validate(root, request, revision, *, check_guidance=True):
     if request["binding"] != brief["binding"]:
         raise ContractIssue("E_NATIVE_BINDING", "/binding", "request binding differs from its brief")
     task = next(item for item in revision["plan"]["tasks"] if item["id"] == brief["taskId"])
+    current_record = manager._load(root, request["binding"]["executionId"]) if record is None else record
+    current_context = manager._context_for_record(current_record, revision["plan"]["revision"])
+    if request["schemaVersion"] == 2:
+        if request["context"] != current_context:
+            raise ContractIssue("E_NATIVE_CONTEXT", "/context", "request context is stale")
+    elif current_context["revision"] != 0:
+        raise ContractIssue("E_NATIVE_CONTEXT", "/context",
+                            "version-1 native requests cannot omit recorded project context")
     info = profiles.inspect_profile(root, request["role"])
     accepted_names = {request["role"], "sdlc-" + request["role"], info["name"].casefold()}
     if task["assignment"]["agent"].casefold() not in accepted_names:
@@ -99,11 +117,12 @@ def prepare_request(project_root, execution_id, brief, role, host):
     task = next(item for item in revision["plan"]["tasks"] if item["id"] == supplied["taskId"])
     info = profiles.inspect_profile(root, role)
     request = {
-        "schemaVersion": 1, "projectRoot": str(root), "binding": supplied["binding"],
+        "schemaVersion": 2, "projectRoot": str(root), "binding": supplied["binding"],
         "policyDigest": state.digest(revision["consent"]), "role": role, "profileDigest": info["digest"],
         "host": host, "brief": supplied, "outcome": task["outcome"],
+        "context": manager._context_for_record(record, revision["plan"]["revision"]),
     }
-    return _validate(root, request, revision)
+    return _validate(root, request, revision, record=record)
 
 
 def request_digest(request):
@@ -120,7 +139,7 @@ def start_request(project_root, request, approved_request_digest, *, _guard=None
     with manager._transaction(project_root, execution_id, require_binding=False) as (root, record, revision):
         if manager._consent(root, enabled=True) != revision["consent"]:
             raise ContractIssue("E_NATIVE_APPROVAL", "/", "consent changed after request preparation")
-        _validate(root, request, revision)
+        _validate(root, request, revision, record=record)
         brief = request["brief"]
         manager._project_attempt_available(root, execution_id, brief["taskId"], brief["attemptId"],
                                            native=True, bounded=_bounded,
@@ -249,7 +268,7 @@ def receive_receipt(project_root, request, receipt, result_id, *, _guard=None, _
     if receipt["requestDigest"] != digest or receipt["hostId"] != request["host"]["id"] or receipt["hostBuild"] != request["host"]["build"]:
         raise ContractIssue("E_NATIVE_BINDING", "/", "receipt does not match the prepared native host request")
     with manager._transaction(project_root, request["binding"]["executionId"]) as (root, record, revision):
-        _validate(root, request, revision, check_guidance=False)
+        _validate(root, request, revision, check_guidance=False, record=record)
         if _guard is not None:
             _guard(root, revision)
         brief = request["brief"]
@@ -299,6 +318,13 @@ def receive_receipt(project_root, request, receipt, result_id, *, _guard=None, _
                     raise ContractIssue("E_NATIVE_DUPLICATE", "/callId", "native call identity already has a receipt")
         if any(result_id in old["receipts"] for old in record["revisions"]):
             raise ContractIssue("E_NATIVE_DUPLICATE", "/resultId", "receipt ID already belongs to recorded work")
+        if validated["schemaVersion"] == 2:
+            if record["schemaVersion"] < 4:
+                record["context"] = state.empty_context()
+            record["schemaVersion"] = 4
+            if validated["contextUpdate"] is not None:
+                manager._set_context(record, "agent", request["role"], validated["contextUpdate"],
+                                     "worker", revision["plan"]["revision"])
         manager._append(revision, "TASK_PROGRESS_UPDATED", brief["taskId"], brief["attemptId"],
                         {"message": RECEIPT_MARKER + contracts._encoded(attribution)})
         revision["receipts"][result_id] = stored_receipt

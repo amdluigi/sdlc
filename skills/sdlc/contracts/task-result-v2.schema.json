@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:task-result:2",
+  "title": "Unaccepted worker result declarations with bounded context update, version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "binding", "taskId", "attemptId", "status",
+    "artifacts", "verification", "findings", "blockers", "contextUpdate"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "status": {"enum": ["completed", "failed", "blocked", "cancelled"]},
+    "artifacts": {"$ref": "urn:sdlc:execution-plan:1#/$defs/paths"},
+    "verification": {
+      "type": "array", "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["acceptanceCriterion", "command", "result", "revision", "summary"],
+        "properties": {
+          "acceptanceCriterion": {"$ref": "urn:sdlc:execution-plan:1#/$defs/acceptanceRef"},
+          "command": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}, {"type": "null"}]},
+          "result": {"enum": ["passed", "failed", "not-run", "skipped", "unavailable"]},
+          "revision": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}, {"type": "null"}]},
+          "summary": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}
+        }
+      }
+    },
+    "findings": {"$ref": "urn:sdlc:execution-plan:1#/$defs/texts"},
+    "blockers": {"$ref": "urn:sdlc:execution-plan:1#/$defs/texts"},
+    "contextUpdate": {
+      "anyOf": [
+        {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+        {"type": "null"}
+      ]
+    }
+  }
+}

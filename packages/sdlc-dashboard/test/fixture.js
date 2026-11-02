@@ -13,6 +13,9 @@ function sign(value) {
   value.snapshotDigest = 'sha256:' + crypto.createHash('sha256').update(canonical(value)).digest('hex');
   return value;
 }
+function digest(value) {
+  return 'sha256:' + crypto.createHash('sha256').update(canonical(value)).digest('hex');
+}
 function fixture() {
   return sign({
     schemaVersion: 1, kind: 'sdlc-execution-snapshot',
@@ -68,4 +71,36 @@ function liveFixture() {
       recordedAt:'2026-01-01T00:00:00Z'}]
   });
 }
-module.exports = {canonical, sign, fixture, liveFixture, acceptedSnapshotFixture, acceptedLiveFixture};
+function liveV2Fixture() {
+  const value = liveFixture();
+  delete value.snapshotDigest;
+  value.schemaVersion = 2;
+  value.tasks[0].estimateMs = 100;
+  const shared = {
+    content:'API contract agreed; tests pending.', source:'operator', author:'operator', agent:null,
+    updatedAt:'2026-01-01T00:00:00Z', planRevision:1
+  };
+  shared.digest = digest(shared.content);
+  const agent = {
+    content:'Own the API and contract tests.', source:'worker', author:'developer', agent:'developer',
+    updatedAt:'2026-01-01T00:01:00Z', planRevision:1
+  };
+  agent.digest = digest(agent.content);
+  const context = {schemaVersion:1,revision:2,shared,agents:{developer:agent}};
+  context.digest = digest(context);
+  value.context = context;
+  value.gantt = {
+    schemaVersion:1,kind:'sdlc-project-gantt',executionId:'feature-one',planRevision:1,
+    plannedDurationMs:100,plannedComplete:true,
+    plannedBasis:'declared estimates and dependencies only; no resource schedule or calendar forecast',
+    actualOrigin:'2026-01-01T00:00:00Z',actualDurationMs:20,
+    actualBasis:'manager event timestamps; not host execution timing',
+    tasks:[{
+      id:'task-a',title:'Inspect a bounded task',agent:'developer',status:'reported',
+      executionMode:'sequential',executionGroup:null,prerequisites:[],estimateMs:100,
+      plannedStartMs:0,plannedEndMs:100,actualStartOffsetMs:0,actualDurationMs:20
+    }]
+  };
+  return sign(value);
+}
+module.exports = {canonical, sign, digest, fixture, liveFixture, liveV2Fixture, acceptedSnapshotFixture, acceptedLiveFixture};

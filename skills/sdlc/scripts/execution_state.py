@@ -11,6 +11,64 @@ def digest(value):
     return "sha256:" + hashlib.sha256(contracts._encoded(value).encode("utf-8")).hexdigest()
 
 
+def context_digest(value):
+    material = {key: value[key] for key in ("schemaVersion", "revision", "shared", "agents")}
+    return digest(material)
+
+
+def empty_context():
+    context = {"schemaVersion": 1, "revision": 0, "shared": None, "agents": {}}
+    return {**context, "digest": context_digest(context)}
+
+
+def _context_entry(value, pointer, role, plan_revision):
+    entry = contracts._object(value, pointer, (
+        "content", "source", "author", "agent", "updatedAt", "planRevision", "digest",
+    ))
+    contracts._text(entry["content"], pointer + "/content", 2048)
+    contracts._enum(entry["source"], pointer + "/source", ("operator", "worker"))
+    contracts._text(entry["author"], pointer + "/author", 128)
+    if role is None:
+        if entry["agent"] is not None or entry["source"] != "operator" or entry["author"] != "operator":
+            raise ContractIssue("E_EXECUTION_CONTEXT", pointer, "shared context must be operator-authored")
+    else:
+        contracts._id(role, pointer + "/agent")
+        if entry["agent"] != role or (entry["source"] == "worker" and entry["author"] != role):
+            raise ContractIssue("E_EXECUTION_CONTEXT", pointer, "agent context attribution is inconsistent")
+        if entry["source"] == "operator" and entry["author"] != "operator":
+            raise ContractIssue("E_EXECUTION_CONTEXT", pointer, "operator context attribution is inconsistent")
+    contracts._time(entry["updatedAt"], pointer + "/updatedAt")
+    contracts._number(entry["planRevision"], pointer + "/planRevision")
+    if entry["planRevision"] > plan_revision:
+        raise ContractIssue("E_EXECUTION_CONTEXT", pointer + "/planRevision",
+                            "context cannot reference a future plan revision")
+    contracts._digest(entry["digest"], pointer + "/digest")
+    if entry["digest"] != digest(entry["content"]):
+        raise ContractIssue("E_EXECUTION_CONTEXT", pointer + "/digest", "context content digest changed")
+    return entry
+
+
+def validate_context(value, plan_revision):
+    context = contracts._object(json.loads(contracts._encoded(value)), "/context", (
+        "schemaVersion", "revision", "shared", "agents", "digest",
+    ))
+    if type(context["schemaVersion"]) is not int or context["schemaVersion"] != 1:
+        raise ContractIssue("E_EXECUTION_VERSION", "/context/schemaVersion",
+                            "only context schema version 1 is supported")
+    contracts._number(context["revision"], "/context/revision", 0)
+    if context["shared"] is not None:
+        context["shared"] = _context_entry(context["shared"], "/context/shared", None, plan_revision)
+    agents = _mapping(context["agents"], "/context/agents")
+    context["agents"] = {
+        role: _context_entry(entry, "/context/agents/" + role, role, plan_revision)
+        for role, entry in agents.items()
+    }
+    contracts._digest(context["digest"], "/context/digest")
+    if context["digest"] != context_digest(context):
+        raise ContractIssue("E_EXECUTION_CONTEXT", "/context/digest", "context snapshot digest changed")
+    return json.loads(contracts._encoded(context))
+
+
 def validate_policy(value):
     data = contracts._object(value, "", (
         "schemaVersion", "enabled", "mode", "retention", "detailedTelemetry",
@@ -139,10 +197,14 @@ def _validate_receipt_result(receipt, plan, *, allow_controller):
     scope = contracts._object(receipt["resultScope"], "/receipts/resultScope", (
         "allowedActions", "ownership", "acceptanceCriteria",
     ))
-    result = contracts._object(receipt["result"], "/receipts/result", (
+    base_fields = (
         "schemaVersion", "binding", "taskId", "attemptId", "status",
         "artifacts", "verification", "findings", "blockers",
-    ))
+    )
+    result_value = receipt["result"]
+    fields = base_fields + (("contextUpdate",) if isinstance(result_value, dict)
+                            and result_value.get("schemaVersion") == 2 else ())
+    result = contracts._object(result_value, "/receipts/result", fields)
     task_id = contracts._id(result["taskId"], "/receipts/result/taskId")
     attempt_id = contracts._id(result["attemptId"], "/receipts/result/attemptId")
     brief = {
@@ -383,7 +445,7 @@ def replay_execution_v3(plan, events, receipts=None, policy_digest=None, accepta
 
 def replay_record_revision(record_version, revision):
     """Replay one stored revision with the semantics its validated record version permits."""
-    replay = replay_execution_v3 if record_version == 3 else (
+    replay = replay_execution_v3 if record_version >= 3 else (
         replay_execution_v2 if record_version == 2 else replay_execution
     )
     return replay(revision["plan"], revision["events"], revision["receipts"], digest(revision["consent"]),
@@ -401,8 +463,12 @@ def acceptance_basis(task_state):
 
 
 def validate_record(value):
-    record = contracts._object(value, "", ("schemaVersion", "executionId", "revisions"))
-    if type(record["schemaVersion"]) is not int or record["schemaVersion"] not in (1, 2, 3):
+    if not isinstance(value, dict):
+        raise ContractIssue("E_SCHEMA_TYPE", "/", "expected an object")
+    version = value.get("schemaVersion")
+    record_fields = ("schemaVersion", "executionId", "revisions") + (("context",) if version == 4 else ())
+    record = contracts._object(value, "", record_fields)
+    if type(record["schemaVersion"]) is not int or record["schemaVersion"] not in (1, 2, 3, 4):
         raise ContractIssue("E_EXECUTION_VERSION", "/schemaVersion", "unsupported execution record version")
     contracts._id(record["executionId"], "/executionId")
     revisions = contracts._array(record["revisions"], "/revisions", True)
@@ -416,6 +482,13 @@ def validate_record(value):
         _transition(consent["policy"]["enabled"], "/consent")
         _transition(plan["executionId"] == record["executionId"] and plan["revision"] > previous, "/revision")
         state = replay_record_revision(record["schemaVersion"], {**revision, "plan": plan, "consent": consent})
+        if record["schemaVersion"] < 4 and any(
+            isinstance(receipt, dict) and isinstance(receipt.get("result"), dict)
+            and receipt["result"].get("schemaVersion") == 2
+            for receipt in revision["receipts"].values()
+        ):
+            raise ContractIssue("E_EXECUTION_VERSION", "/revisions/receipts",
+                                "version-2 task results require execution record version 4")
         _transition(bool(revision["events"]), "/events")
         first = revision["events"][0]
         _transition(first["type"] == ("PLAN_PROPOSED" if previous == 0 else "PLAN_UPDATED"))
@@ -429,4 +502,6 @@ def validate_record(value):
         attempts.update(state["attemptIds"])
         receipt_ids.update(revision["receipts"])
         previous = plan["revision"]
+    if record["schemaVersion"] == 4:
+        record["context"] = validate_context(record["context"], previous)
     return json.loads(contracts._encoded(record))

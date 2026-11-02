@@ -69,6 +69,72 @@ class NativeExecutionTests(unittest.TestCase):
         self.assertFalse((self.root / ".sdlc" / "execution-policy.json").exists())
         self.assertEqual(5, len(list((self.root / ".github" / "agents").glob("*.agent.md"))))
 
+    def test_ac22_prepared_native_request_contains_context_snapshot(self):
+        self.activate()
+        request = self.prepare()
+        self.assertEqual(2, request["schemaVersion"])
+        self.assertIn("context", request)
+        self.assertRegex(request["context"]["digest"], r"^sha256:[0-9a-f]{64}$")
+
+    def test_ac22_context_change_invalidates_a_prepared_request(self):
+        self.activate()
+        request = self.prepare()
+        self.manager.update_context(
+            self.root, "feature-one", "shared", None, "New operator context.",
+            request["binding"]["planDigest"], request["context"]["revision"],
+        )
+        self.assert_issue(
+            lambda: self.native.start_request(self.root, request, self.state.digest(request)),
+            "E_NATIVE_CONTEXT",
+        )
+
+    def test_ac22_legacy_request_works_only_before_context_is_recorded(self):
+        self.activate()
+        request = self.prepare()
+        request["schemaVersion"] = 1
+        del request["context"]
+        self.assertTrue(self.native.start_request(self.root, request, self.state.digest(request)))
+
+        second = copy.deepcopy(self.plan)
+        second["executionId"] = "feature-two"
+        self.manager.import_plan(self.root, second)
+        inspected = self.manager.inspect_execution(self.root, "feature-two")
+        self.manager.approve_plan(self.root, "feature-two", inspected["planDigest"], inspected["policyDigest"])
+        self.manager.update_context(
+            self.root, "feature-two", "shared", None, "Current shared context.",
+            inspected["planDigest"], 0,
+        )
+        second_brief = brief(second)
+        second_brief["guidance"] = []
+        legacy = self.native.prepare_request(self.root, "feature-two", second_brief, "developer", HOST)
+        legacy["schemaVersion"] = 1
+        del legacy["context"]
+        self.assert_issue(
+            lambda: self.native.start_request(self.root, legacy, self.state.digest(legacy)),
+            "E_NATIVE_CONTEXT",
+        )
+
+    def test_ac23_native_worker_context_is_saved_as_unaccepted_agent_note(self):
+        self.activate()
+        request = self.prepare()
+        self.start(request)
+        receipt = self.receipt(request)
+        receipt["result"] = {
+            **result(self.plan), "schemaVersion": 2,
+            "contextUpdate": "The migration contract is ready for independent review.",
+        }
+
+        self.native.receive_receipt(self.root, request, receipt, "result-one")
+        inspected = self.manager.inspect_execution(self.root, "feature-one")
+
+        self.assertEqual("reported", inspected["state"]["tasks"]["implement"]["status"])
+        self.assertIsNone(inspected["state"]["tasks"]["implement"]["acceptance"])
+        self.assertEqual(
+            "The migration contract is ready for independent review.",
+            inspected["context"]["agents"]["developer"]["content"],
+        )
+        self.assertEqual("worker", inspected["context"]["agents"]["developer"]["source"])
+
     def test_profile_collisions_drift_and_extra_files_preserve_user_content(self):
         folder = self.root / ".github" / "agents"
         folder.mkdir(parents=True)
@@ -311,11 +377,25 @@ class NativeExecutionTests(unittest.TestCase):
         self.activate()
         request = self.prepare()
         for name, envelope in (("request", request), ("receipt", self.receipt(request))):
-            schema = json.loads((SCRIPTS.parent / "contracts" / f"native-{name}.schema.json").read_text())
+            versioned_name = f"native-{name}-v{envelope['schemaVersion']}.schema.json"
+            schema_path = SCRIPTS.parent / "contracts" / versioned_name
+            if not schema_path.exists():
+                schema_path = SCRIPTS.parent / "contracts" / f"native-{name}.schema.json"
+            schema = json.loads(schema_path.read_text())
             self.assertFalse(schema["additionalProperties"])
             self.assertEqual(set(envelope), set(schema["required"]))
             self.assertEqual(set(envelope), set(schema["properties"]))
-            self.assertEqual(1, schema["properties"]["schemaVersion"]["const"])
+            self.assertEqual(envelope["schemaVersion"], schema["properties"]["schemaVersion"]["const"])
+        receipt_schema = json.loads(
+            (SCRIPTS.parent / "contracts" / "native-receipt.schema.json").read_text()
+        )
+        self.assertEqual(
+            {"oneOf": [
+                {"$ref": "urn:sdlc:task-result:1"},
+                {"$ref": "urn:sdlc:task-result:2"},
+            ]},
+            receipt_schema["properties"]["result"],
+        )
 
     def test_ordinary_manual_progress_does_not_block_peer_native_receipts(self):
         self.activate()
