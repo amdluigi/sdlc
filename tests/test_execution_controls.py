@@ -37,6 +37,24 @@ def batch_controls_policy(enabled=True):
             }
 
 
+def autonomous_controls_policy(enabled=True):
+    return {
+        **batch_controls_policy(enabled),
+        "schemaVersion": 4,
+        "mode": "autonomous",
+    }
+
+
+class AutonomousPolicyContractTests(unittest.TestCase):
+    def test_explicit_autonomous_policy_uses_version_four_finite_bounds(self):
+        controls = importlib.import_module("execution_controls")
+        policy = autonomous_controls_policy()
+        self.assertEqual(policy, controls.validate_controls_policy(policy))
+        invalid = {**policy, "mode": "batch"}
+        with self.assertRaises(ContractIssue):
+            controls.validate_controls_policy(invalid)
+
+
 class ExecutionControlsTests(unittest.TestCase):
     def setUp(self):
         self.assertTrue((SCRIPTS / "execution_controls.py").is_file(), "Execution controls not provided")
@@ -159,6 +177,27 @@ class ExecutionControlsTests(unittest.TestCase):
         refreshed = self.controls.inspect_controls(self.root)["store"]
         self.assertEqual(generation + 1, refreshed["generation"])
         self.assertEqual(supervised, refreshed["retainedPrevious"])
+        self.assertEqual({}, refreshed["batchApprovals"])
+
+    def test_autonomous_controls_version_retains_batch_history_and_forbids_downgrade(self):
+        self.activate()
+        self.controls.configure_controls(self.root, batch_controls_policy())
+        self.approve()
+        previous = self.controls.inspect_controls(self.root)["store"]
+
+        self.controls.configure_controls(self.root, autonomous_controls_policy())
+        current = self.controls.inspect_controls(self.root)
+        self.assertEqual(4, current["store"]["schemaVersion"])
+        self.assertEqual(previous, current["store"]["retainedPrevious"])
+        self.assertTrue(current["runtimeCapabilities"]["autonomous"])
+        self.assertTrue(current["runtimeCapabilities"]["batchScheduling"])
+        self.issue(lambda: self.controls.configure_controls(self.root, batch_controls_policy()),
+                   "E_CONTROLS_CAPABILITY")
+        generation = current["store"]["generation"]
+        self.controls.configure_controls(self.root, autonomous_controls_policy())
+        refreshed = self.controls.inspect_controls(self.root)["store"]
+        self.assertEqual(generation + 1, refreshed["generation"])
+        self.assertEqual(previous, refreshed["retainedPrevious"])
         self.assertEqual({}, refreshed["batchApprovals"])
 
     def test_batch_controls_reject_unbounded_or_unsupported_policy(self):

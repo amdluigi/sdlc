@@ -2,7 +2,7 @@
 type: prd
 id: staged-execution-orchestration
 status: approved
-version: 1
+version: 2
 ---
 
 # Product requirements: Staged execution orchestration
@@ -22,8 +22,10 @@ optional qualified delegation, controls, dashboards and historical proposals.
 
 Deliver opt-in execution management in four milestones: local management and
 reporting; supervised workers; routing and lifecycle controls; optional
-dashboard and analytics. A prerequisite implementation does not by itself
-satisfy a later live-host acceptance criterion.
+dashboard and analytics. Close the remaining original roadmap scope with
+finite autonomous dispatch and a manager-connected native dashboard. A
+prerequisite implementation does not by itself satisfy a later live-host
+acceptance criterion.
 
 ## Goals
 
@@ -42,11 +44,16 @@ satisfy a later live-host acceptance criterion.
 
 1. A user explicitly enables local policy, imports and approves a plan,
    records manual attempts/results and inspects an execution report.
-2. A stale approval, failed evidence, unknown worker or conflicting ownership
+2. A user explicitly selects autonomous mode, approves one exact finite batch,
+   and lets the existing controller continue only work within that approval.
+3. A user explicitly opens a manager-connected dashboard for one selected
+   project and execution, reviews current task details, and performs
+   digest-bound manager actions.
+4. A stale approval, failed evidence, unknown worker or conflicting ownership
    blocks automation without repeating a possibly running operation.
-3. A qualified host executes bounded work; unavailable capabilities remain
+5. A qualified host executes bounded work; unavailable capabilities remain
    explicit blockers rather than simulated successful dispatch.
-4. A user separately approves telemetry, runtime limits and analytical policy
+6. A user separately approves telemetry, runtime limits and analytical policy
    proposals before they take effect.
 
 ## Functional requirements
@@ -67,9 +74,18 @@ satisfy a later live-host acceptance criterion.
 - **FR-13**: Keep attributed telemetry separately consented and existing
   anonymous measurement/evaluator records independent.
 - **FR-14**: Provide bounded modes, pause/cancel and safe restart reconciliation.
-- **FR-15**: Qualify an optional read-only dashboard before manager-mediated actions.
+- **FR-15**: Provide an optional native manager-connected dashboard with
+  explicit project and execution selection, task details, filters, progress,
+  live manager events, and confirmed manager-mediated actions.
 - **FR-16**: Analyze explicitly selected confined local records reproducibly.
 - **FR-17**: Produce inactive estimate/routing proposals requiring explicit adoption.
+- **FR-18**: Provide a separately enabled finite autonomous mode that dispatches
+  only preapproved tasks, attempts, models, and bounds through the existing
+  sole-writer controller, continuing independent runnable tasks while stopping
+  at any prerequisite that lacks an independent acceptance judgment.
+- **FR-19**: Revalidate dashboard approvals, acceptance judgments, pause/resume,
+  and cancellation intent against current manager state; opening the dashboard
+  alone must not enable live updates or start work.
 
 ## Acceptance criteria
 
@@ -100,12 +116,31 @@ satisfy a later live-host acceptance criterion.
   off; revocation, attribution ambiguity and duplicate windows are tested.
 - **AC-14** (`FR-14`): Pause blocks new work; unsupported cancellation stays
   pending and restart does not redispatch unknown non-idempotent attempts.
-- **AC-15** (`FR-15`): UI qualification covers CSP, escaping, stale messages,
-  authority, keyboard/focus/accessibility and unavailable integration.
+- **AC-15** (`FR-15`): The native dashboard supports explicit selection,
+  task details and filters, progress, explicitly enabled live manager events,
+  accessible interactions, and digest-bound manager actions while preserving
+  the existing read-only export viewer.
 - **AC-16** (`FR-16`): Analytics inspect only selected confined records and
   preserve insufficient/missing data and quality/rework context.
 - **AC-17** (`FR-17`): Proposals retain provenance, cannot mutate policy, and
   require explicit approval or rejection.
+- **AC-18** (`FR-18`): Autonomous mode is opt-in and versioned, preserves
+  manual/supervised/batch behavior, requires current plan and controls
+  approval plus per-batch digest consent, enforces finite attempt/model/runtime
+  limits, continues independent runnable tasks, and stops before unaccepted
+  dependencies or any unconfirmed/unknown work. Workers cannot accept results
+  or approve plans or controls. A bounded result is accepted only by a
+  separately versioned operator validation bound to its exact result digest;
+  worker verification is never treated as passed, and an accepted result then
+  allows its dependents to dispatch through the same controller.
+- **AC-19** (`FR-19`): Live dashboard reads occur only for an explicitly
+  selected project and execution. Live updates require an explicit command.
+  Consequential actions require user confirmation and current digest binding;
+  stale views are rejected under the existing manager writer, and opening any
+  dashboard view never dispatches work. Unchanged live reads never invalidate
+  an open confirmation or report a false failure after a successful write;
+  polling is suspended during confirmation and mutation, and a changed
+  selection invalidates the pending action.
 
 ## Data, permissions, privacy, and security
 
@@ -144,6 +179,9 @@ activation decisions that block their respective activation/completion claims.
 
 - Status: Approved
 - Approver: Maintainer
-- Evidence: Explicit approval of version 1, safe default-disabled baseline
-  and staged development in the implementation conversation on 2026-11-01.
-- Approved version: 1
+- Evidence: Version 1 was explicitly approved for the safe default-disabled
+  baseline and staged development on 2026-11-01. The maintainer's explicit
+  instruction in the implementation request on 2026-11-02 approves only the
+  stated original-roadmap outcomes in FR-18, FR-19 and their mapped criteria.
+  It does not authorize any additional risky behavior or deferred capability.
+- Approved version: 2

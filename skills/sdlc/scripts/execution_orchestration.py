@@ -133,8 +133,8 @@ def _prepared_batch(project_root, value):
     root = manager._root(project_root)
     manager._consent(root, enabled=True)
     store = controls._active(root)
-    if store["schemaVersion"] != 3:
-        raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "version 3 batch controls are required")
+    if store["schemaVersion"] not in (3, 4):
+        raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "explicit finite batch or autonomous controls are required")
     policy = store["policy"]
     if len(batch["tasks"]) > policy["maxBatchTasks"]:
         raise ContractIssue("E_ORCHESTRATION_LIMIT", "/tasks", "batch task count exceeds approved policy")
@@ -262,13 +262,31 @@ def next_attempt(project_root, value, approved_digest):
     expected = batch_digest(batch, current["planDigest"], current["policyDigest"], controls._digest(store))
     if expected != approved_digest:
         raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/batchDigest", "batch approval is stale")
+    autonomous = store["policy"]["mode"] == "autonomous"
+    if autonomous and store["paused"]:
+        return {**semantic_fields(), "status": "paused", "dispatch": False}
+    if autonomous and any(item["status"] == "pending" for item in store["cancelRequests"]):
+        return {**semantic_fields(), "status": "cancellation-pending", "dispatch": False}
     tasks = current["state"]["tasks"]
+    if autonomous:
+        active = next((task_id for task_id, projected in tasks.items()
+                       if projected["status"] in ("running", "blocked")), None)
+        if active is not None:
+            return {**semantic_fields(), "status": "unknown-barrier", "taskId": active, "dispatch": False}
     plan_tasks = {item["id"]: item for item in current["plan"]["tasks"]}
+    deferred_barrier = None
     for item in batch["tasks"]:
         task_id = item["taskId"]
         projected = tasks[task_id]
         prerequisites = plan_tasks[task_id]["prerequisites"]
+        if autonomous and projected["status"] in ("running", "blocked"):
+            return {**semantic_fields(), "status": "unknown-barrier", "taskId": task_id, "dispatch": False}
         if any(tasks[parent]["status"] != "accepted" for parent in prerequisites):
+            if autonomous and projected["status"] not in ("running", "blocked"):
+                if deferred_barrier is None:
+                    deferred_barrier = {**semantic_fields(), "status": "waiting-for-acceptance",
+                                        "taskId": task_id, "dispatch": False}
+                continue
             return {**semantic_fields(), "status": "waiting-for-acceptance", "taskId": task_id,
                     "dispatch": False}
         if projected["status"] == "accepted":
@@ -289,6 +307,11 @@ def next_attempt(project_root, value, approved_digest):
             projected["status"] == "failed" and projected["reportedStatus"] == "failed"
         ):
             if projected["reportedStatus"] != "failed":
+                if autonomous:
+                    if deferred_barrier is None:
+                        deferred_barrier = {**semantic_fields(), "status": "waiting-for-acceptance",
+                                            "taskId": task_id, "dispatch": False}
+                    continue
                 return {**semantic_fields(), "status": "waiting-for-acceptance", "taskId": task_id,
                         "dispatch": False}
             record = manager._load(root, batch["executionId"])
@@ -304,6 +327,11 @@ def next_attempt(project_root, value, approved_digest):
             revision = record["revisions"][-1]
             receipt = revision["receipts"].get(projected["resultId"])
             if receipt is None or not _retryable(receipt["result"]):
+                if autonomous:
+                    if deferred_barrier is None:
+                        deferred_barrier = {**semantic_fields(), "status": "not-retryable",
+                                            "taskId": task_id, "dispatch": False}
+                    continue
                 return {**semantic_fields(), "status": "not-retryable", "taskId": task_id, "dispatch": False}
             accounted = any(
                 isinstance(event, dict) and event.get("schemaVersion") == 2
@@ -316,6 +344,11 @@ def next_attempt(project_root, value, approved_digest):
             if not accounted:
                 return {**semantic_fields(), "status": "unknown-barrier", "taskId": task_id, "dispatch": False}
             if prior_index + 1 >= len(candidates):
+                if autonomous:
+                    if deferred_barrier is None:
+                        deferred_barrier = {**semantic_fields(), "status": "attempts-exhausted",
+                                            "taskId": task_id, "dispatch": False}
+                    continue
                 return {**semantic_fields(), "status": "attempts-exhausted", "taskId": task_id,
                         "dispatch": False}
             next_spec = candidates[prior_index + 1]
@@ -354,7 +387,7 @@ def next_attempt(project_root, value, approved_digest):
                     "brief": first["brief"], "limits": first["limits"],
                     "batchId": batch["batchId"], "batchDigest": approved_digest, "dispatch": True}
         return {**semantic_fields(), "status": "waiting-for-review", "taskId": task_id, "dispatch": False}
-    return {**semantic_fields(), "status": "complete", "dispatch": False}
+    return deferred_barrier or {**semantic_fields(), "status": "complete", "dispatch": False}
 
 
 def check_batch_attempt(project_root, batch, approved_digest, task_id, attempt_id, model_id, limits,

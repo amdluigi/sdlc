@@ -2,202 +2,61 @@
 type: implementation-plan
 prd-path: docs/prds/staged-execution-orchestration.md
 prd-id: staged-execution-orchestration
-prd-version: 1
+prd-version: 2
 ---
 
-# Staged execution orchestration
+# Original roadmap closure
 
-Build optional execution management around the working control plane.
-Keep legacy workflows/configuration and merged version-1 data contracts intact.
+Complete the approved original roadmap scope as one opt-in vertical slice.
+Use the existing Python manager, versioned controls, sole writer, exact finite
+batch controller, native VS Code APIs, and standard Node/Python libraries.
+Do not add an SDK, dependency, daemon, or second scheduler. Existing version-1
+manual data, version-2 supervised controls, version-3 batch behavior, and
+read-only export commands remain compatible.
 
 | Task | PRD refs | Outcome | Prerequisites | Consumes | Produces | Execution | Verification |
 |------|----------|---------|---------------|----------|----------|-----------|--------------|
-| authority | FR-1, FR-2, FR-4, FR-8, FR-13, AC-1, AC-2, AC-4, AC-8, AC-13 | Public requirements and locked optional interfaces | none | none | roadmap-contract | sequential | PRD and plan validate; baseline recorded |
-| local | FR-1, FR-2, FR-4, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, AC-1, AC-2, AC-4, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13 | M1 replayable local execution and reports | authority | roadmap-contract | local-preview | sequential | State, writer, approval, receipt and report tests plus full qualification |
-| supervised | FR-1, FR-2, FR-3, FR-7, FR-8, FR-9, FR-12, AC-1, AC-2, AC-3, AC-7, AC-8, AC-9, AC-12 | M2 bounded profiles and qualified host delegation | local | local-preview | supervised-runtime | sequential | Installation, ownership, evidence and real host receipt checks |
-| controlled | FR-5, FR-6, FR-10, FR-13, FR-14, AC-5, AC-6, AC-10, AC-13, AC-14 | M3 verified routing, attempts and lifecycle controls | supervised | supervised-runtime | controlled-runtime | sequential | Inventory, policy exhaustion, consent, cancellation and restart tests |
-| batch-controller | FR-1, FR-2, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-13, FR-14, AC-1, AC-2, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-13, AC-14 | Explicitly consented finite local batch scheduling with receipt-bound retry and permitted escalation | controlled | controlled-runtime | bounded-batch-controller | sequential | Versioned replay, batch digest/consent, bounded cumulative accounting, dependency, retry, escalation and restart regressions; focused Python and runtime tests |
-| views | FR-11, FR-12, FR-15, FR-16, FR-17, AC-11, AC-12, AC-15, AC-16, AC-17 | M4 qualified optional dashboard and analytical proposals | controlled | controlled-runtime | complete-roadmap | sequential | UI transport/accessibility/security and reproducible analytics/proposal checks |
+| preserve | FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-16, FR-17, AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-16, AC-17 | Lock backward-compatibility evidence for existing contracts, controls, reports, and disabled defaults | none | none | compatibility-evidence | sequential | Existing focused controls, manager, orchestration, runtime, insight, and export-view tests pass unchanged |
+| autonomous | FR-6, FR-7, FR-8, FR-9, FR-14, FR-18, AC-6, AC-7, AC-8, AC-9, AC-14, AC-18 | Add explicit version-4 autonomous controls and bounded independent-task continuation through the existing controller | preserve | compatibility-evidence | autonomous-manager-contract | sequential | New Python tests prove default-off, policy validation, exact digest binding, independent runnable tasks, retries, dependency judgment barrier, pause/cancel/unknown barrier, and unchanged version-3 scheduling |
+| dashboard | FR-1, FR-2, FR-9, FR-11, FR-12, FR-15, FR-19, AC-1, AC-2, AC-9, AC-11, AC-12, AC-15, AC-19 | Add selected manager-connected native tree, explicit live updates, accessible detail/filter/progress, and confirmed manager actions alongside the export viewer | autonomous | autonomous-manager-contract | live-manager-dashboard | sequential | Node UI tests plus real Python manager/filesystem bridge tests cover selection, filters, events, stale bindings, unchanged-poll confirmation stability, selection-change invalidation, write/poll races, approvals, digest-bound independent acceptance, pause/cancel, hidden-view polling shutdown, selection-change/refresh-failure polling shutdown, errors, and export compatibility |
+| integrate | FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-15, FR-16, FR-17, FR-18, FR-19, AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18, AC-19 | Synchronize documentation, schemas, qualification inventory, and final focused evidence | autonomous, dashboard | autonomous-manager-contract, live-manager-dashboard | original-roadmap-closure | sequential | Validate PRD/plan/schema/manifests; run runtime and dashboard Node suites serially, focused Python tests after final text normalization, static checks, and final diff review |
 
-## M1 interface and storage boundary
+## Interface and compatibility decisions
 
-New policy is a separate project-local `.sdlc/execution-policy.json`; absence
-means disabled. M1 supports explicitly recorded manual work, not worker
-dispatch. New policy/state/receipt formats have separate versioned identities.
+- Controls schema version 4 uses `mode: "autonomous"` and the same closed,
+  finite task/call/tool-call/wall-time/input/output bounds as batch mode.
+  Version-4 controls storage retains prior version-1, version-2, or version-3
+  state. There is no implicit migration or downgrade.
+- Autonomous dispatch writes a version-3 execution manager record with a
+  separately versioned start marker bound to the exact approved batch,
+  attempt brief and model. Existing version-2 retry/accounting events remain
+  version 2. Version-1/2 records and event meanings are unchanged; readers
+  that do not understand version 3 fail closed.
+- Autonomous work reuses the existing exact batch definition and approval
+  digest. The current sole-writer controller continues serially across
+  independent runnable tasks and receipt-bound preapproved retries. It skips
+  tasks waiting on unaccepted prerequisites and stops when no independent
+  work is runnable. Version-3 batch mode keeps its current stop-on-first-wait
+  behavior.
+- A fixed dashboard bridge exposes only manager inspection, plan/control
+  approval, independent acceptance, pause/resume, and cancellation-intent
+  operations. Each write is checked by the existing manager under its writer
+  lock against current plan, policy, controls policy and control-state
+  digests, task, attempt, and result bindings.
+- The export viewer and its commands remain unchanged in meaning. A separate
+  explicit native live view is selected by workspace and execution ID. Live
+  polling is opt-in and read-only; opening either view does not poll or
+  dispatch.
+- The dashboard displays only bounded structured metadata. It does not retain
+  prompts, transcripts, or raw outputs. Host cancellation and spend enforcement
+  remain unavailable and are not represented as supported.
 
-Use pure initial-state/replay and read-only rendering. Manager operations
-explicitly import plans, approve current plan/policy bindings, record manual
-attempts/receipts and independent acceptance judgments, inspect recovery
-barriers and explicitly delete one selected record.
+## Risk and rollback
 
-Keep immutable revisions and logically append-only event history in one
-bounded atomic execution record, protected by a single-writer lock. Whole-file
-replacement is physical storage; earlier logical event entries cannot be edited
-through manager operations. Derived state is rebuilt by replay, not trusted as
-an independent snapshot. Corrupt records or incomplete writes fail closed;
-never automatically truncate, steal a lock or redispatch unknown work.
-
-Exact portable API: `initial_execution_state(plan)` and
-`replay_execution(plan, events, receipts=None, policy_digest=None,
-acceptances=None, approvals=None)`. Events preserve the existing schema;
-separately versioned records retain receipt and controller-judgment bindings.
-Replay rejects privileged events without corresponding manager records.
-The revision stores the consent snapshot, events and keyed receipts,
-acceptances and approvals. A policy consent generation changes on every
-explicit configure, including restoring earlier settings. Existing execution
-approval cannot revive after disable/re-enable. A changed policy requires a
-new immutable plan revision and new approval.
-
-Manager functions are `configure_policy(root, policy, dry_run=False)`,
-`import_plan(root, plan)`, `inspect_execution(root, execution_id)`,
-`approve_plan(root, execution_id, plan_digest, policy_digest)`,
-`record_task(root, execution_id, task_id, action, attempt_id=None, reason=None)`,
-`receive_result(root, execution_id, result_id, brief, result)`,
-`accept_task(root, execution_id, acceptance)`, and
-`delete_execution(root, execution_id)`. No arbitrary event append is public.
-Manual acceptance records have version, task/attempt/result identity, complete
-criteria, checked revision, command and summary. They declare an independent
-operator judgment; they neither run a command nor prove evidence quality.
-All manual attempts are serialized across execution IDs in the same project.
-Under the writer lock, start validates peer records for unresolved work; record
-deletion cannot release unresolved claims. Receipt identities and attempt IDs are
-unique across execution revisions. Capacity: at most 256 execution records
-per project, and 256 revisions, events
-per revision and receipts/decisions per revision, and 2 MiB canonical bytes
-per authoritative record. Exhaustion is an explicit failure without pruning.
-
-Reuse existing strict contracts and compatible local path/reparse/Git-ignore
-patterns. Existing metrics/run-record helpers are not rewritten. Policy
-consent is rechecked inside the writer lock. No automatic export/cleanup.
-
-M1 additions: `execution_state.py`, `execution_manager.py`,
-`manage_execution.py`, `execution_renderers.py`, new strict policy/record/
-acceptance contracts, corresponding tests and `EXECUTION-MANAGEMENT.md`.
-Update only required exact inventories, qualification and architecture links.
-M2-M4 public interfaces are locked at their integration seams before coding.
-
-## M2 native execution boundary
-
-Use the [supervised native flow](../NATIVE-EXECUTION.md): opt-in host-neutral
-roles, collision-safe project profile installation, separately approved
-digest-bound requests, one actual native host invocation and attributable
-receipts reconciled by the existing manager. No SDK is required. Preserve
-manual execution policy and all existing version-1 formats; progress markers
-bind native requests without adding event types or granting worker authority.
-VS Code packaging is the first supported format, not evidence that all hosts
-or models have identical tools, routing, cancellation or background execution.
-Actual host qualification remains necessary before M2 acceptance.
-
-The [optional SDK-free bounded worker](../../packages/sdlc-runtime/README.md)
-adds a real extension-owned read/search/exact-file edit loop over the native
-manager request/receipt boundary. Exact executable/argv commands require
-separate authorization and a qualified process-containment capability.
-Separate runtime/model/limits confirmation, per-operation binding checks and
-real filesystem/CLI tests are required. Enabled version-1 manual controls
-still cannot dispatch; version-2 supervised controls require explicit selection
-and fresh approval while retaining manual history.
-
-An actual isolated native host trial used the production dialogs, manager,
-filesystem, read/edit/contained command tools and unaccepted receipt. Only
-external model discovery/responses were synthetic. Declining either command
-or runtime authorization started no work. This does not qualify authenticated
-providers, effective routing, billing or remote stop; remaining gates are in its
-[qualification limits](../../packages/sdlc-runtime/QUALIFICATION.md).
-
-## M3 portable controls boundary
-
-The [execution controls](../EXECUTION-CONTROLS.md) slice provides separately
-approved attempt limits, escalation checks, persistent pause and
-cancellation-intent barriers, read-only reconciliation, and pure resolution
-of supplied model inventory/pricing. Version-1 manual behavior remains
-unchanged. Explicit version-2 supervised controls apply model and attempt
-limits to the bounded worker; they do not enable a scheduler, automatic
-retry/escalation or automatic acceptance.
-
-These portable checks and native synthetic trials can be verified while live
-provider qualification is blocked. Local command-tree cleanup is not remote
-provider stop acknowledgement. Bounded autonomous execution, effective runtime
-routing, live usage/billing and monetary caps remain unqualified or unavailable,
-not silently enabled by selecting supervised mode.
-
-## Finite local batch controller
-
-The additive batch controller is a separate, explicit local command over the
-existing fixed bridge, runtime driver, manager writer and attempt history. It
-does not replace the single-worker command. Each batch binds a finite ordered
-set of exact task briefs, model IDs already permitted by the selected controls
-policy, per-attempt runtime bounds, cumulative call/time/input/output-byte
-bounds, and a digest shown for one explicit user approval. These are execution
-and data bounds, not monetary limits. A requested spend ceiling fails before
-dispatch because no authoritative usage/pricing capability exists.
-
-Version-1 manual and version-2 supervised records, events and approvals remain
-unchanged and inspectable. Retry state is an additive, explicitly versioned
-controller representation in the manager-owned record. It records versioned
-retry events and references actual complete manager receipts; version-1 replay
-is never taught to interpret failed-to-ready transitions. The version-3
-controller policy and record retain the complete preceding manual/supervised
-state, require fresh approval, and fail closed for old readers and automatic
-downgrade. One manager lock and record remain the only attempt ledger.
-
-The controller dispatches serially. A task is eligible only when every
-prerequisite has an independent accepted judgment. A reported or completed
-receipt is not acceptance; the batch stops and waits for the manager. Only a
-fully observed failed receipt plus a preapproved remaining attempt may make a
-retry eligible. Unknown, cancelled, timed-out, thrown, malformed, stale,
-environmental, or otherwise unexplained outcomes remain barriers and are
-never retried. Ordered escalation uses only the exact preapproved model for
-that attempt, with no worker selection or implicit inventory adoption.
-Restart inspects the existing consumed history and never redispatches.
-
-The native batch command uses the current IDE's local host APIs and the
-already selected executable/channel. It does not assume stable or insiders.
-No SDK, provider credentials, network client, global installation or background
-daemon is introduced. Real provider behavior, authoritative billing, remote
-stop, and non-Windows process execution remain separate qualification gates.
-
-## Independent telemetry and insights boundary
-
-[Detailed telemetry](../EXECUTION-TELEMETRY.md) has separately disabled consent,
-generation-bound capture, exact stored native attribution, supplied model/rate
-consistency, non-overlapping identified-clock windows and explicit retention.
-It is a portable supplied-observation interface, not a live collector or proof
-of host authentication, runtime routing or billing.
-
-[Execution insights](../EXECUTION-INSIGHTS.md) operate on explicitly selected
-local history. Keep estimates, manager event intervals, supplied host timing
-and rate-specific costs distinct; missing evidence stays unavailable.
-Proposals remain inactive and provenance-bound. Proposal review must never
-adopt a policy or authorize execution.
-
-Optional native UI consumes an explicitly exported local snapshot, not a
-worker API or automatic discovery. Its installed-host file/TreeView transport
-requires independent qualification; portable tests alone cannot establish UI
-accessibility or actual host capabilities. These independent seams may
-advance while live M2/M3 gates remain blocked, without completing those gates
-or claiming the full roadmap is accepted.
-
-The [optional dashboard](../../packages/sdlc-dashboard/README.md) has actual
-isolated VS Code 1.131.0 file/TreeView, keyboard, error/recovery and two-viewport
-evidence, plus Python Unicode/int64 interoperability. Qualification remains
-partial for arbitrary reparse tags, screen-reader instrumentation and exact
-focused-child restoration; see its
-[qualification limits](../../packages/sdlc-dashboard/QUALIFICATION.md).
-This does not qualify live worker execution or full AC-15.
-
-## Safety, verification and reversal
-
-New execution is opt-in; detailed telemetry is separately disabled. Approval
-and evidence acceptance are explicit cooperative controller judgments, never
-inferred from worker data. Serial edits and exact canonical ownership claims
-protect the shared-worktree path. Actual host/tool/model capabilities require
-live qualification before delegation or optimization is claimed.
-
-Use red/green behavior assertions, focused tests during implementation and
-one fresh full regression/qualification gate per milestone. Public branches
-and draft PRs remain independently reviewable or explicitly stacked.
-Do not merge, release or activate policy automatically.
-
-Reversal removes milestone code and inventories together while preserving
-retained local data for version-aware inspection. No destructive reset,
-global skill refresh or private management dependency is introduced.
+No execution plan is migrated. The new controls and manager-record versions
+are additive; prior control state and version-1/2 event meanings are retained,
+and old readers fail closed on new manager records. Runtime failures remain
+unknown barriers. Reverting code must not discard or reinterpret version-4
+controls or version-3 execution records. No live host qualification is
+claimed by Node mocks; manager bridge tests exercise the real local manager
+and filesystem boundaries.

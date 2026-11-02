@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-controls-record:4",
+  "title": "Explicit autonomous state retaining prior controls, version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "generation", "policy", "safetyActivated", "paused", "pauseReason",
+    "approvals", "cancelRequests", "batchApprovals", "retainedPrevious"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 4},
+    "generation": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/generation"},
+    "policy": {"$ref": "urn:sdlc:execution-controls-policy:4"},
+    "safetyActivated": {"type": "boolean"},
+    "paused": {"type": "boolean"},
+    "pauseReason": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/pauseReason"},
+    "approvals": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/approvals"},
+    "cancelRequests": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/cancelRequests"},
+    "batchApprovals": {"$ref": "urn:sdlc:execution-controls-record:3#/properties/batchApprovals"},
+    "retainedPrevious": {
+      "anyOf": [
+        {"type": "null"},
+        {"$ref": "urn:sdlc:execution-controls-record:1"},
+        {"$ref": "urn:sdlc:execution-controls-record:2"},
+        {"$ref": "urn:sdlc:execution-controls-record:3"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"policy": {"properties": {"enabled": {"const": true}}}}},
+      "then": {"properties": {"safetyActivated": {"const": true}}}
+    },
+    {
+      "if": {"properties": {"paused": {"const": true}}},
+      "then": {"properties": {"pauseReason": {"type": "string"}}},
+      "else": {"properties": {"pauseReason": {"type": "null"}}}
+    }
+  ]
+}

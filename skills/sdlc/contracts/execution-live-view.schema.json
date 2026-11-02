@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-live-view:1",
+  "title": "Explicitly selected current execution manager view, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "kind", "binding", "planDigest", "policyDigest", "controlsDigest", "controlsStateDigest",
+    "planApproved", "writerLockPresent", "controls", "progress", "tasks", "events", "snapshotDigest"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "kind": {"const": "sdlc-live-execution-view"},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "planDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+    "policyDigest": {
+      "anyOf": [
+        {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        {"type": "null"}
+      ]
+    },
+    "controlsDigest": {
+      "anyOf": [
+        {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        {"type": "null"}
+      ]
+    },
+    "controlsStateDigest": {
+      "anyOf": [
+        {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        {"type": "null"}
+      ]
+    },
+    "planApproved": {"type": "boolean"},
+    "writerLockPresent": {"type": "boolean"},
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled", "paused", "autonomous", "controlsApproved", "pendingCancellationCount",
+        "unknownNativeAttemptCount", "hostCancellation", "spendEnforcement"
+      ],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "paused": {"type": "boolean"},
+        "autonomous": {"type": "boolean"},
+        "controlsApproved": {"type": "boolean"},
+        "pendingCancellationCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "unknownNativeAttemptCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "hostCancellation": {"const": "unavailable"},
+        "spendEnforcement": {"const": false}
+      }
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total", "waiting", "ready", "running", "blocked", "reported", "accepted", "failed", "cancelled"
+      ],
+      "properties": {
+        "total": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "waiting": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "ready": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "running": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "blocked": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "reported": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "accepted": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "failed": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "cancelled": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "title", "status", "attemptId", "resultId", "resultDigest", "acceptanceSchemaVersion", "acceptanceBasis",
+          "reportedStatus", "estimateMs",
+          "recordedIntervalMs", "requestedModel", "prerequisites", "acceptanceCriteria"
+        ],
+        "properties": {
+          "id": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+          "title": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+          "status": {"enum": ["waiting", "ready", "running", "blocked", "reported", "accepted", "failed", "cancelled"]},
+          "attemptId": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+              {"type": "null"}
+            ]
+          },
+          "resultId": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+              {"type": "null"}
+            ]
+          },
+          "resultDigest": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+              {"type": "null"}
+            ]
+          },
+          "acceptanceSchemaVersion": {"enum": [1, 2, null]},
+          "acceptanceBasis": {"enum": ["worker-verification-with-operator-judgment", "independent-operator-validation", null], "description": "Recorded acceptance provenance; non-null only for accepted tasks."},
+          "reportedStatus": {
+            "anyOf": [
+              {"enum": ["completed", "failed", "blocked", "cancelled"]},
+              {"type": "null"}
+            ]
+          },
+          "estimateMs": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+              {"type": "null"}
+            ]
+          },
+          "recordedIntervalMs": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+              {"type": "null"}
+            ]
+          },
+          "requestedModel": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/modelId"},
+              {"type": "null"}
+            ]
+          },
+          "prerequisites": {
+            "type": "array", "maxItems": 256, "uniqueItems": true,
+            "items": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}
+          },
+          "acceptanceCriteria": {
+            "type": "array", "maxItems": 256, "uniqueItems": true,
+            "items": {"$ref": "urn:sdlc:execution-plan:1#/$defs/reference"}
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sequence", "type", "taskId", "attemptId", "recordedAt"],
+        "properties": {
+          "sequence": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+          "type": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Z][A-Z_]*$"},
+          "taskId": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+              {"type": "null"}
+            ]
+          },
+          "attemptId": {
+            "anyOf": [
+              {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+              {"type": "null"}
+            ]
+          },
+          "recordedAt": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    "snapshotDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+  }
+}

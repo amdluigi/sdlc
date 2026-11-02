@@ -1,8 +1,10 @@
 # Dashboard qualification
 
-Observed on 2026-11-01. This optional package is a read-only export viewer,
-not a live execution manager or an activation/completion claim for supervised
-workers. Independent parent integration/review and CI remain separate gates.
+The host evidence below was observed on 2026-11-01 and applies only to the
+export viewer. The live manager dashboard was added on 2026-11-02. It has
+focused automated evidence, but no actual-host qualification yet. This file
+does not claim activation or completion for supervised or autonomous workers.
+Independent parent integration/review and CI remain separate gates.
 
 ## Exact owned files
 
@@ -10,6 +12,9 @@ workers. Independent parent integration/review and CI remain separate gates.
 packages\sdlc-dashboard\
   package.json
   extension.js
+  manager.js
+  manager_bridge.py
+  manager_provider.js
   snapshot.js
   provider.js
   README.md
@@ -20,6 +25,8 @@ packages\sdlc-dashboard\
     io.test.js
     provider.test.js
     extension.test.js
+    live-view.test.js
+    manager-provider.test.js
     host.js
 ```
 
@@ -59,8 +66,19 @@ npm --prefix packages\sdlc-dashboard run check
 npm --prefix packages\sdlc-dashboard run qualify
 ```
 
-**40 tests pass, 0 failures, 0 skips.** Syntax checks pass. No install,
+**62 tests pass, 0 failures, 0 skips.** Syntax checks pass. No install,
 third-party dependency, TypeScript build or downloaded test host is needed.
+The current native-host seam additionally verifies that an explicit live
+poller stops when the manager view becomes hidden, the selected execution
+changes, or refresh fails; that unchanged polls during a confirmation do not
+invalidate it; that real manager state changes are rejected under the writer
+and refreshed; that a changed selection invalidates the pending action; that a
+poll racing a successful write reports no false failure; and that bounded
+batch results are accepted only with digest-bound independent validation,
+and that version-2 snapshots and live views show that recorded acceptance
+basis without presenting it as worker verification.
+These are simulated-host checks; live manager
+interaction and polling remain unqualified in VS Code.
 
 Before implementation, the test set failed for missing validator/provider
 implementation; an explicit assertion reported **Missing read-only snapshot
@@ -219,7 +237,20 @@ bundle.
 
 **Readiness: bounded native transport and package behavior qualified;
 full AC-15/all-reparse and assistive-technology certification remain partial.**
-The package stays optional and command-activated, with no consumer activation
-or manager authority. Independent review and final integrated CI belong to
-the parent change. Rollback is removal of this optional package or closure of
-its isolated development host; manager state is untouched.
+The export viewer stays optional and command-activated. The live view only
+mediates existing local manager APIs and adds no worker authority. Independent
+review and final integrated CI belong to the parent change. Rollback is
+removal of this optional package or closure of its isolated development host;
+manager state is untouched.
+
+## Live manager dashboard status
+
+The manager-connected native TreeView, local fixed Python bridge, selection,
+digest parser and confirmed action flow are not covered by the 2026-11-01
+actual-host observations above. The implementation uses only focused Node
+tests and Python tests against real manager files and writer operations.
+The parent task owns IDE qualification. Until a separate actual-host run
+covers live selection, explicit polling, stale action rejection, confirmation,
+and native accessibility, do not claim those behaviors as host-qualified.
+Autonomous model/provider execution, authoritative spend limits, and remote
+host cancellation remain unsupported or unqualified.

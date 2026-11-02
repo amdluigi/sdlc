@@ -44,15 +44,13 @@ def render_execution(inspected):
         raise ContractIssue("E_SCHEMA_REQUIRED", "/", "report requires an inspected execution record")
     record = execution_state.validate_record(inspected["record"])
     revision = record["revisions"][-1]
-    state = execution_state.replay_execution(
-        revision["plan"], revision["events"], revision["receipts"],
-        execution_state.digest(revision["consent"]), revision["acceptances"], revision["approvals"],
-    )
+    state = execution_state.replay_record_revision(record["schemaVersion"], revision)
     approved = bool(state["approved"] and inspected["policyDigest"] == state["policyDigest"])
     plan = revision["plan"]
     lines = [
         "# Execution " + _markdown(plan["executionId"]), "",
-        "Mode: manual metadata recording only; no worker or command dispatch.",
+        ("Mode: manual metadata recording only; no worker or command dispatch." if record["schemaVersion"] == 1
+         else "Mode: manager-recorded controller metadata; this report does not dispatch workers or commands."),
         "Approval: " + ("recorded for current bindings" if approved else "pending approval or stale policy"),
         f"Plan revision: {plan['revision']}",
         "Plan digest: `" + execution_state.digest(plan) + "`",
@@ -98,7 +96,13 @@ def render_execution(inspected):
                 lines.append("- " + field + ": " + _markdown(value))
         current = state["tasks"][result["taskId"]]
         acceptance = current["acceptance"]
-        if acceptance is not None and acceptance["resultId"] == result_id:
+        if acceptance is not None and acceptance["resultId"] == result_id and acceptance["schemaVersion"] == 2:
+            lines.append("- Independent operator validation (acceptance schema 2): " + _markdown(acceptance["summary"])
+                         + "; checked revision " + _markdown(acceptance["revision"])
+                         + "; operator command " + _markdown(acceptance["command"])
+                         + "; bound result digest " + _markdown(acceptance["resultDigest"])
+                         + "; worker verification is not treated as passed")
+        elif acceptance is not None and acceptance["resultId"] == result_id:
             lines.append("- Independent judgment: " + _markdown(acceptance["summary"])
                          + "; checked revision " + _markdown(acceptance["revision"])
                          + "; controller command " + _markdown(acceptance["command"]))

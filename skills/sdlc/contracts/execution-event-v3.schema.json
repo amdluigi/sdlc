@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-event:3",
+  "title": "Versioned local autonomous start marker, version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "eventId", "binding", "sequence", "occurredAt", "recordedAt",
+    "actor", "type", "taskId", "attemptId", "payload"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 3},
+    "eventId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "sequence": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "occurredAt": {"$ref": "urn:sdlc:execution-event:1#/properties/occurredAt"},
+    "recordedAt": {"$ref": "urn:sdlc:execution-event:1#/properties/recordedAt"},
+    "actor": {
+      "type": "object", "additionalProperties": false, "required": ["role", "id"],
+      "properties": {"role": {"const": "manager"}, "id": {"const": "local-orchestrator"}}
+    },
+    "type": {"const": "AUTONOMOUS_ATTEMPT_STARTED"},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "payload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["batchId", "batchDigest", "briefDigest", "modelId"],
+      "properties": {
+        "batchId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "batchDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        "briefDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        "modelId": {
+          "type": "string", "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}(?![\\s\\S])"
+        }
+      }
+    }
+  }
+}

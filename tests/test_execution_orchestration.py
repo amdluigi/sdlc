@@ -1,6 +1,7 @@
 import copy
 import hashlib
 import importlib
+import importlib.util
 import json
 import subprocess
 import sys
@@ -10,7 +11,7 @@ from pathlib import Path
 
 from tests.test_execution_contracts import SCRIPTS, plan, task, brief, result
 from tests.test_execution_management import policy
-from tests.test_execution_controls import batch_controls_policy
+from tests.test_execution_controls import autonomous_controls_policy, batch_controls_policy
 from artifact_contracts import ContractIssue
 
 
@@ -74,6 +75,18 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         self.manager.approve_plan(self.root, "feature-one", current["planDigest"], current["policyDigest"])
         self.controls.configure_controls(self.root, batch_controls_policy())
         current = self.manager.inspect_execution(self.root, "feature-one")
+        controls = self.controls.inspect_controls(self.root)
+        self.controls.approve_controls(
+            self.root, "feature-one", current["planDigest"], current["policyDigest"],
+            controls["controlsDigest"],
+        )
+
+    def activate_autonomous(self):
+        self.manager.configure_policy(self.root, policy())
+        self.manager.import_plan(self.root, self.plan)
+        current = self.manager.inspect_execution(self.root, "feature-one")
+        self.manager.approve_plan(self.root, "feature-one", current["planDigest"], current["policyDigest"])
+        self.controls.configure_controls(self.root, autonomous_controls_policy())
         controls = self.controls.inspect_controls(self.root)
         self.controls.approve_controls(
             self.root, "feature-one", current["planDigest"], current["policyDigest"],
@@ -431,6 +444,274 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         next_task = self.api.next_attempt(self.root, request, preview["batchDigest"])
         self.assertEqual(("verify", "verify-first"),
                          (next_task["taskId"], next_task["attemptId"]))
+
+    def autonomous_three_task_batch(self):
+        independent = task("independent")
+        independent.update(
+            title="Independent task", prdRefs=["FR-2", "AC-2"], produces=["independent-output"],
+            ownership=["src/independent.py"], acceptanceCriteria=["AC-2"],
+        )
+        dependent = task("verify")
+        dependent.update(
+            title="Dependent task", prdRefs=["FR-3", "AC-3"], prerequisites=["implement"],
+            consumes=["implementation"], produces=["verified-output"], ownership=["tests/verify.py"],
+            acceptanceCriteria=["AC-3"],
+        )
+        self.plan["tasks"].extend([independent, dependent])
+        self.activate_autonomous()
+        import execution_profiles
+        import execution_state
+        execution_profiles.install_profiles(self.root, dry_run=False)
+
+        request = batch(self.plan)
+        request["tasks"] = []
+        request["limits"] = {
+            **LIMITS, "maxCalls": 12, "maxToolCalls": 24, "maxWallMs": 90000,
+            "maxInputBytes": 131072, "maxOutputBytes": 131072,
+        }
+        for planned in self.plan["tasks"]:
+            attempt_id = "attempt-" + planned["id"]
+            task_brief = brief(self.plan)
+            task_brief.update(
+                taskId=planned["id"], attemptId=attempt_id, ownership=planned["ownership"],
+                acceptanceCriteria=planned["acceptanceCriteria"], verification=planned["verification"],
+                allowedActions=["read", "search", "edit"],
+            )
+            request["tasks"].append({
+                "taskId": planned["id"], "role": "developer",
+                "attempts": [{
+                    "attemptId": attempt_id, "modelId": "model-one",
+                    "limits": ATTEMPT_LIMITS, "brief": task_brief,
+                }],
+            })
+        preview = self.api.preview_batch(self.root, request)
+        self.api.approve_batch(self.root, request, preview["batchDigest"])
+
+        def run_reported_attempt(task_id):
+            item = next(entry for entry in request["tasks"] if entry["taskId"] == task_id)
+            attempt = item["attempts"][0]
+            envelope = self.runtime.prepare_batch(
+                self.root, request, preview["batchDigest"], task_id, attempt["attemptId"],
+                attempt["brief"], "developer",
+                {"id": attempt["modelId"], "vendor": "synthetic", "family": "test", "version": "1"},
+                attempt["limits"],
+            )
+            self.runtime.start(
+                self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
+            )
+            self.runtime.step(self.root, envelope, "synthetic prompt")
+            self.runtime.observe(self.root, envelope, "synthetic response")
+            reported = result(self.plan)
+            reported.update(taskId=task_id, attemptId=attempt["attemptId"], artifacts=[item_path
+                for item_path in next(entry for entry in self.plan["tasks"] if entry["id"] == task_id)["ownership"]])
+            criterion = next(entry for entry in self.plan["tasks"] if entry["id"] == task_id)["acceptanceCriteria"][0]
+            reported["verification"] = [{
+                "acceptanceCriterion": criterion, "command": None, "result": "not-run",
+                "revision": None, "summary": "not-run",
+            }]
+            self.runtime.receive(self.root, envelope, reported)
+
+        return request, preview, run_reported_attempt
+
+    def test_autonomous_batch_continues_independent_tasks_but_waits_at_unaccepted_dependency(self):
+        request, preview, run_reported_attempt = self.autonomous_three_task_batch()
+        import execution_state
+        first = self.api.next_attempt(self.root, request, preview["batchDigest"])
+        self.assertEqual(("implement", True), (first["taskId"], first["dispatch"]))
+        run_reported_attempt("implement")
+        next_task = self.api.next_attempt(self.root, request, preview["batchDigest"])
+        self.assertEqual(("independent", True), (next_task["taskId"], next_task["dispatch"]))
+        run_reported_attempt("independent")
+
+        waiting = self.api.next_attempt(self.root, request, preview["batchDigest"])
+        self.assertEqual(("waiting-for-acceptance", False), (waiting["status"], waiting["dispatch"]))
+        blocked_item = request["tasks"][2]
+        blocked_attempt = blocked_item["attempts"][0]
+        with self.assertRaises(ContractIssue) as caught:
+            self.runtime.prepare_batch(
+                self.root, request, preview["batchDigest"], blocked_item["taskId"],
+                blocked_attempt["attemptId"], blocked_attempt["brief"], blocked_item["role"],
+                {"id": blocked_attempt["modelId"], "vendor": "synthetic", "family": "test", "version": "1"},
+                blocked_attempt["limits"],
+            )
+        self.assertEqual("E_ORCHESTRATION_DEPENDENCY", caught.exception.code)
+        current = self.manager.inspect_execution(self.root, "feature-one")
+        self.assertEqual(3, current["record"]["schemaVersion"])
+        self.assertEqual("reported", current["state"]["tasks"]["implement"]["status"])
+        self.assertEqual("reported", current["state"]["tasks"]["independent"]["status"])
+        self.assertEqual("waiting", current["state"]["tasks"]["verify"]["status"])
+        with self.assertRaises(ContractIssue) as caught:
+            execution_state.replay_execution_v2(
+                current["plan"], current["events"], current["receipts"], current["recordedPolicyDigest"],
+                current["acceptances"], current["approvals"],
+            )
+        self.assertEqual("E_EXECUTION_VERSION", caught.exception.code)
+        self.controls.set_pause(self.root, True, "Stop autonomous dispatch")
+        paused = self.api.next_attempt(self.root, request, preview["batchDigest"])
+        self.assertEqual(("paused", False), (paused["status"], paused["dispatch"]))
+
+    def test_autonomous_report_accepts_bound_independent_validation_then_dispatches_dependent(self):
+        request, preview, run_reported_attempt = self.autonomous_three_task_batch()
+        import execution_state
+        spec = importlib.util.spec_from_file_location(
+            "orchestration_dashboard_bridge",
+            SCRIPTS.parents[2] / "packages" / "sdlc-dashboard" / "manager_bridge.py",
+        )
+        bridge = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bridge)
+
+        for task_id in ("implement", "independent"):
+            dispatched = self.api.next_attempt(self.root, request, preview["batchDigest"])
+            self.assertEqual((task_id, True), (dispatched["taskId"], dispatched["dispatch"]))
+            run_reported_attempt(task_id)
+        waiting = self.api.next_attempt(self.root, request, preview["batchDigest"])
+        self.assertEqual(("waiting-for-acceptance", False), (waiting["status"], waiting["dispatch"]))
+
+        current = self.manager.inspect_execution(self.root, "feature-one")
+        result_id = current["state"]["tasks"]["implement"]["resultId"]
+        reported = current["receipts"][result_id]["result"]
+        self.assertEqual({"not-run"}, {item["result"] for item in reported["verification"]})
+        view = bridge.live_view(self.root, "feature-one")
+        shown = next(item for item in view["tasks"] if item["id"] == "implement")
+        self.assertEqual((2, execution_state.digest(reported)),
+                         (shown["acceptanceSchemaVersion"], shown["resultDigest"]))
+        judgment = {
+            "taskId": "implement", "attemptId": "attempt-implement", "resultId": result_id,
+            "acceptanceCriteria": ["AC-1"], "revision": "independently-checked-revision",
+            "command": "python -B -m unittest tests.test_feature",
+            "summary": "Operator independently ran the declared verification and it passed",
+        }
+        self.assert_issue(lambda: self.manager.accept_task(
+            self.root, "feature-one", {"schemaVersion": 1, **judgment}), "E_EXECUTION_EVIDENCE")
+        self.assert_issue(lambda: self.manager.accept_task(self.root, "feature-one", {
+            "schemaVersion": 2, **judgment, "resultDigest": "sha256:" + "0" * 64,
+        }), "E_EXECUTION_EVIDENCE")
+        self.assertEqual("reported",
+                         self.manager.inspect_execution(self.root, "feature-one")["state"]["tasks"]["implement"]["status"])
+
+        expected = {
+            "executionId": "feature-one", "planRevision": view["binding"]["planRevision"],
+            "planDigest": view["planDigest"], "policyDigest": view["policyDigest"],
+            "controlsDigest": view["controlsDigest"], "controlsStateDigest": view["controlsStateDigest"],
+        }
+        acceptance = {"schemaVersion": 2, **judgment, "resultDigest": shown["resultDigest"]}
+        accepted = bridge.run({
+            "operation": "accept", "projectRoot": str(self.root), "executionId": "feature-one",
+            "expectedBinding": expected, "acceptance": acceptance,
+            "confirmationDigest": execution_state.digest(
+                {"operation": "accept", "expectedBinding": expected, "acceptance": acceptance}
+            ),
+        })["view"]
+        self.assertEqual(["accepted", "reported", "waiting"], [item["status"] for item in accepted["tasks"]])
+        self.assertIsNone(next(item for item in accepted["tasks"] if item["id"] == "implement")
+                          ["acceptanceSchemaVersion"])
+
+        dependent = self.api.next_attempt(self.root, request, preview["batchDigest"])
+        self.assertEqual(("verify", "attempt-verify", True),
+                         (dependent["taskId"], dependent["attemptId"], dependent["dispatch"]))
+        run_reported_attempt("verify")
+        current = self.manager.inspect_execution(self.root, "feature-one")
+        self.assertEqual(3, current["record"]["schemaVersion"])
+        self.assertEqual("reported", current["state"]["tasks"]["verify"]["status"])
+        self.assertEqual(acceptance, current["state"]["tasks"]["implement"]["acceptance"])
+        self.assertEqual("reported", current["state"]["tasks"]["independent"]["status"])
+
+        tampered = copy.deepcopy(current)
+        tampered_result = tampered["receipts"][result_id]["result"]
+        tampered_result["verification"][0].update(result="failed", summary="failed")
+        for stored in tampered["acceptances"].values():
+            stored["resultDigest"] = execution_state.digest(tampered_result)
+        self.assert_issue(lambda: execution_state.replay_execution_v3(
+            tampered["plan"], tampered["events"], tampered["receipts"], tampered["recordedPolicyDigest"],
+            tampered["acceptances"], tampered["approvals"],
+        ), "E_EXECUTION_EVIDENCE")
+
+    def test_accepted_autonomous_result_keeps_independent_validation_provenance_in_every_view(self):
+        request, preview, run_reported_attempt = self.autonomous_three_task_batch()
+        import execution_insights
+        import execution_renderers
+        import execution_state
+        spec = importlib.util.spec_from_file_location(
+            "provenance_dashboard_bridge",
+            SCRIPTS.parents[2] / "packages" / "sdlc-dashboard" / "manager_bridge.py",
+        )
+        bridge = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bridge)
+        for task_id in ("implement", "independent"):
+            self.api.next_attempt(self.root, request, preview["batchDigest"])
+            run_reported_attempt(task_id)
+        current = self.manager.inspect_execution(self.root, "feature-one")
+        result_id = current["state"]["tasks"]["implement"]["resultId"]
+        result_digest = execution_state.digest(current["receipts"][result_id]["result"])
+        self.manager.accept_task(self.root, "feature-one", {
+            "schemaVersion": 2, "taskId": "implement", "attemptId": "attempt-implement", "resultId": result_id,
+            "resultDigest": result_digest, "acceptanceCriteria": ["AC-1"],
+            "revision": "operator-checked-revision", "command": "python -B -m unittest tests.test_feature",
+            "summary": "Operator validated the feature independently",
+        })
+        inspected = self.manager.inspect_execution(self.root, "feature-one")
+        self.assertEqual(3, inspected["record"]["schemaVersion"])
+
+        report = execution_renderers.render_execution(inspected)
+        self.assertIn("| implement | Implement a bounded change | accepted |", report)
+        self.assertIn(
+            "- Independent operator validation (acceptance schema 2): Operator validated the feature independently;"
+            " checked revision operator-checked-revision; operator command python -B -m unittest"
+            " tests.test&#95;feature; bound result digest " + result_digest
+            + "; worker verification is not treated as passed", report)
+        self.assertNotIn("controller command", report)
+        self.assertNotIn("manual metadata recording only", report)
+        self.assertIn("- AC-1: not-run; revision unavailable; not-run", report)
+
+        snapshot = execution_insights.build_snapshot(self.root, "feature-one")
+        self.assertEqual(2, snapshot["schemaVersion"])
+        self.assertEqual({"implement": "independent-operator-validation", "independent": None, "verify": None},
+                         {task["id"]: task["acceptanceBasis"] for task in snapshot["tasks"]})
+        self.assertEqual(snapshot, execution_insights.build_snapshot(self.root, "feature-one"))
+        contracts = SCRIPTS.parent / "contracts"
+        snapshot_schema = json.loads((contracts / "execution-snapshot-v2.schema.json").read_text(encoding="utf-8"))
+        self.assertEqual("urn:sdlc:execution-snapshot:2", snapshot_schema["$id"])
+        self.assertEqual(set(snapshot), set(snapshot_schema["required"]))
+        task_schema = snapshot_schema["$defs"]["task"]
+        self.assertEqual(set(snapshot["tasks"][0]), set(task_schema["required"]))
+        self.assertEqual(set(snapshot["tasks"][0]), set(task_schema["properties"]))
+
+        view = bridge.live_view(self.root, "feature-one")
+        self.assertEqual({"implement": "independent-operator-validation", "independent": None, "verify": None},
+                         {task["id"]: task["acceptanceBasis"] for task in view["tasks"]})
+        live_task = json.loads((contracts / "execution-live-view.schema.json").read_text(
+            encoding="utf-8"))["properties"]["tasks"]["items"]
+        self.assertEqual(set(view["tasks"][0]), set(live_task["required"]))
+
+        analysis = execution_insights.analyze_executions(self.root, ["feature-one"])
+        self.assertEqual(1, analysis["summary"]["acceptedCount"])
+        self.assertEqual(inspected["record"], analysis["sources"][0]["record"])
+        schema = json.loads((SCRIPTS.parent / "contracts" / "execution-analysis.schema.json").read_text(
+            encoding="utf-8"))
+        record_refs = {item["$ref"] for item in
+                       schema["properties"]["sources"]["items"]["properties"]["record"]["oneOf"]}
+        self.assertIn("urn:sdlc:execution-record:3", record_refs)
+
+    def test_independent_validation_acceptance_is_limited_to_batch_receipts_and_new_records(self):
+        self.activate()
+        self.manager.record_task(self.root, "feature-one", "implement", "ready")
+        self.manager.record_task(self.root, "feature-one", "implement", "start", "attempt-one")
+        reported = result(self.plan)
+        self.manager.receive_result(self.root, "feature-one", "result-one", brief(self.plan), reported)
+        acceptance = {
+            "schemaVersion": 2, "taskId": "implement", "attemptId": "attempt-one", "resultId": "result-one",
+            "resultDigest": self.api.state.digest(reported), "acceptanceCriteria": ["AC-1"],
+            "revision": "checked-revision", "command": "python -B -m unittest",
+            "summary": "Independent operator validation",
+        }
+        before = self.manager.inspect_execution(self.root, "feature-one")
+        self.assert_issue(lambda: self.manager.accept_task(self.root, "feature-one", acceptance),
+                          "E_EXECUTION_EVIDENCE")
+        self.assertEqual(before, self.manager.inspect_execution(self.root, "feature-one"))
+        self.assert_issue(lambda: self.api.state.validate_acceptance({**acceptance, "schemaVersion": 3}),
+                          "E_EXECUTION_VERSION")
+        self.assert_issue(lambda: self.api.state.validate_acceptance(
+            {key: value for key, value in acceptance.items() if key != "resultDigest"}), "E_SCHEMA_REQUIRED")
 
     def test_version_two_retry_event_preserves_version_one_replay_failure(self):
         self.activate()

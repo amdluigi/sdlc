@@ -46,6 +46,7 @@ EVENT_FIELDS = {
     "APPROVAL_REJECTED": (False, False, ("decisionId", "reason")),
 }
 CONTROLLER_EVENT_FIELDS = {
+    "AUTONOMOUS_ATTEMPT_STARTED": ("batchId", "batchDigest", "briefDigest", "modelId"),
     "TASK_RETRY_READY": ("batchId", "batchDigest", "resultId", "nextAttemptId", "modelId"),
     "BATCH_ATTEMPT_ACCOUNTED": (
         "batchId", "batchDigest", "resultId", "briefDigest", "modelCalls", "toolCalls",
@@ -433,8 +434,8 @@ def validate_controller_event(data: object, plan: object) -> dict[str, object]:
         "schemaVersion", "eventId", "binding", "sequence", "occurredAt", "recordedAt",
         "actor", "type", "taskId", "attemptId", "payload",
     ))
-    if type(value["schemaVersion"]) is not int or value["schemaVersion"] != 2:
-        _issue("E_EXECUTION_VERSION", "/schemaVersion", "controller events require schema version 2")
+    if type(value["schemaVersion"]) is not int or value["schemaVersion"] not in (2, 3):
+        _issue("E_EXECUTION_VERSION", "/schemaVersion", "controller events require schema version 2 or 3")
     _id(value["eventId"], "/eventId")
     _binding(value["binding"], validated)
     _number(value["sequence"], "/sequence")
@@ -445,19 +446,28 @@ def validate_controller_event(data: object, plan: object) -> dict[str, object]:
     if actor != {"role": "manager", "id": "local-orchestrator"}:
         _issue("E_EXECUTION_ACTOR", "/actor", "controller event is outside the manager boundary")
     kind = _enum(value["type"], "/type", tuple(CONTROLLER_EVENT_FIELDS))
+    if (kind == "AUTONOMOUS_ATTEMPT_STARTED") != (value["schemaVersion"] == 3):
+        _issue("E_EXECUTION_VERSION", "/schemaVersion",
+               "autonomous start markers require version 3 and existing controller events require version 2")
     _bound_task(value, validated, tasks)
     _id(value["attemptId"], "/attemptId")
     fields = CONTROLLER_EVENT_FIELDS[kind]
     payload = _object(value["payload"], "/payload", fields)
     _id(payload["batchId"], "/payload/batchId")
     _digest(payload["batchDigest"], "/payload/batchDigest")
-    _id(payload["resultId"], "/payload/resultId")
-    if kind == "TASK_RETRY_READY":
+    if kind == "AUTONOMOUS_ATTEMPT_STARTED":
+        _digest(payload["briefDigest"], "/payload/briefDigest")
+        model_id = _text(payload["modelId"], "/payload/modelId", 128)
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model_id):
+            _issue("E_MODEL_ID", "/payload/modelId", "invalid model identifier")
+    elif kind == "TASK_RETRY_READY":
+        _id(payload["resultId"], "/payload/resultId")
         _id(payload["nextAttemptId"], "/payload/nextAttemptId")
         model_id = _text(payload["modelId"], "/payload/modelId", 128)
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model_id):
             _issue("E_MODEL_ID", "/payload/modelId", "invalid model identifier")
     else:
+        _id(payload["resultId"], "/payload/resultId")
         _digest(payload["briefDigest"], "/payload/briefDigest")
         for field in ("modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes"):
             _number(payload[field], "/payload/" + field, 0)

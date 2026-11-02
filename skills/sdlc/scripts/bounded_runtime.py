@@ -116,9 +116,9 @@ def _barriers(root, batch=None):
     )):
         _issue("CONTROLS", "pause or pending cancellation blocks bounded work")
     if store and store["policy"]["enabled"]:
-        if store["policy"]["mode"] == "batch":
+        if store["policy"]["mode"] in ("batch", "autonomous"):
             if batch is None:
-                _issue("CONTROLS", "batch controls require an exact user-approved batch")
+                _issue("CONTROLS", "finite controls require an exact user-approved batch")
             controls.batch_approval(root, batch)
         elif store["policy"]["mode"] != "supervised":
             _issue("CONTROLS", "enabled manual controls do not qualify native runtime dispatch")

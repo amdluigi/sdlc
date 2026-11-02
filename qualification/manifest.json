@@ -80,12 +80,16 @@
         "sha256": "43a419401a654fa10666d325437ebb937c750abcee48e95df53f76444ba66a97"
       },
       {
+        "path": "contracts/execution-acceptance-v2.schema.json",
+        "sha256": "f3149f7a31f8caf7110973288d89d472418f306841057a1e8ea25809aae495c7"
+      },
+      {
         "path": "contracts/execution-acceptance.schema.json",
         "sha256": "7c6bd164592e9b00ab761e7059bff49aec145c6ae28db842a53398867ab5edf9"
       },
       {
         "path": "contracts/execution-analysis.schema.json",
-        "sha256": "f23128b75cefedf63c41663861c8c5ef7be3423f9dfd86bffcf1842d8a8835df"
+        "sha256": "3b69fae86a85e29fe5f6d364e8965ecf3adbb6814a7f873e027c2d042f02eaed"
       },
       {
         "path": "contracts/execution-batch.schema.json",
@@ -104,6 +108,10 @@
         "sha256": "834d5a3a15e08b660b786531604818827e3a84154142bdb332d0769010274ec4"
       },
       {
+        "path": "contracts/execution-controls-policy-v4.schema.json",
+        "sha256": "9de78aff17d1bde2e3a36502b8c64b8026fecada83cd85aee34ae7fa92238fc8"
+      },
+      {
         "path": "contracts/execution-controls-policy.schema.json",
         "sha256": "e7bf107565a3b48e7c7732577d1dbac7c688d1aa3692f0695966047476c57d1e"
       },
@@ -116,6 +124,10 @@
         "sha256": "a2897768ec62e141239d72745d9e52cae3eb515e6b2490a1e55df3773507e45a"
       },
       {
+        "path": "contracts/execution-controls-record-v4.schema.json",
+        "sha256": "2dc993aac18ccd4975989041d7197ef004c2e6df20ceb932eb14ab2697d94217"
+      },
+      {
         "path": "contracts/execution-controls-record.schema.json",
         "sha256": "e7079330185a5d385ea9ea39a1a8e270d6277f7df8a55da203ce43ea7b61d979"
       },
@@ -124,8 +136,16 @@
         "sha256": "a7fd69d353b837509d50134eea675fcabbe3ac04bd4ec70b394d366fe2e1b731"
       },
       {
+        "path": "contracts/execution-event-v3.schema.json",
+        "sha256": "711d6b274f3dd43cd3c516fb1210f757881d4d794ee2aa8ec2f0d598ed9a8a6f"
+      },
+      {
         "path": "contracts/execution-event.schema.json",
         "sha256": "dd93000df135e267e18788f52afcbf21869d50e78a1e22dd26618de36c39e983"
+      },
+      {
+        "path": "contracts/execution-live-view.schema.json",
+        "sha256": "09e28932affff7935930d1250d590f10d5b7a548f070fc74ea49f2bbb58260e7"
       },
       {
         "path": "contracts/execution-observation.schema.json",
@@ -148,8 +168,16 @@
         "sha256": "2757256eb69e63fbe47bc993353b2963b9ff485d7602efa7d86b238a4ee1e5b9"
       },
       {
+        "path": "contracts/execution-record-v3.schema.json",
+        "sha256": "ef20e227f386da20ebbffefc9e1554f5332e70dcb7f4c825b0e25d1af18d9f4c"
+      },
+      {
         "path": "contracts/execution-record.schema.json",
         "sha256": "f63f9253535805176e3c25a4f0eda9e19dcc9abe93cedf39053896d56c6dba39"
+      },
+      {
+        "path": "contracts/execution-snapshot-v2.schema.json",
+        "sha256": "da4f8bc880d4c273fae6ebafbcba4d9aed9cb6513fb8313eea007ed969154b20"
       },
       {
         "path": "contracts/execution-snapshot.schema.json",
@@ -273,7 +301,7 @@
       },
       {
         "path": "scripts/bounded_runtime.py",
-        "sha256": "7cafc2de096db4482ff9e705ecd7399f9f68222e2737beba10158b3285da5453"
+        "sha256": "fea66f34c19a0b34673afa4beddef18e1b9fd048b2cfab28cd5adf6dfef93b90"
       },
       {
         "path": "scripts/capability_contract.py",
@@ -293,23 +321,23 @@
       },
       {
         "path": "scripts/execution_contracts.py",
-        "sha256": "d884ff3183b093e35326784885e1e4c6d6ff37dc4385bc0c2519ec0fb1eaabdf"
+        "sha256": "ee39b38eeb1c4c5c79a7a357579bb9682ed3d7e2aaea25afb890501713e2a587"
       },
       {
         "path": "scripts/execution_controls.py",
-        "sha256": "bb1093c8f43c49bb1323ddc6b322385a15daa5ab7b234d0b5574eb5a0e2a3553"
+        "sha256": "9a44a2747c531f9aade28f66ef748bdd5d3b39d4b053a1c098f9ce7a61319a67"
       },
       {
         "path": "scripts/execution_insights.py",
-        "sha256": "f96a2ffe6bc122ee72d4169b6a2fae60532d4659c253d7e00f6078300f2e3ffd"
+        "sha256": "63aec851f80f72a3153c30c6bc68d35fa3d455f936d3dcc310a692d4403aeb6e"
       },
       {
         "path": "scripts/execution_manager.py",
-        "sha256": "1bb29f16835f3452eeebc590af8a5b02aa4b60336e32a3619552b9e623efa618"
+        "sha256": "cf5eeee41ce54758c9a93b61a3e68d10558d8a968fbe0ac86e6c526218056a56"
       },
       {
         "path": "scripts/execution_orchestration.py",
-        "sha256": "69634529b2c9d69593d29e1a6348898baaf20b3296d3d5e457534a897515cc3d"
+        "sha256": "fe8e6e507047d0368d798e619b18c3e6ad74c86b428813db0c00b5fae97e7c28"
       },
       {
         "path": "scripts/execution_profiles.py",
@@ -317,11 +345,11 @@
       },
       {
         "path": "scripts/execution_renderers.py",
-        "sha256": "1df7caeb2731dae9255c6e139aca3f255f8500bf5d87553c0efab9f72bb94090"
+        "sha256": "a975ac96566aa9549d13aaa0aee6080ad4a83a3da4f60c10b5f54924d6acff5e"
       },
       {
         "path": "scripts/execution_state.py",
-        "sha256": "4d78fe52b42c628e2f5b67bcc4ca9431b4c26f8964298ad5a199e001f1600ec3"
+        "sha256": "065e81d58f2e7f3505596334483a0ce5e5dbdec1db39bc01eb86f3f8415c274a"
       },
       {
         "path": "scripts/execution_telemetry.py",
@@ -373,7 +401,7 @@
       },
       {
         "path": "scripts/native_execution.py",
-        "sha256": "1dbe1d674b0da57c88ac597ecba71af0884b96937d2b0c989f0b8166ac6a9749"
+        "sha256": "9c8ecb6f01b181b477377f6217288d2ec39979e6c005087ad2ab7712f345eba2"
       },
       {
         "path": "scripts/operator_reports.py",
@@ -400,7 +428,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "83e80d7f1b74c0cac1cd48e6b63818e78354956a55d872d9c719e89f787af778"
+    "bundleSha256": "5f0cc915bb1ac7a44d7af7bb56cf8b132917238edd49caa4a43d3c95f1af5fdc"
   },
   "profiles": [
     {
