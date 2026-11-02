@@ -87,6 +87,15 @@ VS Code packaging is the first supported format, not evidence that all hosts
 or models have identical tools, routing, cancellation or background execution.
 Actual host qualification remains necessary before M2 acceptance.
 
+The [optional SDK-free bounded worker](../../packages/sdlc-runtime/README.md)
+adds a real extension-owned read/search/exact-file edit loop over the native
+manager request/receipt boundary. Separate runtime/model/limits confirmation,
+per-operation binding checks and real filesystem/CLI tests are required.
+Execute and enabled manual-controls dispatch remain unsupported. Synthetic
+provider streams qualify only the declared external seam; actual host,
+routing, billing and remote-stop gates remain open as listed in its
+[qualification limits](../../packages/sdlc-runtime/QUALIFICATION.md).
+
 ## M3 portable controls boundary
 
 The [execution controls](../EXECUTION-CONTROLS.md) slice provides separately

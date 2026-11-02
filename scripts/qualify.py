@@ -118,6 +118,7 @@ SUITE_ONLY_CASES = {
 HELPERS = {
     "scripts/adaptive_extensions.py",
     "scripts/artifact_contracts.py",
+    "scripts/bounded_runtime.py",
     "scripts/capability_contract.py",
     "scripts/config_contract.py",
     "scripts/delivery_profile.py",
@@ -137,6 +138,7 @@ HELPERS = {
     "scripts/manage_insights.py",
     "scripts/manage_metrics.py",
     "scripts/manage_native.py",
+    "scripts/manage_runtime.py",
     "scripts/manage_telemetry.py",
     "scripts/native_execution.py",
     "scripts/operator_reports.py",
@@ -144,7 +146,7 @@ HELPERS = {
     "scripts/resolve_providers.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 77
+BUNDLE_FILE_COUNT = 79
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {

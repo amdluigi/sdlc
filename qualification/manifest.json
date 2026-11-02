@@ -12,6 +12,7 @@
     "helperScripts": [
       "scripts/adaptive_extensions.py",
       "scripts/artifact_contracts.py",
+      "scripts/bounded_runtime.py",
       "scripts/capability_contract.py",
       "scripts/config_contract.py",
       "scripts/delivery_profile.py",
@@ -31,6 +32,7 @@
       "scripts/manage_install.py",
       "scripts/manage_metrics.py",
       "scripts/manage_native.py",
+      "scripts/manage_runtime.py",
       "scripts/manage_telemetry.py",
       "scripts/native_execution.py",
       "scripts/operator_reports.py",
@@ -236,6 +238,10 @@
         "sha256": "6c85588b6f31a3f228e3f18b3cc2e223ca6325b14f458581945ad82f3c8e63b3"
       },
       {
+        "path": "scripts/bounded_runtime.py",
+        "sha256": "8e9bacdc0c2fd9e24b60a89f2dd6e03eb20fc568388bbbd6ce0ba6b6acdf97d8"
+      },
+      {
         "path": "scripts/capability_contract.py",
         "sha256": "b5a2b6d359db7a9dd1118f8b647906478495a04fea75cf0906f68b64f3332dce"
       },
@@ -320,12 +326,16 @@
         "sha256": "ed660d164929cb2a1e09ad1ed15ff0e0ed4f5829939faf7d983afb5b11bce264"
       },
       {
+        "path": "scripts/manage_runtime.py",
+        "sha256": "e74cc1f81771bb850286c04b38405c1b8e1feb024fa5570cc8536b86ea712131"
+      },
+      {
         "path": "scripts/manage_telemetry.py",
         "sha256": "fb14039d170e7ab2b263867c942b8ba8fd8737ccc146974aa4b0c1e735addaf7"
       },
       {
         "path": "scripts/native_execution.py",
-        "sha256": "36903c8f4497f8a3f7a31d7bbbc9d1bf35d3a08aa968a3684cc48d3466531783"
+        "sha256": "7977195a8ad96013574a1b200951d8d46327d278fda31e05c4b8cadcd5e94d76"
       },
       {
         "path": "scripts/operator_reports.py",
@@ -348,7 +358,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "d222b8743c12a3a87eeaacb02a4f2c24c6b2e0cbf0c8cec79e97eea6d48912e6"
+    "bundleSha256": "e8bc0bc21966e5b047906c987080419289bdbd34abb5be5b2d790f574a0d8d60"
   },
   "profiles": [
     {
