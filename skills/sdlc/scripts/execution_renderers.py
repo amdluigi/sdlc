@@ -4,7 +4,165 @@ import html
 from datetime import datetime
 
 from artifact_contracts import ContractIssue
+import execution_contracts as contracts
 import execution_state
+
+MAX_SIGNED_INTEGER = 2**63 - 1
+
+
+def _timestamp(value):
+    if value is None:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError):
+        return None
+
+
+def build_gantt(plan, task_state=None, events=None):
+    plan = contracts.validate_execution_plan(plan)["data"]
+    projected = execution_state.initial_execution_state(plan) if task_state is None else task_state
+    expected_ids = {task["id"] for task in plan["tasks"]}
+    tasks_by_id = None
+    proposed = task_state is None
+    if isinstance(projected, dict):
+        tasks_by_id = projected if set(projected) == expected_ids else projected.get("tasks")
+        proposed = proposed or (
+            tasks_by_id is not None and not projected.get("approved", True) and
+            all(item.get("status") == "waiting" for item in tasks_by_id.values())
+        )
+    if not isinstance(tasks_by_id, dict) or set(tasks_by_id) != expected_ids:
+        raise ContractIssue("E_EXECUTION_GANTT", "/tasks", "execution state does not match the Gantt plan")
+    planned_overflow = False
+    planned_start = {}
+    planned_end = {}
+    pending = set(expected_ids)
+    while pending:
+        ready = [
+            task for task in plan["tasks"]
+            if task["id"] in pending and all(identifier in planned_end for identifier in task["prerequisites"])
+        ]
+        if not ready:
+            raise ContractIssue("E_EXECUTION_GANTT", "/tasks", "plan dependencies cannot be ordered")
+        for task in ready:
+            dependencies = [planned_end[identifier] for identifier in task["prerequisites"]]
+            start = None if any(value is None for value in dependencies) else max(dependencies, default=0)
+            estimate = task["estimateMs"]
+            end = None if start is None or estimate is None else start + estimate
+            if end is not None and end > MAX_SIGNED_INTEGER:
+                end = None
+                planned_overflow = True
+            planned_start[task["id"]] = start
+            planned_end[task["id"]] = end
+            pending.remove(task["id"])
+
+    rows = []
+    for task in plan["tasks"]:
+        current = tasks_by_id[task["id"]]
+        rows.append({
+            "id": task["id"], "title": task["title"], "agent": task["assignment"]["agent"],
+            "status": "proposed" if proposed else current["status"],
+            "executionMode": task["execution"]["mode"], "executionGroup": task["execution"]["group"],
+            "prerequisites": task["prerequisites"], "estimateMs": task["estimateMs"],
+            "plannedStartMs": planned_start[task["id"]], "plannedEndMs": planned_end[task["id"]],
+            "actualStartedAt": current.get("startedAt"), "actualEndedAt": current.get("endedAt"),
+            "actualDurationMs": None,
+        })
+
+    for row in rows:
+        if events is None:
+            continue
+        matching = [event for event in events if event["taskId"] == row["id"] and
+                    event["attemptId"] == tasks_by_id[row["id"]].get("attemptId")]
+        starts_for_attempt = [event["recordedAt"] for event in matching if event["type"] == "TASK_STARTED"]
+        ends_for_attempt = [event["recordedAt"] for event in matching if event["type"] in (
+            "TASK_RESULT_RECEIVED", "TASK_FAILED", "TASK_CANCELLED",
+        )]
+        if starts_for_attempt:
+            row["actualStartedAt"] = starts_for_attempt[0]
+        if ends_for_attempt:
+            row["actualEndedAt"] = ends_for_attempt[-1]
+
+    starts = [_timestamp(row["actualStartedAt"]) for row in rows]
+    starts = [value for value in starts if value is not None]
+    origin = min(starts) if starts else None
+    for row in rows:
+        started = _timestamp(row["actualStartedAt"])
+        ended = _timestamp(row["actualEndedAt"])
+        if origin is not None and started is not None:
+            row["actualStartOffsetMs"] = int((started - origin).total_seconds() * 1000)
+        else:
+            row["actualStartOffsetMs"] = None
+        if started is not None and ended is not None and ended >= started:
+            row["actualDurationMs"] = int((ended - started).total_seconds() * 1000)
+        row.pop("actualStartedAt")
+        row.pop("actualEndedAt")
+
+    known_ends = [value for value in planned_end.values() if value is not None]
+    actual_ends = [
+        row["actualStartOffsetMs"] + row["actualDurationMs"]
+        for row in rows
+        if row["actualStartOffsetMs"] is not None and row["actualDurationMs"] is not None
+    ]
+    return {
+        "schemaVersion": 1, "kind": "sdlc-project-gantt", "executionId": plan["executionId"],
+        "planRevision": plan["revision"], "plannedDurationMs": max(known_ends, default=None),
+        "plannedComplete": all(value is not None for value in planned_end.values()),
+        "plannedBasis": (
+            "declared estimates and dependencies only; no resource schedule or calendar forecast" +
+            ("; relative offsets beyond signed 64-bit range are shown as incomplete" if planned_overflow else "")
+        ),
+        "actualOrigin": None if origin is None else origin.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "actualDurationMs": max(actual_ends, default=None),
+        "actualBasis": "manager event timestamps; not host execution timing",
+        "tasks": rows,
+    }
+
+
+def _bar(start, end, scale):
+    if start is None or end is None or scale is None:
+        return "unknown"
+    if scale <= 0:
+        return "*"
+    left = min(39, int(start * 40 / scale))
+    right = min(40, max(left + 1, int(end * 40 / scale)))
+    return "." * left + "#" * (right - left) + "." * (40 - right)
+
+
+def render_gantt(plan, task_state=None, events=None):
+    gantt = build_gantt(plan, task_state, events)
+    lines = [
+        "# Project Gantt", "",
+        f"Execution: {_markdown(gantt['executionId'])}; plan revision: {gantt['planRevision']}",
+        "Planned bars use relative estimates and dependencies only; they are not calendar or resource forecasts.",
+        "Actual bars use manager event timestamps, not host timing. Missing values remain unknown.",
+        "", "| Activity | Specialist | State | Planned estimate | Planned bar | Actual interval | Actual bar | Depends on |",
+        "|----------|------------|-------|------------------|-------------|-----------------|------------|------------|",
+    ]
+    for row in gantt["tasks"]:
+        estimate = "unknown" if row["estimateMs"] is None else f"{row['estimateMs']} ms"
+        planned = _bar(row["plannedStartMs"], row["plannedEndMs"], gantt["plannedDurationMs"])
+        actual_end = (
+            None if row["actualDurationMs"] is None or row["actualStartOffsetMs"] is None
+            else row["actualStartOffsetMs"] + row["actualDurationMs"]
+        )
+        actual = _bar(row["actualStartOffsetMs"], actual_end, gantt["actualDurationMs"])
+        interval = "unknown"
+        if row["actualStartOffsetMs"] is not None:
+            interval = (
+                "in progress" if row["actualDurationMs"] is None
+                else f"{row['actualDurationMs']} ms from manager events"
+            )
+        values = (
+            row["title"], row["agent"], row["status"], estimate, planned, interval, actual,
+            ", ".join(row["prerequisites"]) or "none",
+        )
+        lines.append("| " + " | ".join(_markdown(value) for value in values) + " |")
+    if not gantt["plannedComplete"]:
+        lines += ["", "Planned schedule is incomplete because one or more estimates or dependency offsets are unknown."]
+    if gantt["actualOrigin"] is None:
+        lines += ["", "Actual interval: unknown because no task start event is recorded."]
+    return "\n".join(lines)
 
 
 def _markdown(value):
@@ -58,6 +216,8 @@ def render_execution(inspected):
         "Writer lock: " + ("present; inspect before recovery" if inspected["writerLockPresent"] else "not present"),
         "", "Structural validation does not assess evidence quality, PR readiness, release or deployment.",
         "Acceptance is an explicit independent operator judgment, not worker self-certification.",
+        "", "## Gantt", "",
+        render_gantt(plan, state["tasks"], revision["events"]),
         "", "## Tasks", "",
         "| Task | Title | State | Attempt | Reported outcome | Estimate (declared) | Recorded interval |",
         "|------|-------|-------|---------|------------------|---------------------|-------------------|",

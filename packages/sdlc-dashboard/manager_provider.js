@@ -9,6 +9,21 @@ function label(value, maximum = 220) {
   const characters = Array.from(String(value));
   return characters.length > maximum ? characters.slice(0,maximum-1).join('') + '…' : characters.join('');
 }
+function ganttBar(start,end,scale) {
+  if (start === null || end === null || scale === null) return 'unknown';
+  const width = 20, total = BigInt(scale);
+  if (total === 0n) return '*' + '.'.repeat(width-1);
+  const left = Math.min(width-1,Number(BigInt(start) * BigInt(width) / total));
+  const right = Math.min(width,Math.max(left+1,Number(BigInt(end) * BigInt(width) / total)));
+  return '.'.repeat(left) + '#'.repeat(right-left) + '.'.repeat(width-right);
+}
+function contextParts(value, length = 160) {
+  const characters = Array.from(value), parts = [];
+  for (let offset=0; offset<characters.length; offset+=length) {
+    parts.push(characters.slice(offset,offset+length).join(''));
+  }
+  return parts;
+}
 const ACCEPTED_BASIS = {
   'independent-operator-validation':
     'Accepted by independent operator validation; worker verification not treated as passed',
@@ -73,10 +88,73 @@ class LiveProvider {
         `${event.attemptId ? ' · ' + event.attemptId : ''} · ${event.recordedAt}`,
       'history'
     ));
+    const additional = [];
+    if (snapshot.schemaVersion === 2) {
+      const gantt = snapshot.gantt;
+      const ganttRows = gantt.tasks.map(task => {
+        const planned = task.plannedStartMs === null || task.plannedEndMs === null
+          ? 'unknown'
+          : `${task.plannedStartMs}-${task.plannedEndMs} ms`;
+        const actual = task.actualStartOffsetMs === null
+          ? 'unknown'
+          : task.actualDurationMs === null
+            ? `started +${task.actualStartOffsetMs} ms; duration unknown`
+            : `${task.actualDurationMs} ms from manager events (start +${task.actualStartOffsetMs} ms)`;
+        const plannedBar = ganttBar(task.plannedStartMs,task.plannedEndMs,gantt.plannedDurationMs);
+        const actualEnd = task.actualDurationMs === null || task.actualStartOffsetMs === null
+          ? null : BigInt(task.actualStartOffsetMs) + BigInt(task.actualDurationMs);
+        const actualBar = ganttBar(task.actualStartOffsetMs,actualEnd,gantt.actualDurationMs);
+        return this.item(`live-gantt-task:${task.id}`,
+          `${task.id}: ${task.title} (${task.agent}; ${task.status})`,'timeline',[
+            this.item(`${task.id}:gantt-planned`,
+              `Planned relative interval: ${planned}; estimate ${task.estimateMs === null ? 'unknown' : task.estimateMs + ' ms'}`,'watch'),
+            this.item(`${task.id}:gantt-planned-bar`,`Planned bar: ${plannedBar}`,'graph'),
+            this.item(`${task.id}:gantt-actual`,`Actual interval: ${actual}`,'history'),
+            this.item(`${task.id}:gantt-actual-bar`,`Actual bar: ${actualBar}`,'graph'),
+            this.item(`${task.id}:gantt-dependencies`,
+              `Dependencies: ${task.prerequisites.join(', ') || 'none'}`,'references')
+          ]);
+      });
+      additional.push(this.item('live-gantt',
+        `Project Gantt · ${gantt.plannedComplete ? 'relative estimates complete' : 'planned timing incomplete'}`,'timeline',[
+          this.item('live-gantt-planned-basis',`Planned basis: ${gantt.plannedBasis}`,'info'),
+          this.item('live-gantt-actual-basis',
+            `Actual basis: ${gantt.actualBasis}; origin ${gantt.actualOrigin || 'unknown'}`,'info'),
+          ...ganttRows
+        ]));
+      const contextEntries = [];
+      if (snapshot.context.shared) {
+        const entry = snapshot.context.shared;
+        const parts = contextParts(entry.content);
+        contextEntries.push(this.item('live-context-shared',
+          `Shared context (${entry.source}; updated ${entry.updatedAt}; plan revision ${entry.planRevision})`,'note',[
+            ...parts.map((part,index) => this.item(
+              `live-context-shared:content:${index+1}`,`Context ${index+1}/${parts.length}: ${part}`,'note')),
+            this.item('live-context-shared:author',`Author: ${entry.author}`,'person'),
+            this.item('live-context-shared:digest',`Content digest: ${entry.digest}`,'key')
+          ]));
+      }
+      for (const [agent,entry] of Object.entries(snapshot.context.agents).sort(([a],[b]) => a.localeCompare(b))) {
+        const parts = contextParts(entry.content);
+        contextEntries.push(this.item(`live-context-agent:${agent}`,
+          `${agent} context (${entry.source}; updated ${entry.updatedAt}; plan revision ${entry.planRevision})`,
+          'account',[
+            ...parts.map((part,index) => this.item(
+              `live-context-agent:${agent}:content:${index+1}`,`Context ${index+1}/${parts.length}: ${part}`,'note')),
+            this.item(`live-context-agent:${agent}:author`,`Author: ${entry.author}`,'person'),
+            this.item(`live-context-agent:${agent}:digest`,`Content digest: ${entry.digest}`,'key')
+          ]));
+      }
+      additional.push(this.item('live-context',`Project context · revision ${snapshot.context.revision}`,
+        'note',contextEntries.length ? contextEntries : [
+          this.item('live-context-empty','No shared or specialist context recorded','info')
+        ]));
+    }
     this.nodes = [
       summary,
       this.item('live-tasks',`Tasks (${tasks.length}${this.filter === 'all' ? '' : ', filtered: ' + this.filter})`,
         'list-tree',tasks),
+      ...additional,
       this.item('live-events',`Recent manager events (${eventRows.length})`,'history',eventRows)
     ];
     this.emitter.fire(undefined);

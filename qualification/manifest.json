@@ -49,23 +49,23 @@
       },
       {
         "path": "assets/native-profiles/sdlc-architecture.agent.md",
-        "sha256": "a384d67e9d38142e6a1a0f006d773ecf7cd95b7aad3a46d24b93ec9ee3614baf"
+        "sha256": "725c9e79ec796ef4432f2cf747c367ab0fd94b1b3606131d57f78ebbd014d626"
       },
       {
         "path": "assets/native-profiles/sdlc-controller.agent.md",
-        "sha256": "898a674253f89bfce976e2fd023925e610349feb6a0c84f7757e9a6da804cdd3"
+        "sha256": "a62afb2676deaba636446586bd3c4663a9c40dbd7d2d9bd083376867497f1aff"
       },
       {
         "path": "assets/native-profiles/sdlc-developer.agent.md",
-        "sha256": "7fa679de6032cba7dcb4edc22fae3fd959e7d5f3c88114c1e2f2194c458d7dc9"
+        "sha256": "0bc982a579769509f9f14d02ef820ef6d3dc8019bde1eb947f3366dae66a9069"
       },
       {
         "path": "assets/native-profiles/sdlc-review.agent.md",
-        "sha256": "a537c9dd128a45bb050831251369a872e419911984f04f2e2b87232930b79d0a"
+        "sha256": "42b498be1a32bda77864eb5c6cc2babfe3091ad2473add5c0ac3ae58c0a53092"
       },
       {
         "path": "assets/native-profiles/sdlc-testing.agent.md",
-        "sha256": "e47b67c60a65ec11a47d3d92e72b2594a40a90d44a0b6193bbbcae32641f027e"
+        "sha256": "50b83a3f6f2986c19e2a6d98a4e65e1d73601c8efd6d950c53172ffca828de84"
       },
       {
         "path": "assets/sdlc-config.template.json",
@@ -172,6 +172,10 @@
         "sha256": "ef20e227f386da20ebbffefc9e1554f5332e70dcb7f4c825b0e25d1af18d9f4c"
       },
       {
+        "path": "contracts/execution-record-v4.schema.json",
+        "sha256": "85b3433ad1648d6fa6e03201f5655e7ed7da17302bdb380718fe52ae3bcd674e"
+      },
+      {
         "path": "contracts/execution-record.schema.json",
         "sha256": "f63f9253535805176e3c25a4f0eda9e19dcc9abe93cedf39053896d56c6dba39"
       },
@@ -217,7 +221,11 @@
       },
       {
         "path": "contracts/native-receipt.schema.json",
-        "sha256": "5dc34eb8c8849e606e6d192d9a9fc9dd1e7a4fa7d5c28b263c63537818bd848f"
+        "sha256": "67392ca4af430179cfb501907b565e35698ecd758a47595c06e30cd13058c657"
+      },
+      {
+        "path": "contracts/native-request-v2.schema.json",
+        "sha256": "c6b0848f20d7c9e72e6393c3f9f6568027d8897eaa370c2e4fefff266ab4828e"
       },
       {
         "path": "contracts/native-request.schema.json",
@@ -284,6 +292,10 @@
         "sha256": "127285cb02300f1ab2ee75c731e6a1ea3972867823746a901528b0bebef2443f"
       },
       {
+        "path": "contracts/task-result-v2.schema.json",
+        "sha256": "05e09cda0922285421a1715d3ce537b5f4ab6a57b13930b5d1da9522b66bf3e0"
+      },
+      {
         "path": "contracts/task-result.schema.json",
         "sha256": "1aa4aa64d57300ac0fd736e764cb7ced8c769ce934b6b1ba371c1271e18ced4d"
       },
@@ -321,7 +333,7 @@
       },
       {
         "path": "scripts/execution_contracts.py",
-        "sha256": "ee39b38eeb1c4c5c79a7a357579bb9682ed3d7e2aaea25afb890501713e2a587"
+        "sha256": "31b2e17bc536500777807ea7a8fe89abd2d57fbbae9d74a13c1b0018fa124fed"
       },
       {
         "path": "scripts/execution_controls.py",
@@ -333,7 +345,7 @@
       },
       {
         "path": "scripts/execution_manager.py",
-        "sha256": "cf5eeee41ce54758c9a93b61a3e68d10558d8a968fbe0ac86e6c526218056a56"
+        "sha256": "cad64099b8dd2a2b5e87b22ca4bfe2512b8cfc9de29156db6f8a772da58051cf"
       },
       {
         "path": "scripts/execution_orchestration.py",
@@ -345,11 +357,11 @@
       },
       {
         "path": "scripts/execution_renderers.py",
-        "sha256": "a975ac96566aa9549d13aaa0aee6080ad4a83a3da4f60c10b5f54924d6acff5e"
+        "sha256": "f3d7dc52f636672ee2fa9ec657a1cc76db6adf66e9c2543e6f688624a345f43f"
       },
       {
         "path": "scripts/execution_state.py",
-        "sha256": "065e81d58f2e7f3505596334483a0ce5e5dbdec1db39bc01eb86f3f8415c274a"
+        "sha256": "55389ba91c115981d2be256ac6de86bdf199167807dbca63e48de87294143d0d"
       },
       {
         "path": "scripts/execution_telemetry.py",
@@ -365,7 +377,7 @@
       },
       {
         "path": "scripts/manage_execution.py",
-        "sha256": "3eb8b5b5116d7a432e1977c5ecb2607da911d2856bffa68dd545024395a11a3b"
+        "sha256": "45b28c8d991dcc662b588824c2d1ed5059532d25a15424016416852916a203b1"
       },
       {
         "path": "scripts/manage_extensions.py",
@@ -401,7 +413,7 @@
       },
       {
         "path": "scripts/native_execution.py",
-        "sha256": "9c8ecb6f01b181b477377f6217288d2ec39979e6c005087ad2ab7712f345eba2"
+        "sha256": "0814d8ee0e6c7b9c9772e14e5e14e67ae66b6ae5fe417a096ee9cf666e918f97"
       },
       {
         "path": "scripts/operator_reports.py",
@@ -428,7 +440,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "5f0cc915bb1ac7a44d7af7bb56cf8b132917238edd49caa4a43d3c95f1af5fdc"
+    "bundleSha256": "d89236e6016bbd0d0b6111ec797bfea19bd84be1766df15cc0349ce3099f6934"
   },
   "profiles": [
     {

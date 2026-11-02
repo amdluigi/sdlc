@@ -1,7 +1,9 @@
 # Inactive execution contracts
 
-Version 1 defines data for a possible execution manager. It does not implement
-or enable that manager. Existing SDLC skills, commands, configuration,
+The original plan, brief, result and event contracts remain version 1 where
+their payloads are unchanged. The separate opt-in manager now also accepts a
+version-2 task result with one bounded context note, and stores context in
+execution-record version 4. Existing SDLC skills, commands, configuration,
 providers, plan cursors, metrics, and evaluator run records are unchanged.
 
 The separately opt-in [local manual manager](EXECUTION-MANAGEMENT.md) now
@@ -67,24 +69,28 @@ except ContractIssue as error:
 
 These helpers are installed under `sdlc/scripts`; explicitly place that
 directory on the caller's import path. The example never creates an execution.
+The library itself has no CLI, scheduler or persistence; those belong to the
+separately invoked manager.
 
 ## Common conventions
 
 All fields shown by the schemas are required, including nullable fields.
 All objects and event payload variants are closed. Unknown fields or versions
-fail. All four contracts use `schemaVersion: 1` and distinct identities:
+fail. The original four contracts use `schemaVersion: 1` and distinct
+identities:
 
 | Contract | Schema identity |
 |----------|-----------------|
 | [Execution plan](../skills/sdlc/contracts/execution-plan.schema.json) | `urn:sdlc:execution-plan:1` |
 | [Task brief](../skills/sdlc/contracts/task-brief.schema.json) | `urn:sdlc:task-brief:1` |
 | [Task result](../skills/sdlc/contracts/task-result.schema.json) | `urn:sdlc:task-result:1` |
+| [Task result version 2](../skills/sdlc/contracts/task-result-v2.schema.json) | `urn:sdlc:task-result:2` |
 | [Execution event](../skills/sdlc/contracts/execution-event.schema.json) | `urn:sdlc:execution-event:1` |
 
-The schemas use Draft 2020-12. Register all four bundled schemas by `$id` in
-an offline schema tool. Shared scalar definitions refer to the execution-plan
-schema by URN; no remote retrieval is required. The Python library does not
-load schemas or depend on a JSON Schema engine.
+The schemas use Draft 2020-12. Register all applicable bundled schemas by
+`$id` in an offline schema tool. Shared scalar definitions refer to the
+execution-plan schema by URN; no remote retrieval is required. The Python
+library does not load schemas or depend on a JSON Schema engine.
 
 - IDs: lowercase kebab-case, at most 128 characters.
 - Requirement references: `FR-<positive integer>` and `AC-<positive integer>`,
@@ -190,6 +196,12 @@ Verification results are `passed`, `failed`, `not-run`, `skipped`, or
 findings, blockers, and artifact arrays are permitted because this contract
 checks a report, not its completeness or evidence quality. No command is run.
 
+Version 1 has the fields above. Version 2 adds required nullable
+`contextUpdate`, bounded by the same 2,048-character text limit. It is an
+unaccepted worker note, not a verification claim, approval or acceptance.
+The manager attributes it to the request's specialist role and binds it to
+that execution and plan. Version-1 results remain valid.
+
 ## Execution events
 
 Every event declares `eventId`, a binding, positive `sequence`, `occurredAt`,
@@ -239,11 +251,10 @@ The `E_SCHEMA_*` and strict-reader codes are reused. New stable families are:
 `E_EXECUTION_` prefix. Diagnostics describe restrictions rather than echoing
 supplied commands or evidence.
 
-There are no legacy consumers to migrate or runtime activation flags to set.
-The qualified control-plane bundle adds exactly four schemas and one helper.
-It still contains 23 discoverable skills and 22 lifecycle implementations.
-Existing users do not need to reinstall for unchanged behavior, and installed
-skills are never refreshed automatically.
+These schemas alone do not enable execution. The manager remains opt-in,
+versioned, and responsible for storage, context digest checks, task transitions
+and acceptance. Existing users do not need to reinstall for unchanged
+behavior, and installed skills are never refreshed automatically.
 
 Future consumers must separately establish authorization, filesystem safety,
 evidence acceptance, lifecycle transitions, persistence, privacy/retention,

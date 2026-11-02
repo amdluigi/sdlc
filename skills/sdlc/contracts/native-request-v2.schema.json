@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:native-request:2",
+  "title": "Context-bound supervised native request, version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "projectRoot", "binding", "policyDigest", "role",
+    "profileDigest", "host", "brief", "outcome", "context"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "projectRoot": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "policyDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+    "profileDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+    "role": {"enum": ["architecture", "developer", "testing", "review"]},
+    "brief": {"$ref": "urn:sdlc:task-brief:1"},
+    "outcome": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+    "context": {"$ref": "urn:sdlc:execution-record:4#/$defs/context"},
+    "host": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "build", "delegationTool", "allowedActions"],
+      "properties": {
+        "id": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "build": {"type": "string", "minLength": 1, "maxLength": 128},
+        "delegationTool": {"type": "string", "minLength": 1, "maxLength": 128},
+        "allowedActions": {
+          "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+          "items": {"enum": ["read", "search", "edit", "execute"]}
+        }
+      }
+    }
+  }
+}

@@ -7,19 +7,23 @@ import sys
 
 from artifact_contracts import ContractIssue, strict_load_json
 import execution_manager as manager
-from execution_renderers import render_execution
+from execution_renderers import render_execution, render_gantt
 
 
 def parser():
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
     for name in ("configure", "import", "inspect", "approve", "record", "receive", "accept",
-                 "report", "recover", "delete"):
+                 "report", "recover", "delete", "context-update", "gantt"):
         command = commands.add_parser(name)
         command.add_argument("--project-root", required=True)
-        if name not in ("configure", "import"):
+        if name == "gantt":
+            source = command.add_mutually_exclusive_group(required=True)
+            source.add_argument("--input")
+            source.add_argument("--execution-id")
+        elif name not in ("configure", "import"):
             command.add_argument("--execution-id", required=True)
-        if name in ("configure", "import", "accept"):
+        if name in ("configure", "import", "accept", "context-update"):
             command.add_argument("--input", required=True)
         if name == "configure":
             command.add_argument("--dry-run", action="store_true")
@@ -67,6 +71,24 @@ def main(argv=None):
                                             strict_load_json(args.brief), strict_load_json(args.result))
         elif args.command == "accept":
             output = manager.accept_task(project, args.execution_id, strict_load_json(args.input))
+        elif args.command == "context-update":
+            update = strict_load_json(args.input)
+            if not isinstance(update, dict) or set(update) != {
+                "scope", "agentId", "content", "expectedPlanDigest", "expectedContextRevision",
+            }:
+                raise ContractIssue("E_EXECUTION_CONTEXT", "/", "context update fields do not match")
+            output = manager.update_context(
+                project, args.execution_id, update["scope"], update["agentId"], update["content"],
+                update["expectedPlanDigest"], update["expectedContextRevision"],
+            )
+        elif args.command == "gantt":
+            if args.input:
+                report = render_gantt(strict_load_json(args.input))
+            else:
+                inspected = manager.inspect_execution(project, args.execution_id)
+                report = render_gantt(inspected["plan"], inspected["state"], inspected["events"])
+            sys.stdout.write(report + "\n")
+            return 0
         else:
             if args.confirm_delete != args.execution_id:
                 raise ContractIssue("E_EXECUTION_DELETE", "/confirm-delete", "explicit deletion identity does not match")

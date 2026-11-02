@@ -13,6 +13,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import execution_controls as controls
 import execution_manager as manager
+import execution_renderers as renderers
 import execution_state as state
 from artifact_contracts import ContractIssue
 
@@ -114,7 +115,7 @@ def live_view(root, execution_id):
     ]
     unresolved = controls.reconcile_execution(root, execution_id)["unknownNativeAttempts"]
     view = {
-        "schemaVersion": 1, "kind": "sdlc-live-execution-view",
+        "schemaVersion": 2, "kind": "sdlc-live-execution-view",
         "binding": {
             "executionId": execution_id, "planRevision": plan["revision"],
             "planDigest": current["planDigest"],
@@ -133,6 +134,8 @@ def live_view(root, execution_id):
         },
         "progress": {"total": len(tasks), **counts},
         "tasks": tasks,
+        "context": current["context"],
+        "gantt": renderers.build_gantt(plan, current["state"], events),
         "events": [{
             "sequence": event["sequence"], "type": event["type"], "taskId": event["taskId"],
             "attemptId": event["attemptId"], "recordedAt": event["recordedAt"],
@@ -159,13 +162,18 @@ def _confirm(value, operation, expected):
     elif operation == "cancel":
         fields["taskId"] = value.get("taskId")
         fields["attemptId"] = value.get("attemptId")
+    elif operation == "update-context":
+        fields["context"] = value.get("context")
     if value.get("confirmationDigest") != _digest(fields):
         raise ContractIssue("E_DASHBOARD_CONFIRMATION", "/confirmationDigest",
                             "explicit confirmation must bind the exact live-view action")
 
 
 def run(value):
-    allowed = {"list", "inspect", "approve-plan", "approve-controls", "accept", "pause", "resume", "cancel"}
+    allowed = {
+        "list", "inspect", "approve-plan", "approve-controls", "accept", "pause", "resume", "cancel",
+        "update-context",
+    }
     operation = value.get("operation")
     if operation not in allowed:
         raise ContractIssue("E_DASHBOARD_OPERATION", "/operation", "unsupported dashboard operation")
@@ -178,6 +186,8 @@ def run(value):
             fields.add("acceptance")
         if operation == "cancel":
             fields.update(("taskId", "attemptId"))
+        if operation == "update-context":
+            fields.add("context")
     if set(value) != fields:
         raise ContractIssue("E_DASHBOARD_INPUT", "/", "dashboard request fields do not match the operation")
     project_root = value.get("projectRoot")
@@ -242,6 +252,16 @@ def run(value):
         controls.request_cancel(
             root, execution_id, value.get("taskId"), "Explicit dashboard cancellation intent",
             expected_binding=cancellation_binding,
+        )
+    elif operation == "update-context":
+        context = value.get("context")
+        if not isinstance(context, dict) or set(context) != {
+            "scope", "agentId", "content", "expectedRevision",
+        }:
+            raise ContractIssue("E_DASHBOARD_CONTEXT", "/context", "context update fields do not match")
+        manager.update_context(
+            root, execution_id, context["scope"], context["agentId"], context["content"],
+            expected["planDigest"], context["expectedRevision"], expected_binding=expected,
         )
     return {"operation": operation, "view": live_view(root, execution_id)}
 

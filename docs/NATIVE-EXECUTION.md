@@ -32,7 +32,11 @@ fail closed. An explicit model or non-default model profile is blocked until
 effective routing is supported; host-default identity is unverified.
 
 The version-1 request contains `projectRoot`, `binding`, `policyDigest`, `role`,
-`profileDigest`, `host`, `brief`, and the one planned task's `outcome`.
+`profileDigest`, `host`, `brief`, and the one planned task's `outcome`. New
+prepared requests use version 2 and add the current digest-bound shared and
+role-specific context snapshot. Version-1 requests remain valid only while
+the execution has no recorded context; once context exists, an old request
+cannot omit it.
 `native_execution.start_request(root, request, approved_request_digest)`
 rechecks enabled consent, approved immutable plan, installed profile identity,
 task dependencies and project-wide ownership/serialization under the existing
@@ -51,21 +55,28 @@ dispatch, billing optimization, hard timeout or cancellation claim is made.
 strict host envelope: `schemaVersion`, `requestDigest`, `hostId`, `hostBuild`,
 `callId`, `result`. It checks the recorded request marker, exact binding and
 running attempt, rejects worker approval fields and conflicting/duplicate call
-identities, and records host attribution plus the existing version-1 task
-result atomically. The host call ID is a cooperative controller observation,
-not authentication. Receipts remain reported, not accepted.
+identities, and records host attribution plus a version-1 or version-2 task
+result atomically. A version-2 result may include one optional bounded
+`contextUpdate`; it is stored as an attributed specialist note, never as
+accepted evidence. A version-2 result promotes the execution record to version
+4 without rewriting earlier revisions. The host call ID is a cooperative
+controller observation, not authentication. Receipts remain reported, not
+accepted.
 The controller independently validates evidence through the unchanged
 `accept_task` operation. Transport failure or ambiguous work is blocked for
 inspection; never retry or declare a worker stopped without host evidence.
 
 ## Compatibility and evidence
 
-Request and receipt contracts are new strict boundaries. Existing execution
-schemas, records, events and manual APIs retain their meaning. Digest and
-attribution markers use existing progress messages; they do not add event types
-or reinterpret ordinary manual progress. Existing manual attempts are not
-native requests. Recovery of a lost request requires the original request
-artifact; the digest marker alone cannot reconstruct or redispatch it.
+Version-2 native requests and task results are separate strict contracts;
+version-1 request and result data remain readable with the context restriction
+above. The outer native receipt remains version 1 and accepts either task
+result version. Existing execution events and manual APIs retain their meaning.
+Digest and attribution markers use existing progress messages; they do not
+add event types or reinterpret ordinary manual progress. Existing manual
+attempts are not native requests. Recovery of a lost request requires the
+original request artifact; the digest marker alone cannot reconstruct or
+redispatch it.
 Request markers must contain a valid digest and immediately follow the matching
 task-start event; later request-like progress is not a dispatch record.
 Attribution is recognized only when a unique preceding native request and an
@@ -116,10 +127,12 @@ python -B $native start --project-root . --request request.json --approved-reque
 ```
 
 At this point the active controller, not this CLI, invokes one native worker
-using the installed role and exact request. If the host cannot discover that
-role or enforce its tool restriction, stop before invocation. Save the
-returned version-1 result inside an envelope containing the observed host
-call ID and request digest, then record it:
+using the installed role and exact request. The worker receives the context
+included in that request and may return a concise version-2
+`contextUpdate`, or `null` when it has no durable note. If the host cannot
+discover that role or enforce its tool restriction, stop before invocation.
+Save the returned version-2 result inside an envelope containing the observed
+host call ID and request digest, then record it:
 
 ```powershell
 python -B $native receive --project-root . --request request.json --receipt receipt.json --result-id result-one

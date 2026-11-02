@@ -9,6 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "skills" / "sdlc" / "modules" / "registry.json"
 README = ROOT / "README.md"
 FLOW = ROOT / "docs" / "SDLC-DEVELOPMENT-FLOW.md"
+CONTROLLER = ROOT / "skills" / "sdlc" / "assets" / "native-profiles" / (
+    "sdlc-controller.agent.md"
+)
 DIAGRAM = ROOT / "docs" / "images" / "sdlc-development-flow" / (
     "01-development-lifecycle.svg"
 )
@@ -81,6 +84,14 @@ class LifecycleNarrativeTest(unittest.TestCase):
         flow = FLOW.read_text(encoding="utf-8")
 
         self.assertIn("![", flow, "diagram must carry Markdown alt text")
+
+    def test_ac20_controller_plans_major_activities_and_reuses_specialists(self) -> None:
+        controller = CONTROLLER.read_text(encoding="utf-8").lower()
+
+        self.assertIn("10 to 20 major activities", controller)
+        self.assertIn("reuse specialist", controller)
+        self.assertIn("shared project context", controller)
+        self.assertIn("gantt", controller)
 
 
 if __name__ == "__main__":

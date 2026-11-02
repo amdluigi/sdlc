@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-record:4",
+  "title": "Atomic manager record with bounded shared and specialist context, version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "executionId", "revisions", "context"],
+  "$defs": {
+    "contextEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["content", "source", "author", "agent", "updatedAt", "planRevision", "digest"],
+      "properties": {
+        "content": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+        "source": {"enum": ["operator", "worker"]},
+        "author": {"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"},
+        "agent": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}, {"type": "null"}]},
+        "updatedAt": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+        "planRevision": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+        "digest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+      }
+    },
+    "context": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "revision", "shared", "agents", "digest"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "revision": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "shared": {"anyOf": [{"$ref": "#/$defs/contextEntry"}, {"type": "null"}]},
+        "agents": {
+          "type": "object", "maxProperties": 256,
+          "propertyNames": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+          "additionalProperties": {"$ref": "#/$defs/contextEntry"}
+        },
+        "digest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+      }
+    },
+    "batchReceipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["briefDigest", "resultScope", "result"],
+      "properties": {
+        "briefDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        "resultScope": {
+          "type": "object", "additionalProperties": false,
+          "required": ["allowedActions", "ownership", "acceptanceCriteria"],
+          "properties": {
+            "allowedActions": {
+              "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": {"enum": ["read", "search", "edit"]}
+            },
+            "ownership": {"$ref": "urn:sdlc:execution-plan:1#/$defs/paths"},
+            "acceptanceCriteria": {
+              "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": {"$ref": "urn:sdlc:execution-plan:1#/$defs/acceptanceRef"}
+            }
+          }
+        },
+        "result": {
+          "oneOf": [
+            {"$ref": "urn:sdlc:task-result:1"},
+            {"$ref": "urn:sdlc:task-result:2"}
+          ]
+        }
+      }
+    },
+    "directReceiptV2": {
+      "type": "object", "additionalProperties": false,
+      "required": ["brief", "result"],
+      "properties": {
+        "brief": {"$ref": "urn:sdlc:task-brief:1"},
+        "result": {"$ref": "urn:sdlc:task-result:2"}
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {"const": 4},
+    "executionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "context": {"$ref": "#/$defs/context"},
+    "revisions": {
+      "type": "array", "minItems": 1, "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["plan", "consent", "events", "receipts", "acceptances", "approvals"],
+        "properties": {
+          "plan": {"$ref": "urn:sdlc:execution-plan:1"},
+          "consent": {"$ref": "urn:sdlc:execution-consent:1"},
+          "events": {
+            "type": "array", "minItems": 1, "maxItems": 256,
+            "items": {
+              "oneOf": [
+                {"$ref": "urn:sdlc:execution-event:1"},
+                {"$ref": "urn:sdlc:execution-event:2"},
+                {"$ref": "urn:sdlc:execution-event:3"}
+              ]
+            }
+          },
+          "receipts": {
+            "type": "object", "maxProperties": 256,
+            "propertyNames": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "additionalProperties": {
+              "oneOf": [
+                {"$ref": "urn:sdlc:execution-record:1#/properties/revisions/items/properties/receipts/additionalProperties"},
+                {"$ref": "#/$defs/directReceiptV2"},
+                {"$ref": "#/$defs/batchReceipt"}
+              ]
+            }
+          },
+          "acceptances": {
+            "type": "object", "maxProperties": 256,
+            "propertyNames": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "additionalProperties": {
+              "oneOf": [
+                {"$ref": "urn:sdlc:execution-acceptance:1"},
+                {"$ref": "urn:sdlc:execution-acceptance:2"}
+              ]
+            }
+          },
+          "approvals": {"$ref": "urn:sdlc:execution-record:1#/properties/revisions/items/properties/approvals"}
+        }
+      }
+    }
+  }
+}

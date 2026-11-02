@@ -1,10 +1,12 @@
 # Dashboard qualification
 
 The host evidence below was observed on 2026-11-01 and applies only to the
-export viewer. The live manager dashboard was added on 2026-11-02. It has
-focused automated evidence, but no actual-host qualification yet. This file
-does not claim activation or completion for supervised or autonomous workers.
-Independent parent integration/review and CI remain separate gates.
+export viewer. The live manager dashboard was added on 2026-11-02 and now has
+focused automated evidence plus a bounded actual-host run documented below.
+The current branch extends its live contract with bounded context and a
+project Gantt. The older host evidence does not qualify those new live rows.
+This file does not claim activation or completion for supervised or autonomous
+workers. Independent parent integration/review and CI remain separate gates.
 
 ## Exact owned files
 
@@ -30,9 +32,10 @@ packages\sdlc-dashboard\
     host.js
 ```
 
-No portable Python, schema, inventory, global documentation, branch, index,
-commit, consumer configuration or memory files were changed by this package
-implementation.
+This optional package has no runtime dependency beyond the host-provided VS
+Code API and Node built-ins. The larger orchestration change also updates the
+project-level bridge, manager, shared contracts, qualification inventory and
+documentation outside this package.
 
 ## Host and transport
 
@@ -66,7 +69,7 @@ npm --prefix packages\sdlc-dashboard run check
 npm --prefix packages\sdlc-dashboard run qualify
 ```
 
-**62 tests pass, 0 failures, 0 skips.** Syntax checks pass. No install,
+**66 tests pass, 0 failures, 0 skips.** Syntax checks pass. No install,
 third-party dependency, TypeScript build or downloaded test host is needed.
 The current native-host seam additionally verifies that an explicit live
 poller stops when the manager view becomes hidden, the selected execution
@@ -245,12 +248,18 @@ manager state is untouched.
 
 ## Live manager dashboard status
 
-The manager-connected native TreeView, local fixed Python bridge, selection,
-digest parser and confirmed action flow are not covered by the 2026-11-01
-actual-host observations above. The implementation uses only focused Node
-tests and Python tests against real manager files and writer operations.
-The parent task owns IDE qualification. Until a separate actual-host run
-covers live selection, explicit polling, stale action rejection, confirmation,
-and native accessibility, do not claim those behaviors as host-qualified.
-Autonomous model/provider execution, authoritative spend limits, and remote
-host cancellation remain unsupported or unqualified.
+An isolated Visual Studio Code Insiders 1.145.0 host loaded a disposable
+manager execution through the dashboard's live controller and rendered the
+native manager TreeView. The host showed a two-activity Project Gantt, shared
+context, and specialist context. The accessibility snapshot exposed the
+manager as a `tree` with labeled `treeitem` rows; direct selection of the
+Gantt row and native TreeView selection of a specialist-context row were
+observed. This confirms live data loading and presentation in that host, not
+the broader live interaction contract.
+
+Explicit polling, stale-action rejection, confirmation flows, keyboard
+navigation of the manager tree, screen-reader announcements, and other
+assistive-technology behaviors were not exercised in this host run. The
+separate export-viewer keyboard observations above do not qualify manager-tree
+keyboard behavior. Autonomous model/provider execution, authoritative spend
+limits, and remote host cancellation remain unsupported or unqualified.

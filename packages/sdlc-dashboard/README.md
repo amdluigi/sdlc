@@ -45,6 +45,14 @@ their existing behavior and never contact the execution manager.
    filters, aggregate progress and recent manager events. Opening the view
    performs one read-only inspection. It does not start a worker, resume
    autonomous dispatch or enable polling.
+   The view also exposes one project Gantt and the recorded shared and
+   specialist context. Expand **Project Gantt** for each activity's relative
+   planned interval, manager-event interval, dependencies and unknown timing.
+   Expand **Project context** to read bounded notes with source, author,
+   revision and digest provenance. Notes and task names are plain text in
+   native TreeView items; they are not instructions, approval or accepted
+   evidence. The view is read-only for context; update notes through the
+   manager's explicit `context-update` operation.
 3. Use **SDLC: Refresh Live Execution Manager** for one explicit refresh.
    Live updates are off by default. **SDLC: Start Live Manager Updates**
    enables three-second reads for that selected execution; use **Stop Live
@@ -108,13 +116,16 @@ does not silently approve policy or control changes.
   rewrite a plan digest at the same revision. Failures discard both data and
   the active selection; explicitly reopen a valid export to recover.
 
-The live manager view uses its own closed version-1 contract. It is produced
-by the local manager, digest-checks its structured projection and binds
-mutations to plan, policy, control and control-state digests. A displayed
+The live manager view accepts its closed version-1 contract and the
+version-2 contract that adds bounded context and a matching project Gantt. It
+is produced by the local manager, digest-checks its structured projection and
+binds mutations to plan, policy, control and control-state digests. A displayed
 digest is not independent authentication and is never sufficient authority
 for an action. The manager writer revalidates the live binding. Unknown,
-stale or malformed state disables actions. Only task metadata and a bounded
-recent event list are rendered.
+stale or malformed state disables actions. Only task metadata, bounded
+context notes and a bounded recent event list are rendered. Gantt estimates
+are relative and dependency-based; actual intervals come only from manager
+events, not host timing or calendar forecasts.
 
 **An export is never proof of live freshness or authenticity.** This fixed
 schema has no source timestamp or manager connection. A recomputed digest
