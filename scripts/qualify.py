@@ -126,6 +126,7 @@ HELPERS = {
     "scripts/execution_controls.py",
     "scripts/execution_insights.py",
     "scripts/execution_manager.py",
+    "scripts/execution_orchestration.py",
     "scripts/execution_profiles.py",
     "scripts/execution_renderers.py",
     "scripts/execution_state.py",
@@ -147,7 +148,7 @@ HELPERS = {
     "scripts/runtime_process.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 83
+BUNDLE_FILE_COUNT = 89
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {

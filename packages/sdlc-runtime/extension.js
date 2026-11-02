@@ -7,6 +7,7 @@ const { run } = require('./driver');
 
 const LIMITS = Object.freeze({ maxIterations: 8, maxToolCalls: 16, maxInputBytes: 131072,
   maxOutputBytes: 131072, maxWallMs: 120000 });
+const MAX_BATCH_FILE_BYTES = 2 * 1024 * 1024;
 let busy = false;
 
 async function command() {
@@ -124,11 +125,170 @@ async function runCommand() {
   vscode.window.showInformationMessage('Worker receipt recorded. Independent manager acceptance is still required.');
 }
 
+async function batchCommand() {
+  if (busy) throw new Error('A local bounded worker is already active');
+  busy = true;
+  try { await runBatchCommand(); }
+  finally { busy = false; }
+}
+
+async function runBatchCommand() {
+  if (!vscode.workspace.isTrusted) throw new Error('A trusted local workspace is required');
+  if (vscode.env.remoteName) throw new Error('Only a local extension host is supported');
+  const folders = (vscode.workspace.workspaceFolders || []).filter(folder => folder.uri.scheme === 'file');
+  const folder = await vscode.window.showQuickPick(folders.map(item => ({
+    label: item.name, description: item.uri.fsPath, folder: item
+  })), { title: 'Select the explicitly approved execution project', ignoreFocusOut: true });
+  if (!folder) return;
+  const chosen = await vscode.window.showOpenDialog({ canSelectMany: false,
+    filters: { 'Execution batch': ['json'] }, title: 'Select the exact finite local batch definition' });
+  if (!chosen?.length || chosen[0].scheme !== 'file') return;
+  const info = await fs.lstat(chosen[0].fsPath);
+  if (!info.isFile() || info.isSymbolicLink() || info.size > MAX_BATCH_FILE_BYTES) {
+    throw new Error('Batch must be a bounded regular local JSON file');
+  }
+  const handle = await fs.open(chosen[0].fsPath, 'r');
+  let batchBytes;
+  try {
+    const opened = await handle.stat();
+    if (!opened.isFile() || opened.size > MAX_BATCH_FILE_BYTES) {
+      throw new Error('Batch must be a bounded regular local JSON file');
+    }
+    const buffer = Buffer.alloc(MAX_BATCH_FILE_BYTES + 1);
+    let offset = 0;
+    while (offset < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, offset);
+      if (!bytesRead) break;
+      offset += bytesRead;
+    }
+    if (offset > MAX_BATCH_FILE_BYTES || offset !== opened.size) {
+      throw new Error('Batch changed while being read or exceeds the bounded input capacity');
+    }
+    batchBytes = buffer.subarray(0, offset);
+  } finally { await handle.close(); }
+  if (batchBytes.length > MAX_BATCH_FILE_BYTES) {
+    throw new Error('Batch exceeds the bounded local input capacity');
+  }
+  let batchJson;
+  try { batchJson = new TextDecoder('utf-8', { fatal: true }).decode(batchBytes); }
+  catch {
+    const error = new Error('Batch must be valid UTF-8 JSON');
+    error.code = 'E_UTF8';
+    throw error;
+  }
+  const bridge = createBridge(folder.folder.uri.fsPath);
+  const preview = await bridge('preview_batch_json', { batchJson });
+  const models = await vscode.lm.selectChatModels({});
+  const modelById = new Map();
+  for (const attempt of preview.batch.tasks.flatMap(task => task.attempts)) {
+    const matches = models.filter(model => model.id === attempt.modelId);
+    if (matches.length !== 1) {
+      const error = new Error('Every preapproved exact model must be uniquely available in this IDE');
+      error.code = 'E_MODEL_UNAVAILABLE';
+      throw error;
+    }
+    modelById.set(attempt.modelId, matches[0]);
+  }
+  const attemptLines = preview.batch.tasks.flatMap(task => task.attempts.map(attempt =>
+    `${task.taskId}/${attempt.attemptId}: ${attempt.modelId}, brief ${digest(attempt.brief)}, ` +
+    `limits ${JSON.stringify(attempt.limits)}`));
+  const confirmed = await vscode.window.showWarningMessage('Authorize this exact finite local batch?', {
+    modal: true,
+    detail: [
+      `Current IDE: ${vscode.env.appName} ${vscode.version}`,
+      `Project: ${folder.folder.uri.fsPath}`,
+      `Batch: ${preview.batchId}`,
+      `Batch digest: ${preview.batchDigest}`,
+      `Current plan/policy/controls digests: ${preview.planDigest} / ${preview.executionPolicyDigest} / ${preview.controlsDigest}`,
+      `Exact task/attempt/model/brief digests:`,
+      `Initial schedule: ${preview.schedule.map(item => `${item.taskId} (${item.status}, ${item.attempts} attempts)`).join('; ')}`,
+      ...attemptLines,
+      `Cumulative limits: ${JSON.stringify(preview.cumulativeLimits)}`,
+      'A monetary spend cap and authoritative usage/billing data are unavailable. If a spend cap is required, do not authorize this batch.',
+      'IDE model availability does not prove effective routing. Local stream completion does not confirm billing or remote termination.',
+      'No execute, shell, install, automatic acceptance, manager approval, policy adoption, telemetry or transcript storage.',
+      'Only the exact approved attempts and their ordered retry/model choices can be dispatched.'
+    ].join('\n')
+  }, 'Authorize exact batch');
+  if (confirmed !== 'Authorize exact batch') return;
+  await bridge('approve_batch', { batch: preview.batch, batchDigest: preview.batchDigest });
+  let finalStatus = 'unknown-barrier';
+  await vscode.window.withProgress({
+    location: vscode.ProgressLocation.Notification,
+    title: 'SDLC bounded batch (local cancellation only)', cancellable: true
+  }, async (_, token) => {
+    const controller = new AbortController();
+    const subscription = token.onCancellationRequested(() => controller.abort());
+    if (token.isCancellationRequested) controller.abort();
+    try {
+      const maximumAttempts = preview.batch.tasks.reduce((total, task) => total + task.attempts.length, 0);
+      for (let count = 0; count <= maximumAttempts; count++) {
+        if (controller.signal.aborted) return;
+        const next = await bridge('next_attempt', {
+          batch: preview.batch, batchDigest: preview.batchDigest
+        });
+        finalStatus = next.status;
+        if (!next.dispatch) return;
+        const model = modelById.get(next.modelId);
+        if (!model) {
+          const error = new Error('The preapproved model is no longer available');
+          error.code = 'E_MODEL_UNAVAILABLE';
+          throw error;
+        }
+        const envelope = await bridge('prepare_batch', {
+          batch: preview.batch, batchDigest: preview.batchDigest,
+          taskId: next.taskId, attemptId: next.attemptId, brief: next.brief,
+          role: preview.batch.tasks.find(task => task.taskId === next.taskId).role,
+          model: { id: model.id, vendor: model.vendor, family: model.family, version: model.version },
+          limits: next.limits
+        });
+        await run({ envelope, bridge, signal: controller.signal,
+          respond: async (prompt, signal) => {
+            const cancellation = new vscode.CancellationTokenSource();
+            const cancel = () => { cancellation.cancel(); cancellation.dispose(); };
+            signal.addEventListener('abort', cancel, { once: true });
+            if (signal.aborted) cancellation.cancel();
+            try {
+              const response = await model.sendRequest(
+                [vscode.LanguageModelChatMessage.User(prompt)], {}, cancellation.token
+              );
+              return (async function* () {
+                try { for await (const text of response.text) yield text; }
+                finally { signal.removeEventListener('abort', cancel); cancellation.dispose(); }
+              })();
+            } catch (error) {
+              signal.removeEventListener('abort', cancel);
+              cancellation.dispose();
+              throw error;
+            }
+          }
+        });
+      }
+      finalStatus = 'attempts-exhausted';
+    } finally { subscription.dispose(); }
+  });
+  if (finalStatus === 'complete') {
+    vscode.window.showInformationMessage('Batch attempts are complete. Independent manager acceptance is still required.');
+  } else {
+    vscode.window.showInformationMessage(
+      `Batch paused (${finalStatus}); no implicit acceptance or unconfirmed-work redispatch occurred.`
+    );
+  }
+}
+
 function activate(context) {
   context.subscriptions.push(vscode.commands.registerCommand('sdlc.runtime.run', () =>
     command().catch(() => vscode.window.showErrorMessage(
       'Bounded run did not complete. Inspect the local manager; unknown work must not be redispatched.'
     ))
+  ));
+  context.subscriptions.push(vscode.commands.registerCommand('sdlc.runtime.runBatch', () =>
+    batchCommand().catch(error => {
+      const code = /^E_[A-Z_]+$/.test(error?.code || '') ? error.code : 'E_RUNTIME_UNKNOWN';
+      vscode.window.showErrorMessage(
+        `Bounded batch stopped (${code}). Inspect local manager history before taking further action.`
+      );
+    })
   ));
 }
 

@@ -86,9 +86,13 @@ for (const holdWriter of [false, true, 'unresolved']) {
       if (operation === 'stop') { stops++; boundaries.push(['stop-request', performance.now()]); }
       try { return await context.bridge(operation, payload); }
       catch (error) {
-        if (operation === 'stop' && /E_EXECUTION_BUSY/.test(error.message)) busyStops++;
+        if (operation === 'stop') {
+          boundaries.push(['stop-error', performance.now(), error.code || error.message]);
+          if (/E_EXECUTION_BUSY/.test(error.message)) busyStops++;
+        }
         throw error;
       } finally {
+        if (operation === 'stop') boundaries.push(['stop-settled', performance.now()]);
         if (operation === 'tool') { toolSettled = true; boundaries.push(['tool-settled', performance.now()]); }
       }
     };
@@ -140,6 +144,72 @@ for (const holdWriter of [false, true, 'unresolved']) {
 
 test('a bounded runtime driver is executable', () => {
   assert.equal(typeof run, 'function');
+});
+
+test('stop retry window counts real busy helper latency without exhausting eight process starts', async t => {
+  const context = await fixture(t);
+  const lock = path.join(context.project, '.git', 'sdlc', 'executions.lock');
+  let now = 0;
+  let stops = 0;
+  const runWithClock = driverWithClock({ now: () => now });
+  const bridge = async (operation, payload) => {
+    if (operation === 'stop') stops++;
+    try { return await context.bridge(operation, payload); }
+    catch (error) {
+      if (operation === 'stop' && error.code === 'E_EXECUTION_BUSY') now += 1100;
+      throw error;
+    }
+  };
+  try {
+    await assert.rejects(runWithClock({
+      ...context, bridge,
+      respond: async () => {
+        fs.writeFileSync(lock, 'test-owned writer contention', { flag: 'wx' });
+        throw new Error('Synthetic external provider failure');
+      }
+    }), { code: 'E_RUNTIME_STOP_UNCONFIRMED' });
+    assert.equal(stops, 2, 'Elapsed helper time, not only retry count, must bound stop persistence');
+    assert.equal(status(context.project), 'active', 'A busy writer must not be bypassed to claim a persisted stop');
+  } finally {
+    fs.rmSync(lock, { force: true });
+    await context.bridge('stop', { envelope: context.envelope });
+  }
+  assertUnresolved(context);
+});
+
+test('retry window does not abandon an in-flight real stop helper after its admission deadline', async t => {
+  const context = await fixture(t);
+  let now = 0;
+  let enterStop;
+  let releaseStop;
+  const entered = new Promise(resolve => { enterStop = resolve; });
+  const release = new Promise(resolve => { releaseStop = resolve; });
+  let settled = false;
+  let stops = 0;
+  const runWithClock = driverWithClock({ now: () => now });
+  const bridge = async (operation, payload) => {
+    if (operation !== 'stop') return context.bridge(operation, payload);
+    stops++;
+    const pending = context.bridge(operation, payload);
+    enterStop();
+    await release;
+    return pending;
+  };
+  const outcome = runWithClock({
+    ...context, bridge,
+    respond: async () => { throw new Error('Synthetic external provider failure'); }
+  }).then(() => assert.fail('Provider failure cannot create a receipt'), error => error)
+    .finally(() => { settled = true; });
+  try {
+    await entered;
+    now = 3000;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(settled, false, 'Retry admission deadline must not abandon an already-started helper');
+  } finally { releaseStop(); }
+  const error = await outcome;
+  assert.match(error.message, /Synthetic external provider failure/);
+  assert.equal(stops, 1);
+  assertUnresolved(context);
 });
 
 test('version-2 real command CLI reports exact observed evidence without automatic acceptance',

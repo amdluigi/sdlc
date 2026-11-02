@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-event:2",
+  "title": "Versioned local batch controller state event, version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "eventId", "binding", "sequence", "occurredAt", "recordedAt",
+    "actor", "type", "taskId", "attemptId", "payload"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "eventId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "sequence": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "occurredAt": {"$ref": "urn:sdlc:execution-event:1#/properties/occurredAt"},
+    "recordedAt": {"$ref": "urn:sdlc:execution-event:1#/properties/recordedAt"},
+    "actor": {
+      "type": "object", "additionalProperties": false, "required": ["role", "id"],
+      "properties": {"role": {"const": "manager"}, "id": {"const": "local-orchestrator"}}
+    },
+    "type": {"enum": ["TASK_RETRY_READY", "BATCH_ATTEMPT_ACCOUNTED"]},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "payload": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["batchId", "batchDigest", "resultId", "nextAttemptId", "modelId"],
+          "properties": {
+            "batchId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "batchDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+            "resultId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "nextAttemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "modelId": {
+              "type": "string", "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}(?![\\s\\S])"
+            }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": [
+            "batchId", "batchDigest", "resultId", "briefDigest", "modelCalls", "toolCalls",
+            "elapsedMs", "inputBytes", "outputBytes"
+          ],
+          "properties": {
+            "batchId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "batchDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+            "resultId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+            "briefDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+            "modelCalls": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "toolCalls": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "elapsedMs": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "inputBytes": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "outputBytes": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"type": {"const": "TASK_RETRY_READY"}}},
+      "then": {"properties": {"payload": {"$ref": "#/properties/payload/oneOf/0"}}}
+    },
+    {
+      "if": {"properties": {"type": {"const": "BATCH_ATTEMPT_ACCOUNTED"}}},
+      "then": {"properties": {"payload": {"$ref": "#/properties/payload/oneOf/1"}}}
+    }
+  ]
+}

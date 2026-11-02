@@ -233,6 +233,12 @@ class RuntimeCommandsTests(unittest.TestCase):
                 "scripts/runtime_process.py", "scripts/bounded_runtime.py",
                 "contracts/execution-controls-policy-v2.schema.json",
                 "contracts/execution-controls-record-v2.schema.json", "contracts/runtime-command.schema.json",
+                "contracts/execution-batch.schema.json",
+                "contracts/execution-controls-policy-v3.schema.json",
+                "contracts/execution-controls-record-v3.schema.json",
+                "contracts/execution-event-v2.schema.json",
+                "contracts/execution-record-v2.schema.json",
+                "scripts/execution_orchestration.py",
             ):
                 self.assertEqual((ROOT / "skills" / "sdlc" / relative).read_bytes(),
                                  (target / relative).read_bytes())

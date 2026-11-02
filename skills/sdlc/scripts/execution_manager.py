@@ -171,8 +171,11 @@ def _load(root, execution_id):
     return state.validate_record(_read(execution_path(root, execution_id)))
 
 
-def _projection(revision):
-    return state.replay_execution(
+def _projection(revision, *, allow_controller=False):
+    replay = state.replay_execution_v2 if allow_controller or any(
+        isinstance(event, dict) and event.get("schemaVersion") == 2 for event in revision["events"]
+    ) else state.replay_execution
+    return replay(
         revision["plan"], revision["events"], revision["receipts"],
         state.digest(revision["consent"]), revision["acceptances"], revision["approvals"],
     )
@@ -200,9 +203,10 @@ def _unresolved(projected):
                for item in projected["tasks"].values())
 
 
-def _project_attempt_available(root, execution_id, task_id=None, attempt_id=None, native=False, bounded=False):
+def _project_attempt_available(root, execution_id, task_id=None, attempt_id=None, native=False, bounded=False,
+                               batch=None):
     import execution_controls
-    execution_controls.enforce_start(root, execution_id, task_id, attempt_id, native, bounded)
+    execution_controls.enforce_start(root, execution_id, task_id, attempt_id, native, bounded, batch=batch)
     for identifier in _record_ids(root):
         if identifier != execution_id and _unresolved(_projection(_load(root, identifier)["revisions"][-1])):
             raise ContractIssue("E_EXECUTION_CONFLICT", "/executionId",
@@ -232,6 +236,8 @@ def inspect_execution(project_root, execution_id):
 
 
 def _append(revision, kind, task_id=None, attempt_id=None, payload=None):
+    import execution_orchestration
+    execution_orchestration.check_event_capacity(revision, kind, task_id, attempt_id, payload)
     sequence = len(revision["events"]) + 1
     when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if revision["events"] and when < revision["events"][-1]["recordedAt"]:
@@ -250,6 +256,27 @@ def _append(revision, kind, task_id=None, attempt_id=None, payload=None):
         "sequence": sequence, "occurredAt": when, "recordedAt": when, "actor": actor,
         "type": kind, "taskId": task_id, "attemptId": attempt_id,
         "payload": {} if payload is None else payload,
+    })
+    return event_id
+
+
+def _append_controller(record, revision, kind, task_id, attempt_id, payload):
+    import execution_orchestration
+    execution_orchestration.check_event_capacity(revision, kind, task_id, attempt_id, payload)
+    record["schemaVersion"] = 2
+    sequence = len(revision["events"]) + 1
+    when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if revision["events"] and when < revision["events"][-1]["recordedAt"]:
+        raise ContractIssue("E_EXECUTION_TIME", "/", "local clock precedes the last recorded event")
+    plan = revision["plan"]
+    event_id = "event-" + str(sequence)
+    revision["events"].append({
+        "schemaVersion": 2, "eventId": event_id,
+        "binding": {"executionId": plan["executionId"], "planRevision": plan["revision"],
+                    "planDigest": state.digest(plan)},
+        "sequence": sequence, "occurredAt": when, "recordedAt": when,
+        "actor": {"role": "manager", "id": "local-orchestrator"},
+        "type": kind, "taskId": task_id, "attemptId": attempt_id, "payload": payload,
     })
     return event_id
 

@@ -11,6 +11,7 @@ import execution_state as state
 
 REQUEST_MARKER = "native-request:"
 RECEIPT_MARKER = "native-receipt:"
+BATCH_MARKER = "native-batch:"
 
 
 def _host(value):
@@ -109,7 +110,7 @@ def request_digest(request):
     return {**semantic_fields(), "requestDigest": state.digest(_request(request))}
 
 
-def start_request(project_root, request, approved_request_digest, *, _guard=None, _bounded=False):
+def start_request(project_root, request, approved_request_digest, *, _guard=None, _bounded=False, _batch=None):
     request = _request(request)
     contracts._digest(approved_request_digest, "/approvedRequestDigest")
     if state.digest(request) != approved_request_digest:
@@ -121,7 +122,8 @@ def start_request(project_root, request, approved_request_digest, *, _guard=None
         _validate(root, request, revision)
         brief = request["brief"]
         manager._project_attempt_available(root, execution_id, brief["taskId"], brief["attemptId"],
-                                           native=True, bounded=_bounded)
+                                           native=True, bounded=_bounded,
+                                           batch=None if _batch is None else _batch["batch"])
         if _guard is not None:
             _guard(root, revision)
         projected = manager._projection(revision)["tasks"][brief["taskId"]]
@@ -130,6 +132,15 @@ def start_request(project_root, request, approved_request_digest, *, _guard=None
         manager._append(revision, "TASK_STARTED", brief["taskId"], brief["attemptId"])
         manager._append(revision, "TASK_PROGRESS_UPDATED", brief["taskId"], brief["attemptId"],
                         {"message": REQUEST_MARKER + approved_request_digest})
+        if _batch is not None:
+            if _batch["attemptId"] != brief["attemptId"] or _batch["taskId"] != brief["taskId"]:
+                raise ContractIssue("E_NATIVE_BINDING", "/batch", "batch attempt differs from native brief")
+            manager._append(revision, "TASK_PROGRESS_UPDATED", brief["taskId"], brief["attemptId"], {
+                "message": BATCH_MARKER + contracts._encoded({
+                    "batchId": _batch["batch"]["batchId"], "batchDigest": _batch["batchDigest"],
+                    "modelId": _batch["modelId"],
+                })
+            })
     return {**semantic_fields(), "requestDigest": approved_request_digest, "hostInvocation": "required",
             "modelObservation": "unavailable", "cancellation": "unqualified"}
 
@@ -154,6 +165,28 @@ def _request_markers(events, task_id, attempt_id):
             and (event["taskId"], event["attemptId"]) == (task_id, attempt_id)
             and event["payload"]["message"].startswith(REQUEST_MARKER)
             and contracts.DIGEST_PATTERN.fullmatch(event["payload"]["message"][len(REQUEST_MARKER):])]
+
+
+def _batch_markers(events, task_id, attempt_id):
+    markers = []
+    for event in events:
+        message = event["payload"].get("message", "")
+        if event["type"] != "TASK_PROGRESS_UPDATED" or (
+            event["taskId"], event["attemptId"]
+        ) != (task_id, attempt_id) or not message.startswith(BATCH_MARKER):
+            continue
+        try:
+            data = json.loads(message[len(BATCH_MARKER):])
+        except (ValueError, RecursionError) as error:
+            raise ContractIssue("E_NATIVE_HISTORY", "/", "invalid batch attribution marker") from error
+        data = contracts._object(data, "/batch", ("batchId", "batchDigest", "modelId"))
+        contracts._id(data["batchId"], "/batchId")
+        contracts._digest(data["batchDigest"], "/batchDigest")
+        contracts._text(data["modelId"], "/modelId", 128)
+        if contracts._encoded(data) != message[len(BATCH_MARKER):]:
+            raise ContractIssue("E_NATIVE_HISTORY", "/", "batch attribution is not canonical")
+        markers.append(data)
+    return markers
 
 
 def _metadata(record):
@@ -200,7 +233,7 @@ def _metadata(record):
                 yield data
 
 
-def receive_receipt(project_root, request, receipt, result_id, *, _guard=None):
+def receive_receipt(project_root, request, receipt, result_id, *, _guard=None, _batch=None, _usage=None):
     request, receipt = _request(request), _receipt(receipt)
     contracts._id(result_id, "/resultId")
     digest = state.digest(request)
@@ -215,7 +248,34 @@ def receive_receipt(project_root, request, receipt, result_id, *, _guard=None):
                    if item == digest]
         if len(markers) != 1:
             raise ContractIssue("E_NATIVE_BINDING", "/", "attempt has no unique recorded native request")
+        if _batch is not None:
+            expected_batch = {"batchId": _batch["batch"]["batchId"],
+                              "batchDigest": _batch["batchDigest"], "modelId": _batch["modelId"]}
+            if _batch_markers(revision["events"], brief["taskId"], brief["attemptId"]) != [expected_batch]:
+                raise ContractIssue("E_NATIVE_BINDING", "/batch", "attempt lacks its exact batch consent marker")
+            item = next((entry for entry in _batch["batch"]["tasks"]
+                         if entry["taskId"] == brief["taskId"]), None)
+            attempt = None if item is None else next(
+                (entry for entry in item["attempts"] if entry["attemptId"] == brief["attemptId"]), None
+            )
+            if attempt is None or attempt["brief"] != brief:
+                raise ContractIssue("E_NATIVE_BINDING", "/batch", "receipt brief differs from the exact approved attempt")
         validated = contracts.validate_task_result(receipt["result"], revision["plan"], brief)["data"]
+        stored_receipt = {"brief": brief, "result": validated}
+        if _batch is not None:
+            if validated["findings"] or validated["blockers"] or any(
+                item["command"] is not None or item["revision"] is not None
+                or item["summary"] != item["result"] for item in validated["verification"]
+            ):
+                raise ContractIssue("E_NATIVE_PROTOCOL", "/", "batch receipt contains unbounded worker-authored text")
+            stored_receipt = {
+                "briefDigest": state.digest(brief),
+                "resultScope": {
+                    "allowedActions": brief["allowedActions"], "ownership": brief["ownership"],
+                    "acceptanceCriteria": brief["acceptanceCriteria"],
+                },
+                "result": validated,
+            }
         attribution = {
             "requestDigest": digest, "hostId": receipt["hostId"], "hostBuild": receipt["hostBuild"],
             "callId": receipt["callId"], "resultId": result_id, "receiptDigest": state.digest(receipt),
@@ -225,14 +285,23 @@ def receive_receipt(project_root, request, receipt, result_id, *, _guard=None):
             for prior in _metadata(peer):
                 if (prior["hostId"], prior["callId"]) == (receipt["hostId"], receipt["callId"]):
                     existing = revision["receipts"].get(result_id)
-                    if prior == attribution and existing == {"brief": brief, "result": validated}:
+                    if prior == attribution and existing == stored_receipt:
                         return {**semantic_fields(), "idempotent": True}
                     raise ContractIssue("E_NATIVE_DUPLICATE", "/callId", "native call identity already has a receipt")
         if any(result_id in old["receipts"] for old in record["revisions"]):
             raise ContractIssue("E_NATIVE_DUPLICATE", "/resultId", "receipt ID already belongs to recorded work")
         manager._append(revision, "TASK_PROGRESS_UPDATED", brief["taskId"], brief["attemptId"],
                         {"message": RECEIPT_MARKER + contracts._encoded(attribution)})
-        revision["receipts"][result_id] = {"brief": brief, "result": validated}
+        revision["receipts"][result_id] = stored_receipt
         manager._append(revision, "TASK_RESULT_RECEIVED", brief["taskId"], brief["attemptId"],
                         {"resultId": result_id})
+        if _batch is not None:
+            if _usage is None:
+                raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage",
+                                    "batch receipts require observed runtime accounting")
+            import execution_orchestration
+            execution_orchestration.record_accounting_locked(
+                root, record, revision, _batch["batch"]["batchId"], _batch["batchDigest"],
+                brief["taskId"], brief["attemptId"], result_id, _usage,
+            )
     return {**semantic_fields(), "idempotent": False, "acceptance": "not-assessed"}

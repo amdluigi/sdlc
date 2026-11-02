@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-batch:1",
+  "title": "Explicit finite local execution batch, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "batchId", "executionId", "planRevision", "tasks", "limits", "maxSpendMinor"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "batchId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "executionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "planRevision": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "tasks": {
+      "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/task"}
+    },
+    "limits": {"$ref": "#/$defs/limits"},
+    "maxSpendMinor": {
+      "anyOf": [
+        {"type": "null"},
+        {"type": "integer", "minimum": 0, "maximum": 9223372036854775807}
+      ]
+    }
+  },
+  "$defs": {
+    "modelId": {
+      "type": "string", "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}(?![\\s\\S])"
+    },
+    "limits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["maxCalls", "maxToolCalls", "maxWallMs", "maxInputBytes", "maxOutputBytes"],
+      "properties": {
+        "maxCalls": {"type": "integer", "minimum": 1, "maximum": 256},
+        "maxToolCalls": {"type": "integer", "minimum": 1, "maximum": 256},
+        "maxWallMs": {"type": "integer", "minimum": 1, "maximum": 300000},
+        "maxInputBytes": {"type": "integer", "minimum": 1, "maximum": 262144},
+        "maxOutputBytes": {"type": "integer", "minimum": 1, "maximum": 262144}
+      }
+    },
+    "attemptLimits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["maxIterations", "maxToolCalls", "maxInputBytes", "maxOutputBytes", "maxWallMs"],
+      "properties": {
+        "maxIterations": {"type": "integer", "minimum": 1, "maximum": 16},
+        "maxToolCalls": {"type": "integer", "minimum": 1, "maximum": 32},
+        "maxInputBytes": {"type": "integer", "minimum": 1, "maximum": 262144},
+        "maxOutputBytes": {"type": "integer", "minimum": 1, "maximum": 262144},
+        "maxWallMs": {"type": "integer", "minimum": 1, "maximum": 300000}
+      }
+    },
+    "attempt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["attemptId", "modelId", "limits", "brief"],
+      "properties": {
+        "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "modelId": {"$ref": "#/$defs/modelId"},
+        "limits": {"$ref": "#/$defs/attemptLimits"},
+        "brief": {"$ref": "urn:sdlc:task-brief:1"}
+      }
+    },
+    "task": {
+      "type": "object", "additionalProperties": false,
+      "required": ["taskId", "role", "attempts"],
+      "properties": {
+        "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "role": {"enum": ["architecture", "developer", "testing", "review"]},
+        "attempts": {
+          "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/attempt"}
+        }
+      }
+    }
+  }
+}

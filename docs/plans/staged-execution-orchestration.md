@@ -16,6 +16,7 @@ Keep legacy workflows/configuration and merged version-1 data contracts intact.
 | local | FR-1, FR-2, FR-4, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, AC-1, AC-2, AC-4, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12, AC-13 | M1 replayable local execution and reports | authority | roadmap-contract | local-preview | sequential | State, writer, approval, receipt and report tests plus full qualification |
 | supervised | FR-1, FR-2, FR-3, FR-7, FR-8, FR-9, FR-12, AC-1, AC-2, AC-3, AC-7, AC-8, AC-9, AC-12 | M2 bounded profiles and qualified host delegation | local | local-preview | supervised-runtime | sequential | Installation, ownership, evidence and real host receipt checks |
 | controlled | FR-5, FR-6, FR-10, FR-13, FR-14, AC-5, AC-6, AC-10, AC-13, AC-14 | M3 verified routing, attempts and lifecycle controls | supervised | supervised-runtime | controlled-runtime | sequential | Inventory, policy exhaustion, consent, cancellation and restart tests |
+| batch-controller | FR-1, FR-2, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-13, FR-14, AC-1, AC-2, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-13, AC-14 | Explicitly consented finite local batch scheduling with receipt-bound retry and permitted escalation | controlled | controlled-runtime | bounded-batch-controller | sequential | Versioned replay, batch digest/consent, bounded cumulative accounting, dependency, retry, escalation and restart regressions; focused Python and runtime tests |
 | views | FR-11, FR-12, FR-15, FR-16, FR-17, AC-11, AC-12, AC-15, AC-16, AC-17 | M4 qualified optional dashboard and analytical proposals | controlled | controlled-runtime | complete-roadmap | sequential | UI transport/accessibility/security and reproducible analytics/proposal checks |
 
 ## M1 interface and storage boundary
@@ -118,6 +119,42 @@ provider qualification is blocked. Local command-tree cleanup is not remote
 provider stop acknowledgement. Bounded autonomous execution, effective runtime
 routing, live usage/billing and monetary caps remain unqualified or unavailable,
 not silently enabled by selecting supervised mode.
+
+## Finite local batch controller
+
+The additive batch controller is a separate, explicit local command over the
+existing fixed bridge, runtime driver, manager writer and attempt history. It
+does not replace the single-worker command. Each batch binds a finite ordered
+set of exact task briefs, model IDs already permitted by the selected controls
+policy, per-attempt runtime bounds, cumulative call/time/input/output-byte
+bounds, and a digest shown for one explicit user approval. These are execution
+and data bounds, not monetary limits. A requested spend ceiling fails before
+dispatch because no authoritative usage/pricing capability exists.
+
+Version-1 manual and version-2 supervised records, events and approvals remain
+unchanged and inspectable. Retry state is an additive, explicitly versioned
+controller representation in the manager-owned record. It records versioned
+retry events and references actual complete manager receipts; version-1 replay
+is never taught to interpret failed-to-ready transitions. The version-3
+controller policy and record retain the complete preceding manual/supervised
+state, require fresh approval, and fail closed for old readers and automatic
+downgrade. One manager lock and record remain the only attempt ledger.
+
+The controller dispatches serially. A task is eligible only when every
+prerequisite has an independent accepted judgment. A reported or completed
+receipt is not acceptance; the batch stops and waits for the manager. Only a
+fully observed failed receipt plus a preapproved remaining attempt may make a
+retry eligible. Unknown, cancelled, timed-out, thrown, malformed, stale,
+environmental, or otherwise unexplained outcomes remain barriers and are
+never retried. Ordered escalation uses only the exact preapproved model for
+that attempt, with no worker selection or implicit inventory adoption.
+Restart inspects the existing consumed history and never redispatches.
+
+The native batch command uses the current IDE's local host APIs and the
+already selected executable/channel. It does not assume stable or insiders.
+No SDK, provider credentials, network client, global installation or background
+daemon is introduced. Real provider behavior, authoritative billing, remote
+stop, and non-Windows process execution remain separate qualification gates.
 
 ## Independent telemetry and insights boundary
 

@@ -103,7 +103,37 @@ def _accepted_evidence(plan_task, result, acceptance):
                             "verification must pass at the independently checked revision with declared commands")
 
 
-def replay_execution(plan, events, receipts=None, policy_digest=None, acceptances=None, approvals=None):
+def _validate_receipt_result(receipt, plan, *, allow_controller):
+    if not isinstance(receipt, dict):
+        raise ContractIssue("E_EXECUTION_RECEIPT", "/receipts", "receipt must be an object")
+    if set(receipt) == {"brief", "result"}:
+        return contracts.validate_task_result(receipt["result"], plan, receipt["brief"])["data"]
+    if not allow_controller or set(receipt) != {"briefDigest", "resultScope", "result"}:
+        raise ContractIssue("E_EXECUTION_RECEIPT", "/receipts", "unsupported receipt representation")
+    contracts._digest(receipt["briefDigest"], "/receipts/briefDigest")
+    scope = contracts._object(receipt["resultScope"], "/receipts/resultScope", (
+        "allowedActions", "ownership", "acceptanceCriteria",
+    ))
+    result = contracts._object(receipt["result"], "/receipts/result", (
+        "schemaVersion", "binding", "taskId", "attemptId", "status",
+        "artifacts", "verification", "findings", "blockers",
+    ))
+    task_id = contracts._id(result["taskId"], "/receipts/result/taskId")
+    attempt_id = contracts._id(result["attemptId"], "/receipts/result/attemptId")
+    brief = {
+        "schemaVersion": 1,
+        "binding": {"executionId": plan["executionId"], "planRevision": plan["revision"],
+                    "planDigest": digest(plan)},
+        "taskId": task_id, "attemptId": attempt_id,
+        "allowedActions": scope["allowedActions"], "ownership": scope["ownership"],
+        "guidance": [], "acceptanceCriteria": scope["acceptanceCriteria"],
+        "verification": "Persisted batch result scope; full brief is not retained.",
+    }
+    return contracts.validate_task_result(receipt["result"], plan, brief)["data"]
+
+
+def _replay_execution(plan, events, receipts=None, policy_digest=None, acceptances=None, approvals=None,
+                      *, allow_controller=False):
     """Replay declarations and explicit manager records, never authenticating a caller."""
     state = initial_execution_state(plan)
     plans = {item["id"]: item for item in plan["tasks"]}
@@ -115,7 +145,66 @@ def replay_execution(plan, events, receipts=None, policy_digest=None, acceptance
     acceptances = _mapping({} if acceptances is None else acceptances, "/acceptances")
     approvals = _mapping({} if approvals is None else approvals, "/approvals")
     used_receipts, used_acceptances, used_approvals, event_ids = set(), set(), set(), set()
+    accounted_attempts = set()
     for position, raw in enumerate(events):
+        if isinstance(raw, dict) and raw.get("schemaVersion") == 2:
+            if not allow_controller:
+                raise ContractIssue("E_EXECUTION_VERSION", "/schemaVersion",
+                                    "version-1 replay does not accept controller events")
+            event = contracts.validate_controller_event(raw, plan)["data"]
+            kind, event_id = event["type"], event["eventId"]
+            _transition(event["sequence"] == position + 1 and event_id not in event_ids, "/sequence")
+            if state["lastRecordedAt"] is not None:
+                _transition(event["recordedAt"] >= state["lastRecordedAt"], "/recordedAt")
+            _transition(event["occurredAt"] == event["recordedAt"], "/occurredAt")
+            event_ids.add(event_id)
+            task_id, attempt = event["taskId"], event["attemptId"]
+            current = state["tasks"].get(task_id)
+            payload = event["payload"]
+            if kind == "BATCH_ATTEMPT_ACCOUNTED":
+                accounting_key = (
+                    payload["batchId"], payload["batchDigest"], task_id, attempt, payload["resultId"]
+                )
+                _transition(current is not None and current["status"] == "reported"
+                            and current["attemptId"] == attempt
+                            and current["resultId"] == payload["resultId"]
+                            and accounting_key not in accounted_attempts, "/payload/resultId")
+                receipt = receipts.get(payload["resultId"])
+                if receipt is None or receipt["result"]["taskId"] != task_id or (
+                    receipt["result"]["attemptId"] != attempt
+                ) or (
+                    receipt.get("briefDigest", digest(receipt.get("brief")))
+                    != payload["briefDigest"]
+                ):
+                    raise ContractIssue("E_EXECUTION_RECEIPT", "/payload/resultId",
+                                        "accounting requires the matching complete manager receipt")
+                accounted_attempts.add(accounting_key)
+            elif kind == "TASK_RETRY_READY":
+                accounting_key = (
+                    payload["batchId"], payload["batchDigest"], task_id, attempt, payload["resultId"]
+                )
+                _transition(current is not None and current["status"] == "reported"
+                            and current["reportedStatus"] == "failed"
+                            and current["attemptId"] == attempt
+                            and current["resultId"] == payload["resultId"]
+                            and accounting_key in accounted_attempts, "/payload/resultId")
+                receipt = receipts.get(payload["resultId"])
+                if receipt is None or receipt["result"]["status"] != "failed" or (
+                    receipt["result"]["taskId"], receipt["result"]["attemptId"]
+                ) != (task_id, attempt):
+                    raise ContractIssue("E_EXECUTION_RETRY", "/payload/resultId",
+                                        "retry requires the matching complete failed receipt")
+                _transition(payload["nextAttemptId"] not in state["attemptIds"]
+                            and payload["nextAttemptId"] != attempt, "/payload/nextAttemptId")
+                current.update(
+                    status="ready", attemptId=None, resultId=None, reportedStatus=None,
+                    startedAt=None, endedAt=None, blockedFrom=None,
+                )
+                current["pendingAttemptId"] = payload["nextAttemptId"]
+            else:
+                _transition(False)
+            state.update(sequence=event["sequence"], lastRecordedAt=event["recordedAt"])
+            continue
         event = contracts.validate_execution_event(raw, plan)["data"]
         kind, event_id = event["type"], event["eventId"]
         _transition(event["sequence"] == position + 1 and event_id not in event_ids, "/sequence")
@@ -163,13 +252,16 @@ def replay_execution(plan, events, receipts=None, policy_digest=None, acceptance
                 ))
                 current["status"] = "ready"
             elif kind == "TASK_STARTED":
-                _transition(status == "ready" and attempt not in state["attemptIds"])
+                pending = current.get("pendingAttemptId")
+                _transition(status == "ready" and attempt not in state["attemptIds"]
+                            and (pending is None or attempt == pending))
                 if any(item["attemptId"] is not None and item["status"] in ("running", "blocked", "reported")
                        for item in state["tasks"].values()):
                     raise ContractIssue("E_EXECUTION_CONFLICT", "/taskId",
                                         "manual attempts are serialized; resolve the active attempt first")
                 state["attemptIds"].append(attempt)
                 current.update(status="running", attemptId=attempt, startedAt=event["recordedAt"])
+                current.pop("pendingAttemptId", None)
             elif kind == "TASK_PROGRESS_UPDATED":
                 _transition(status == "running" and attempt == current["attemptId"])
             elif kind == "TASK_BLOCKED":
@@ -182,8 +274,8 @@ def replay_execution(plan, events, receipts=None, policy_digest=None, acceptance
                 _transition(status == "running" and attempt == current["attemptId"])
                 result_id = payload["resultId"]
                 _transition(result_id not in used_receipts)
-                receipt = contracts._object(receipts.get(result_id), "/receipts", ("brief", "result"))
-                result = contracts.validate_task_result(receipt["result"], plan, receipt["brief"])["data"]
+                receipt = receipts.get(result_id)
+                result = _validate_receipt_result(receipt, plan, allow_controller=allow_controller)
                 _transition(result["taskId"] == task_id and result["attemptId"] == attempt)
                 used_receipts.add(result_id)
                 current.update(status="reported", resultId=result_id, reportedStatus=result["status"],
@@ -218,9 +310,19 @@ def replay_execution(plan, events, receipts=None, policy_digest=None, acceptance
     return json.loads(contracts._encoded(state))
 
 
+def replay_execution(plan, events, receipts=None, policy_digest=None, acceptances=None, approvals=None):
+    return _replay_execution(plan, events, receipts, policy_digest, acceptances, approvals)
+
+
+def replay_execution_v2(plan, events, receipts=None, policy_digest=None, acceptances=None, approvals=None):
+    return _replay_execution(plan, events, receipts, policy_digest, acceptances, approvals,
+                             allow_controller=True)
+
+
 def validate_record(value):
     record = contracts._object(value, "", ("schemaVersion", "executionId", "revisions"))
-    contracts._version(record)
+    if type(record["schemaVersion"]) is not int or record["schemaVersion"] not in (1, 2):
+        raise ContractIssue("E_EXECUTION_VERSION", "/schemaVersion", "unsupported execution record version")
     contracts._id(record["executionId"], "/executionId")
     revisions = contracts._array(record["revisions"], "/revisions", True)
     previous, attempts, receipt_ids = 0, set(), set()
@@ -232,10 +334,9 @@ def validate_record(value):
         consent = validate_consent(revision["consent"])
         _transition(consent["policy"]["enabled"], "/consent")
         _transition(plan["executionId"] == record["executionId"] and plan["revision"] > previous, "/revision")
-        state = replay_execution(
-            plan, revision["events"], revision["receipts"], digest(consent),
-            revision["acceptances"], revision["approvals"],
-        )
+        replay = replay_execution_v2 if record["schemaVersion"] == 2 else replay_execution
+        state = replay(plan, revision["events"], revision["receipts"], digest(consent),
+                       revision["acceptances"], revision["approvals"])
         _transition(bool(revision["events"]), "/events")
         first = revision["events"][0]
         _transition(first["type"] == ("PLAN_PROPOSED" if previous == 0 else "PLAN_UPDATED"))
