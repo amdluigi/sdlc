@@ -144,9 +144,10 @@ HELPERS = {
     "scripts/operator_reports.py",
     "scripts/reconcile_artifacts.py",
     "scripts/resolve_providers.py",
+    "scripts/runtime_process.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 79
+BUNDLE_FILE_COUNT = 83
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {

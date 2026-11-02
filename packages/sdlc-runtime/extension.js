@@ -25,7 +25,7 @@ async function runCommand() {
   })), { title: 'Select the explicitly approved execution project', ignoreFocusOut: true });
   if (!folder) return;
   const chosen = await vscode.window.showOpenDialog({ canSelectMany: false, filters: { 'Task brief': ['json'] },
-    title: 'Select a current manager-bound task brief (execute is unsupported)' });
+    title: 'Select a current manager-bound task brief' });
   if (!chosen?.length || chosen[0].scheme !== 'file') return;
   const info = await fs.lstat(chosen[0].fsPath);
   if (!info.isFile() || info.isSymbolicLink() || info.size > 2 * 1024 * 1024) {
@@ -49,9 +49,32 @@ async function runCommand() {
   if (!selected) return;
   const model = selected.model;
   const bridge = createBridge(folder.folder.uri.fsPath);
-  const envelope = await bridge('prepare', {
+  let commands;
+  if (brief.allowedActions.includes('execute')) {
+    const selection = await vscode.window.showOpenDialog({ canSelectMany: false,
+      filters: { 'Exact command definitions': ['json'] },
+      title: 'Select separately approved exact executable/argv definitions; no shell or install' });
+    if (!selection?.length || selection[0].scheme !== 'file') return;
+    const metadata = await fs.lstat(selection[0].fsPath);
+    if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 65536) {
+      throw new Error('Command definitions must be a bounded regular local JSON file');
+    }
+    commands = JSON.parse(await fs.readFile(selection[0].fsPath, 'utf8'));
+    const consent = await vscode.window.showWarningMessage('Authorize these exact local commands?', {
+      modal: true, detail: [
+        `Project/cwd: ${folder.folder.uri.fsPath}`,
+        JSON.stringify(commands, null, 2),
+        'Each executable, argument, cwd, timeout and output bound is separately authorized.',
+        'No shell, install, network, OS sandbox, retry or automatic acceptance.',
+        'Only command IDs will be offered to the worker. Commands run with your local account permissions.'
+      ].join('\n')
+    }, 'Authorize exact commands');
+    if (consent !== 'Authorize exact commands') return;
+  }
+  const envelope = await bridge(commands ? 'prepare_execute' : 'prepare', {
     executionId: brief.binding.executionId, brief, role,
-    model: { id: model.id, vendor: model.vendor, family: model.family, version: model.version }, limits: LIMITS
+    model: { id: model.id, vendor: model.vendor, family: model.family, version: model.version }, limits: LIMITS,
+    ...(commands ? { commands } : {})
   });
   const confirmed = await vscode.window.showWarningMessage('Authorize this one bounded model run?', {
     modal: true,
@@ -64,8 +87,9 @@ async function runCommand() {
       `Actions: ${brief.allowedActions.join(', ')}`,
       `Owned files: ${brief.ownership.join(', ')}`,
       `Readable guidance: ${brief.guidance.join(', ')}`,
+      ...(commands ? [`Exact version-2 commands and executable digests: ${JSON.stringify(envelope.commands)}`] : []),
       'This sends the brief and requested approved file content to the selected model.',
-      'No monetary cap, execute, retry, automatic acceptance, telemetry or transcript storage.',
+      `No monetary cap, ${commands ? 'unlisted command, ' : 'execute, '}retry, automatic acceptance, telemetry or transcript storage.`,
       'Cancellation stops local progress, not confirmed remote work. Real routing/billing remain unqualified.'
     ].join('\n')
   }, 'Authorize once');

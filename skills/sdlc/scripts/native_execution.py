@@ -109,7 +109,7 @@ def request_digest(request):
     return {**semantic_fields(), "requestDigest": state.digest(_request(request))}
 
 
-def start_request(project_root, request, approved_request_digest, *, _guard=None):
+def start_request(project_root, request, approved_request_digest, *, _guard=None, _bounded=False):
     request = _request(request)
     contracts._digest(approved_request_digest, "/approvedRequestDigest")
     if state.digest(request) != approved_request_digest:
@@ -120,7 +120,8 @@ def start_request(project_root, request, approved_request_digest, *, _guard=None
             raise ContractIssue("E_NATIVE_APPROVAL", "/", "consent changed after request preparation")
         _validate(root, request, revision)
         brief = request["brief"]
-        manager._project_attempt_available(root, execution_id, brief["taskId"], brief["attemptId"], native=True)
+        manager._project_attempt_available(root, execution_id, brief["taskId"], brief["attemptId"],
+                                           native=True, bounded=_bounded)
         if _guard is not None:
             _guard(root, revision)
         projected = manager._projection(revision)["tasks"][brief["taskId"]]

@@ -10,9 +10,31 @@ enforcement. Absence of controls preserves existing behavior.
 The separate version-1 controls policy contains `schemaVersion`, `enabled`,
 `mode`, `maxAttempts`, `allowEscalation`, and `permittedModels`. Limits are
 explicit, not inferred. The policy validator recognizes manual, supervised
-and autonomous modes; only manual configuration is currently supported.
-Unsupported modes fail before any write. Enabled manual controls block native
+and autonomous modes; version-1 configuration still supports only manual.
+Unsupported version-1 modes fail before any write. Enabled manual controls block native
 dispatch preparation from being promoted to a worker invocation.
+
+The explicitly selected version-2 policy uses the same fields but requires
+`schemaVersion: 2` and `mode: "supervised"`. It permits only the owned
+[bounded runtime](../packages/sdlc-runtime/README.md), never the old native
+request CLI. It still requires separately approved controls, a permitted
+per-run model ID, explicit runtime bounds and per-run digest confirmation.
+It does not schedule attempts, retry, escalate, enforce money limits or
+qualify autonomous operation. Attempts and unknown-work protection still
+come from the existing manager's immutable history.
+
+There is no automatic conversion. Only an explicit version-2 configure
+operation selects the new mode. The new record retains
+the entire previous manual record under `retainedManual`, including its
+existing approvals, and inherits pause, cancellation and safety latches.
+Retained approvals are historical, never approval of the new controls.
+New controls approval is independently required before native dispatch. Later
+version-2 changes retain that snapshot. Old readers reject the new record
+and policy rather than treating them as manual. Automatic downgrade is
+refused even after disabling: reverting code does not erase attempt history,
+stop unknown work or authorize restoration of old approvals. Keep the current
+reader available for inspection/disable/reconciliation. No destructive
+migration or automatic rollback is supplied.
 
 `configure_controls(root, policy, dry_run=False)` stores a generation-bound
 policy in private metadata beside the existing manager lock. Every configure
@@ -72,6 +94,13 @@ An example policy is:
 
 ```json
 {"schemaVersion":1,"enabled":true,"mode":"manual","maxAttempts":2,"allowEscalation":false,"permittedModels":[]}
+```
+
+For explicitly selected supervised operation, use version 2 and list the
+exact picker model ID:
+
+```json
+{"schemaVersion":2,"enabled":true,"mode":"supervised","maxAttempts":1,"allowEscalation":false,"permittedModels":["approved-model-id"]}
 ```
 
 After explicitly configuring base execution consent and approving its plan,

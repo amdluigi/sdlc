@@ -89,21 +89,35 @@ Actual host qualification remains necessary before M2 acceptance.
 
 The [optional SDK-free bounded worker](../../packages/sdlc-runtime/README.md)
 adds a real extension-owned read/search/exact-file edit loop over the native
-manager request/receipt boundary. Separate runtime/model/limits confirmation,
-per-operation binding checks and real filesystem/CLI tests are required.
-Execute and enabled manual-controls dispatch remain unsupported. Synthetic
-provider streams qualify only the declared external seam; actual host,
-routing, billing and remote-stop gates remain open as listed in its
+manager request/receipt boundary. Exact executable/argv commands require
+separate authorization and a qualified process-containment capability.
+Separate runtime/model/limits confirmation, per-operation binding checks and
+real filesystem/CLI tests are required. Enabled version-1 manual controls
+still cannot dispatch; version-2 supervised controls require explicit selection
+and fresh approval while retaining manual history.
+
+An actual isolated native host trial used the production dialogs, manager,
+filesystem, read/edit/contained command tools and unaccepted receipt. Only
+external model discovery/responses were synthetic. Declining either command
+or runtime authorization started no work. This does not qualify authenticated
+providers, effective routing, billing or remote stop; remaining gates are in its
 [qualification limits](../../packages/sdlc-runtime/QUALIFICATION.md).
 
 ## M3 portable controls boundary
 
 The [execution controls](../EXECUTION-CONTROLS.md) slice provides separately
-approved manual attempt limits, escalation checks, persistent pause and
+approved attempt limits, escalation checks, persistent pause and
 cancellation-intent barriers, read-only reconciliation, and pure resolution
-of supplied model inventory/pricing. These portable checks can be verified
-while live host qualification is blocked. They do not qualify supervised or
-autonomous mode, host cancellation, effective runtime routing or billing.
+of supplied model inventory/pricing. Version-1 manual behavior remains
+unchanged. Explicit version-2 supervised controls apply model and attempt
+limits to the bounded worker; they do not enable a scheduler, automatic
+retry/escalation or automatic acceptance.
+
+These portable checks and native synthetic trials can be verified while live
+provider qualification is blocked. Local command-tree cleanup is not remote
+provider stop acknowledgement. Bounded autonomous execution, effective runtime
+routing, live usage/billing and monetary caps remain unqualified or unavailable,
+not silently enabled by selecting supervised mode.
 
 ## Independent telemetry and insights boundary
 

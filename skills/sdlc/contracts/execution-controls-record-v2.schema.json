@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-controls-record:2",
+  "title": "Explicit supervised state with retained manual history, version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generation", "policy", "safetyActivated", "paused", "pauseReason", "approvals", "cancelRequests", "retainedManual"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "generation": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/generation"},
+    "policy": {"$ref": "urn:sdlc:execution-controls-policy:2"},
+    "safetyActivated": {"type": "boolean"},
+    "paused": {"type": "boolean"},
+    "pauseReason": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/pauseReason"},
+    "approvals": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/approvals"},
+    "cancelRequests": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/cancelRequests"},
+    "retainedManual": {"oneOf": [{"type": "null"}, {"$ref": "urn:sdlc:execution-controls-record:1"}]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"policy": {"properties": {"enabled": {"const": true}}}}},
+      "then": {"properties": {"safetyActivated": {"const": true}}}
+    },
+    {
+      "if": {"properties": {"paused": {"const": true}}},
+      "then": {"properties": {"pauseReason": {"type": "string"}}},
+      "else": {"properties": {"pauseReason": {"type": "null"}}}
+    }
+  ]
+}

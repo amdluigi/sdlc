@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:runtime-command:1",
+  "title": "Exact separately authorized local command definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "executable", "argv", "cwd", "timeoutMs", "maxOutputBytes"],
+  "properties": {
+    "id": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "executable": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "argv": {"type": "array", "maxItems": 64, "items": {"type": "string", "maxLength": 8192}},
+    "cwd": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "timeoutMs": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "maxOutputBytes": {"type": "integer", "minimum": 1, "maximum": 65536}
+  }
+}

@@ -5,7 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const SCRIPT = path.resolve(__dirname, '..', '..', 'skills', 'sdlc', 'scripts', 'manage_runtime.py');
-const OPERATIONS = new Set(['prepare', 'start', 'check', 'step', 'observe', 'tool', 'receive', 'stop']);
+const OPERATIONS = new Set(['prepare', 'prepare_execute', 'start', 'check', 'step', 'observe', 'tool', 'receive', 'stop']);
 const CAPACITY = 2 * 1024 * 1024;
 
 function canonical(value) {
@@ -28,13 +28,15 @@ function createBridge(projectRoot) {
     const input = JSON.stringify(payload);
     if (Buffer.byteLength(input) > CAPACITY) return Promise.reject(new Error('Manager input exceeds capacity'));
     return new Promise((resolve, reject) => {
-      const child = execFile('python', ['-I', '-S', SCRIPT, operation, '--project-root', projectRoot], {
+      const child = execFile('python', ['-B', '-I', '-S', SCRIPT, operation, '--project-root', projectRoot], {
         cwd: path.dirname(SCRIPT), encoding: 'utf8', windowsHide: true,
         timeout: 15000, maxBuffer: CAPACITY, shell: false
       }, (error, stdout, stderr) => {
         if (error) {
           const code = /\berror\[(E_[A-Z_]+)\]/.exec(stderr || '');
-          reject(new Error(code ? code[1] : 'Manager bridge failed; work may remain unresolved'));
+          const failure = new Error(code ? code[1] : 'Manager bridge failed; work may remain unresolved');
+          if (code) failure.code = code[1];
+          reject(failure);
           return;
         }
         try { resolve(JSON.parse(stdout)); }

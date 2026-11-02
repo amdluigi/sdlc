@@ -5,10 +5,27 @@ const path = require('node:path');
 const os = require('node:os');
 const { performance } = require('node:perf_hooks');
 const { spawnSync } = require('node:child_process');
+const { createRequire } = require('node:module');
+const vm = require('node:vm');
 const { run } = require('../driver');
 const { createBridge, digest } = require('../bridge');
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
+
+function driverWithClock(overrides) {
+  const filename = path.resolve(__dirname, '..', 'driver.js');
+  const module = { exports: {} };
+  const originalRequire = createRequire(filename);
+  vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
+    module, AbortController, Buffer, setImmediate, setTimeout, clearTimeout,
+    require(name) {
+      if (name === 'node:perf_hooks' && overrides.now) return { performance: { now: overrides.now } };
+      return originalRequire(name);
+    },
+    ...overrides
+  }, { filename });
+  return module.exports.run;
+}
 
 async function fixture(t, limits = {}) {
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'sdlc-runtime-'));
@@ -35,8 +52,129 @@ function status(project) {
   return JSON.parse(fs.readFileSync(path.join(project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8')).status;
 }
 
+async function until(predicate, milliseconds) {
+  const end = performance.now() + milliseconds;
+  let matched;
+  while (!(matched = predicate()) && performance.now() < end) await new Promise(resolve => setTimeout(resolve, 20));
+  assert.ok(matched, 'Expected local runtime boundary was not reached within its test bound');
+}
+
+for (const holdWriter of [false, true, 'unresolved']) {
+  test(`UI cancellation stops a real execute descendant before command timeout; writer contention ${holdWriter}`,
+    { skip: process.platform !== 'win32' }, async t => {
+    const context = await fixture(t);
+    const interpreter = spawnSync('python', ['-I', '-S', '-c',
+      'import pathlib,sys; print(pathlib.Path(sys.executable).resolve())'], { encoding: 'utf8' });
+    assert.equal(interpreter.status, 0, interpreter.stderr);
+    const heartbeat = path.join(context.project, 'heartbeat');
+    const child = `import pathlib,time\np=pathlib.Path(${JSON.stringify(heartbeat)})\nwhile True:\n p.write_text(str(time.time_ns()))\n time.sleep(.02)`;
+    const code = `import subprocess,sys,time\nsubprocess.Popen([sys.executable,'-I','-S','-c',${JSON.stringify(child)}])\ntime.sleep(30)`;
+    context.envelope = await context.bridge('prepare_execute', {
+      executionId: 'feature-one',
+      brief: { ...context.envelope.request.brief, allowedActions: ['read', 'search', 'edit', 'execute'] },
+      role: 'developer', model: context.envelope.model, limits: context.envelope.limits,
+      commands: [{ id: 'check', executable: interpreter.stdout.trim(), argv: ['-I', '-S', '-c', code],
+        cwd: context.project, timeoutMs: 10000, maxOutputBytes: 1024 }]
+    });
+    const controller = new AbortController();
+    let stops = 0;
+    let busyStops = 0;
+    let calls = 0;
+    let toolSettled = false;
+    const boundaries = [];
+    const bridge = async (operation, payload) => {
+      if (operation === 'stop') { stops++; boundaries.push(['stop-request', performance.now()]); }
+      try { return await context.bridge(operation, payload); }
+      catch (error) {
+        if (operation === 'stop' && /E_EXECUTION_BUSY/.test(error.message)) busyStops++;
+        throw error;
+      } finally {
+        if (operation === 'tool') { toolSettled = true; boundaries.push(['tool-settled', performance.now()]); }
+      }
+    };
+    const outcome = run({ ...context, bridge, signal: controller.signal, respond: async () => {
+      calls++;
+      return response({ type: 'tool', name: 'execute', arguments: { commandId: 'check' } });
+    } }).then(() => ({ resolved: true }), error => ({ error }));
+    const lock = path.join(context.project, '.git', 'sdlc', 'executions.lock');
+    let release;
+    try {
+      await until(() => fs.existsSync(heartbeat), 8000);
+      if (holdWriter) {
+        await until(() => {
+          try { fs.writeFileSync(lock, 'test-owned writer contention', { flag: 'wx' }); return true; }
+          catch (error) { if (error.code !== 'EEXIST') throw error; return false; }
+        }, 2000);
+        if (holdWriter === true) release = setTimeout(() => fs.rmSync(lock, { force: true }), 800);
+      }
+      const abortedAt = performance.now();
+      boundaries.push(['abort', abortedAt]);
+      controller.abort();
+      await until(() => stops > 0, 1500);
+      const result = await outcome;
+      assert.ok(result.error, 'UI cancellation must not produce a result');
+      assert.ok(performance.now() - abortedAt < 5000,
+        `Cancellation must not wait for the ten-second command timeout: ${JSON.stringify(boundaries)}`);
+      assert.equal(toolSettled, true, 'Keep the actual helper alive and await its cleanup');
+      if (holdWriter) assert.ok(busyStops > 0 && stops > 1, 'Real stop lock contention must be explicitly retried');
+      if (holdWriter === 'unresolved') {
+        assert.equal(result.error.code, 'E_RUNTIME_STOP_UNCONFIRMED',
+          'Exhausted stop persistence must be explicit, not swallowed as successful cleanup');
+        fs.rmSync(lock, { force: true });
+        await context.bridge('stop', { envelope: context.envelope });
+      }
+      assert.equal(calls, 1);
+      const before = fs.readFileSync(heartbeat, 'utf8');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      assert.equal(fs.readFileSync(heartbeat, 'utf8'), before, 'Descendant heartbeat must stop');
+      assertUnresolved(context);
+      await assert.rejects(run({ ...context, respond: async () => assert.fail('Unknown work cannot redispatch') }));
+    } finally {
+      if (release) clearTimeout(release);
+      if (holdWriter) fs.rmSync(lock, { force: true });
+      await context.bridge('stop', { envelope: context.envelope }).catch(() => {});
+      await outcome;
+    }
+  });
+}
+
 test('a bounded runtime driver is executable', () => {
   assert.equal(typeof run, 'function');
+});
+
+test('version-2 real command CLI reports exact observed evidence without automatic acceptance',
+  { skip: process.platform !== 'win32' }, async t => {
+  const context = await fixture(t);
+  const interpreter = spawnSync('python', ['-I', '-S', '-c',
+    'import pathlib,sys; print(pathlib.Path(sys.executable).resolve())'], { encoding: 'utf8' });
+  assert.equal(interpreter.status, 0, interpreter.stderr);
+  context.envelope = await context.bridge('prepare_execute', {
+    executionId: 'feature-one',
+    brief: { ...context.envelope.request.brief, allowedActions: ['read', 'search', 'edit', 'execute'] },
+    role: 'developer', model: context.envelope.model, limits: context.envelope.limits,
+    commands: [{ id: 'check', executable: interpreter.stdout.trim(),
+      argv: ['-I', '-S', '-c', "print('in-memory-only-command-output')"],
+      cwd: context.project, timeoutMs: 2000, maxOutputBytes: 1024 }]
+  });
+  let calls = 0;
+  const output = await run({ ...context, respond: async prompt => {
+    calls++;
+    assert.match(prompt, /"commandIds":\["check"\]/);
+    if (calls === 1) return response({ type: 'tool', name: 'execute', arguments: { commandId: 'check' } });
+    const observed = JSON.parse(prompt.slice(prompt.lastIndexOf('\n') + 1)).history[0].output;
+    assert.equal(observed.evidence.status, 'passed');
+    assert.match(observed.output, /in-memory-only-command-output/);
+    context.result.verification[0] = { acceptanceCriterion: 'AC-1', command: 'runtime-command:check',
+      result: 'passed', revision: observed.evidence.commandDigest, summary: 'passed' };
+    return response({ type: 'result', result: context.result });
+  } });
+  assert.equal(calls, 2);
+  assert.equal(output.acceptance, 'not-assessed');
+  assert.equal(status(context.project), 'reported');
+  const marker = fs.readFileSync(path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8');
+  assert.equal(marker.includes('in-memory-only-command-output'), false);
+  const record = JSON.parse(fs.readFileSync(path.join(context.project, '.git', 'sdlc', 'executions', 'feature-one.json')));
+  assert.equal(Object.keys(record.revisions.at(-1).acceptances).length, 0);
 });
 
 test('real CLI tools edit exact owned files and manager receives an unaccepted receipt', async t => {
@@ -111,11 +249,23 @@ test('Python and Node digest binding agree including Unicode metadata', async t 
   assert.equal(status(context.project), 'unknown');
 });
 
-test('a provider timeout is unknown and never automatically retried', async t => {
-  const context = await fixture(t, { maxWallMs: 5000 });
+test('a provider timeout is unknown and never automatically retried', { timeout: 20000 }, async t => {
+  const context = await fixture(t, { maxWallMs: 300000 });
+  const watchdog = {};
+  let expire;
+  const timedRun = driverWithClock({
+    setTimeout(callback, milliseconds) {
+      if (milliseconds !== context.envelope.limits.maxWallMs) return setTimeout(callback, milliseconds);
+      expire = callback;
+      return watchdog;
+    },
+    clearTimeout(handle) { if (handle !== watchdog) clearTimeout(handle); }
+  });
   let calls = 0;
-  await assert.rejects(run({ ...context, respond: async () => {
+  await assert.rejects(timedRun({ ...context, respond: async () => {
     calls++;
+    assert.equal(typeof expire, 'function');
+    expire();
     return new Promise(() => {});
   } }), /remote work is unconfirmed/);
   assert.equal(calls, 1);
@@ -179,16 +329,17 @@ test('immediate nonempty chunks yield to event-loop cancellation without retry o
 });
 
 test('each immediate stream iteration checks its monotonic deadline before consuming another chunk', async t => {
-  const context = await fixture(t, { maxWallMs: 3000 });
+  const context = await fixture(t, { maxWallMs: 300000 });
+  let now = 0;
+  const timedRun = driverWithClock({ now: () => now });
   let calls = 0;
   let chunks = 0;
-  await assert.rejects(run({ ...context, respond: async () => {
+  await assert.rejects(timedRun({ ...context, respond: async () => {
     calls++;
     return (async function* () {
       for (let i = 0; i < 1024; i++) {
         if (i === 0) {
-          const until = performance.now() + 3500;
-          while (performance.now() < until) { /* Synchronous work at the external stream seam. */ }
+          now = context.envelope.limits.maxWallMs + 1;
         }
         chunks++;
         yield '';

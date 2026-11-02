@@ -16,7 +16,8 @@ import bounded_runtime as runtime
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("prepare", "start", "check", "step", "observe", "tool", "receive", "stop"))
+    parser.add_argument("operation", choices=("prepare", "prepare_execute", "start", "check", "step",
+                                            "observe", "tool", "receive", "stop"))
     parser.add_argument("--project-root", required=True)
     args = parser.parse_args(argv)
     try:
@@ -29,6 +30,7 @@ def main(argv=None):
         ))
         fields = {
             "prepare": ("executionId", "brief", "role", "model", "limits"),
+            "prepare_execute": ("executionId", "brief", "role", "model", "limits", "commands"),
             "start": ("envelope", "approvedRuntimeDigest", "approvedRequestDigest"),
             "check": ("envelope",), "step": ("envelope", "prompt"),
             "observe": ("envelope", "response"), "tool": ("envelope", "name", "arguments"),

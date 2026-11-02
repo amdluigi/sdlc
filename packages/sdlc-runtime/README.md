@@ -28,8 +28,9 @@ import and approve a plan using the existing manager/native CLI. These steps
 are separate from starting this extension. The selected source plan must
 exist and its SHA-256 must match the imported plan's `sourcePlan.digest`.
 Create a current bound task brief with exact owned files and guidance.
-Supported actions are only `read`, `search` and `edit`. Remove `execute`
-from a brief deliberately; do not silently downgrade an approved brief.
+The original version-1 runtime supports only `read`, `search` and `edit`.
+An execute brief requires the separately confirmed version-2 flow below;
+never silently downgrade an approved brief.
 Explicit task model/modelProfile assignments remain unsupported by the old
 native request path. Use `model: null` and `modelProfile: "host-default"`;
 the picker is a separate per-run user choice, not effective-routing proof.
@@ -59,10 +60,9 @@ These byte limits are **not token, billing or monetary caps**.
   existing parent. Atomic same-directory staging preserves existing file
   mode and is cleaned on normal failure; interrupted staging requires
   inspection. No automatic retry or rollback is attempted.
-- Execute: **unsupported**. No worker-selected shell, executable, argv,
-  subprocess, network tool, agent, or manager operation exists. An exact
-  executable/argv allowlist and qualified process-tree termination would
-  need a separately approved implementation before execute can be enabled.
+- Execute: only a separately selected version-2 envelope. The worker supplies
+  exactly `{"commandId":"approved-id"}`, never an executable, argv or shell.
+  Each configured ID is single-use per run; there are no automatic retries.
 
 Every model iteration, observation, tool and receipt crosses the real fixed
 Python CLI. It rechecks current manager approval, consent generation,
@@ -72,19 +72,82 @@ Reparse/symlink paths, hardlinked files, aliases, source/guidance ownership,
 manager controls and trusted implementation paths are refused.
 This is a cooperative same-user boundary, **not an OS sandbox**.
 
-Enabled manual controls remain incompatible with native dispatch. The
-runtime refuses them without changing them. Do not disable existing
-safeguards just to run it. If an operator deliberately chooses a different
-control posture, they must do so separately; paused state, pending stop
-intents and changed bindings still block the runtime. Supervised and
-autonomous controls modes are not qualified.
+Enabled version-1 manual controls remain incompatible with native dispatch.
+The runtime refuses them without changing them. Do not disable safeguards
+just to run it. Explicitly selected version-2 supervised controls integrate
+the same manager's approval, attempt, pause/cancel and unknown-work barriers.
+The selected model ID must be permitted. See
+[controls compatibility and retention](../../docs/EXECUTION-CONTROLS.md).
+Autonomous scheduling, automatic retries/escalation and remote-stop recovery
+are not implemented or advertised.
 
 The model uses a strict one-object text JSON protocol rather than access to
 VS Code's general agent tools. Only the extension maps permitted messages
 to the confined tools. Completion returns a structured task receipt through
 `native_execution.receive_receipt`; it never accepts the result, runs
-verification, approves a plan or advances an SDLC gate. Command verification
-must remain `unavailable`, `not-run` or `skipped`.
+verification without the separately authorized execute tool, approves a plan
+or advances an SDLC gate. Version-1 command verification remains
+`unavailable`, `not-run` or `skipped`.
+
+## Separately authorized exact local commands
+
+Execute is supported only on the qualified local Windows path. POSIX execute
+fails with `E_RUNTIME_UNSUPPORTED` before preparation/dispatch can start a
+command. Process groups alone cannot guarantee descendant cleanup if their
+supervisor receives SIGTERM, is killed by a bridge watchdog, or disappears.
+There is deliberately no success-shaped POSIX fallback. Non-execute tools
+and supervised manager controls remain portable.
+
+An execute brief opens a separate local JSON definitions file picker and a
+separate modal confirmation before the usual runtime/model confirmation.
+Definitions are an array of objects matching
+`skills/sdlc/contracts/runtime-command.schema.json`, for example:
+
+```json
+[{"id":"unit-check","executable":"C:\\Python314\\python.exe","argv":["-I","-S","-m","unittest"],"cwd":"C:\\work\\approved-project","timeoutMs":5000,"maxOutputBytes":4096}]
+```
+
+Use the actual absolute resolved executable and exact selected project root.
+The envelope adds the executable's SHA-256; changed executable bytes, root,
+source, profile, approval, consent, control state or runtime budgets block
+dispatch and receipt. There is no shell, arbitrary command string, worker
+argument selection, dependency/network installation or global configuration
+tool. Approved local executables still run with the user's permissions:
+this is not an OS sandbox, filesystem sandbox or network isolation. Review
+the complete trusted definition before authorizing it.
+
+Hard ceilings are 16 command definitions, 64 arguments each, 10 seconds per
+command and 64 KiB output per command, additionally constrained by the
+runtime's cumulative budgets and lease. Enough output budget is reserved
+before dispatch. Command output is bounded text returned only in memory.
+Only structured command ID/digest, containment, exit/status and byte-count
+metadata are retained. Version-2 receipts reject nonempty `findings` and
+`blockers` and arbitrary verification text, rather than relying on a model
+instruction not to copy raw output. For `unavailable`, `not-run` or `skipped`
+verification use null command/revision and summary exactly matching that
+status. This restriction is additive to version 2; old receipts are unchanged.
+
+Windows uses native `CreateProcessW` **suspended**, a kill-on-close Job
+Object, restricted inherited pipe handles, assignment **before** resume,
+and observes zero active job processes after termination. Assignment failure
+never resumes the process. Missing guarantees fail before user code starts.
+Descendant heartbeat tests exercise real Windows subprocesses.
+These are containment guarantees for cooperative local commands, not a
+security sandbox against deliberately escaping processes.
+
+Evidence distinguishes exit-zero (`passed`), `nonzero`, `timeout`,
+`output-limit`, spawn failure and unresolved work. Timeout/output flooding
+terminates the contained tree, marks the runtime unknown and blocks further
+progress or success receipt; provider work remains unconfirmed. Pause,
+cancellation or stale bindings also kill the local tree without asserting
+remote stop. Interrupted commands are never replayed.
+
+A version-2 verification claim must reference unique observed evidence:
+`command: "runtime-command:<id>"`, `revision: <commandDigest>`,
+`summary: "passed"` with `result: "passed"` or `summary: "nonzero"` with
+`result: "failed"`. A zero exit is only process evidence, not independent
+acceptance of an acceptance criterion. Fabricated, ambiguous and mismatched
+claims are refused at the receipt transaction.
 
 ## Failure, cancellation and retention
 
@@ -105,6 +168,14 @@ by deleting files, stealing locks or falsely declaring completion. Inspect
 using the existing manager and controls reconciliation; authoritative remote
 stop recovery is not supplied by this slice.
 
+An in-flight tool wait races UI cancellation and the runtime deadline.
+Cancellation promptly persists the real manager stop marker; only explicit
+`E_EXECUTION_BUSY` stop-lock contention is retried, at most eight times.
+The execute helper is kept alive and awaited so its Job Object can finish
+local descendant cleanup. A failed stop persistence is explicitly reported
+as `E_RUNTIME_STOP_UNCONFIRMED`, never silently treated as a successful stop.
+Neither path redispatches work or creates a fallback receipt.
+
 No automatic telemetry, transcript, prompt, response stream, tool-content
 log or export is written. Context/history lives only in memory. Ignored
 manager-local storage retains counters, binding digests, local call ID and
@@ -118,19 +189,24 @@ external policies, not controlled by this package.
 ## Offline validation and CLI
 
 ```powershell
-python -B -m unittest tests.test_bounded_runtime tests.test_native_execution tests.test_execution_controls -q
+python -B -m unittest tests.test_bounded_runtime tests.test_runtime_commands tests.test_native_execution tests.test_execution_controls -q
 npm --prefix packages\sdlc-runtime run check
 npm --prefix packages\sdlc-runtime test
 ```
 
-These tests replace only the external model response seam. Filesystem,
-CLI subprocess, profile installation, manager approval, native request,
-tools and receipt boundaries are real. No external model is invoked.
+Driver integration tests normally replace only the external model response seam.
+Their filesystem, CLI subprocess, profile installation, manager approval,
+native request, tools and receipt boundaries are real. Two deadline cases
+also control the Node monotonic-clock or watchdog seam after the provider
+boundary is reached; slow real CLI startup must not invalidate their intended
+timeout assertion before a provider is called. Extension-logic and
+offline-harness guard unit tests also use explicitly substituted VS Code APIs;
+they are not actual native UI evidence. No external model is invoked.
 
 The bridge is also directly runnable:
 
 ```powershell
-$Payload | python -I -S skills\sdlc\scripts\manage_runtime.py prepare --project-root "$TargetProject"
+$Payload | python -B -I -S skills\sdlc\scripts\manage_runtime.py prepare --project-root "$TargetProject"
 ```
 
 JSON stdin is strict and bounded. `prepare` accepts exactly `executionId`,
@@ -142,6 +218,22 @@ independently confirmed `approvedRuntimeDigest` and `approvedRequestDigest`.
 all require the exact envelope. The extension, not worker text, owns these
 operations. There is no arbitrary import path, command runner or approval
 operation. Diagnostics contain neutral classes rather than model content.
+The fixed interpreter explicitly uses `-B -I -S`, so isolated imports do not
+rely on `PYTHONDONTWRITEBYTECODE` and do not write helper bytecode caches.
+
+The additive `prepare_execute` operation requires those same fields plus
+`commands`, returning a version-2 envelope. The old `prepare` operation still
+rejects execute; old readers fail closed on version 2. Existing native request
+schema version 1 and its explicit-model restrictions are unchanged.
 
 See [qualification and external gates](QUALIFICATION.md) before considering
-live use.
+live use. Actual native version-2 selection, both consent-decline paths and
+a reported/unaccepted execute flow were observed with an explicitly offline
+synthetic model on a pre-review source snapshot. This is native UI/transport
+evidence, not real inference, provider identity, billing or remote-stop proof.
+The corrected driver also passed a real progress-Cancel trial: the trusted
+ten-second command's heartbeat stopped after an observed lifetime of about
+1.04 seconds, with no receipt or acceptance. This is local command-tree
+evidence, not a remote-stop acknowledgement. The
+[offline native reproduction](QUALIFICATION.md#reproduce-the-offline-native-dialogs-and-command-trial)
+uses a fresh marked synthetic workspace and isolated editor profile.
