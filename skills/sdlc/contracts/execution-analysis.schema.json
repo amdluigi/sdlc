@@ -18,7 +18,7 @@
           "executionId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
           "recordDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
           "currentPolicyDigest": {"$ref": "#/$defs/nullableDigest"},
-          "record": {"$ref": "urn:sdlc:execution-record:1"}
+          "record": {"oneOf": [{"$ref": "urn:sdlc:execution-record:1"}, {"$ref": "urn:sdlc:execution-record:2"}, {"$ref": "urn:sdlc:execution-record:3"}]}
         }
       }
     },

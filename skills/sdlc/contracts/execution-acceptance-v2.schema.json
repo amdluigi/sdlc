@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-acceptance:2",
+  "title": "Explicit independent operator validation of an exact bounded batch result, version 2",
+  "description": "Valid only in version-3 execution records for bounded batch receipts. The operator supplies the independently checked revision, command and result summary; worker verification statuses are never treated as passed evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "taskId", "attemptId", "resultId", "resultDigest", "acceptanceCriteria",
+    "revision", "command", "summary"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "resultId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "resultDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+    "acceptanceCriteria": {"$ref": "urn:sdlc:execution-plan:1#/$defs/acceptanceRefs"},
+    "revision": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+    "command": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+    "summary": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"}
+  }
+}

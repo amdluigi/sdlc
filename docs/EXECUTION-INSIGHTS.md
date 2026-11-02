@@ -54,6 +54,16 @@ There is no output-path, recording, discovery, adoption or dispatch API.
   `unknownNativeAttemptCount`;
 - `snapshotDigest`.
 
+`execution-snapshot-v2.schema.json`, version 2, is emitted only when at least
+one accepted task used independent-validation acceptance
+(`urn:sdlc:execution-acceptance:2`). It is version 1 plus a required task
+`acceptanceBasis`: `independent-operator-validation`,
+`worker-verification-with-operator-judgment` or `null`, non-null exactly when
+the task is accepted. The version bump makes version-1-only readers refuse it
+rather than present an independently validated batch result as worker-verified.
+Executions without such an acceptance still export byte-identical version 1.
+Analysis sources may contain execution records of version 1, 2 or 3.
+
 Snapshot tasks cover the latest immutable revision. Statuses are `waiting`,
 `ready`, `running`, `blocked`, `reported`, `accepted`, `failed`, `cancelled`.
 Reported completion is not independent acceptance. Titles and strings are

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-controls-policy:4",
+  "title": "Explicit finite autonomous execution controls, version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "enabled", "mode", "maxAttempts", "allowEscalation", "permittedModels",
+    "maxBatchTasks", "maxBatchCalls", "maxBatchToolCalls", "maxBatchWallMs",
+    "maxBatchInputBytes", "maxBatchOutputBytes"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 4},
+    "enabled": {"type": "boolean"},
+    "mode": {"const": "autonomous"},
+    "maxAttempts": {"$ref": "urn:sdlc:execution-controls-policy:2#/properties/maxAttempts"},
+    "allowEscalation": {"type": "boolean"},
+    "permittedModels": {"$ref": "urn:sdlc:execution-controls-policy:2#/properties/permittedModels"},
+    "maxBatchTasks": {"type": "integer", "minimum": 1, "maximum": 256},
+    "maxBatchCalls": {"type": "integer", "minimum": 1, "maximum": 256},
+    "maxBatchToolCalls": {"type": "integer", "minimum": 1, "maximum": 256},
+    "maxBatchWallMs": {"type": "integer", "minimum": 1, "maximum": 300000},
+    "maxBatchInputBytes": {"type": "integer", "minimum": 1, "maximum": 262144},
+    "maxBatchOutputBytes": {"type": "integer", "minimum": 1, "maximum": 262144}
+  }
+}

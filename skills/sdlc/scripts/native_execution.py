@@ -5,6 +5,7 @@ import stat
 
 from artifact_contracts import ContractIssue, semantic_fields
 import execution_contracts as contracts
+import execution_controls as controls
 import execution_manager as manager
 import execution_profiles as profiles
 import execution_state as state
@@ -116,7 +117,7 @@ def start_request(project_root, request, approved_request_digest, *, _guard=None
     if state.digest(request) != approved_request_digest:
         raise ContractIssue("E_NATIVE_APPROVAL", "/", "separate explicit native request digest approval is required")
     execution_id = request["binding"]["executionId"]
-    with manager._transaction(project_root, execution_id, require_binding=False) as (root, _, revision):
+    with manager._transaction(project_root, execution_id, require_binding=False) as (root, record, revision):
         if manager._consent(root, enabled=True) != revision["consent"]:
             raise ContractIssue("E_NATIVE_APPROVAL", "/", "consent changed after request preparation")
         _validate(root, request, revision)
@@ -127,6 +128,14 @@ def start_request(project_root, request, approved_request_digest, *, _guard=None
         if _guard is not None:
             _guard(root, revision)
         projected = manager._projection(revision)["tasks"][brief["taskId"]]
+        if _batch is not None:
+            active_controls = controls._active(root)
+            if active_controls["policy"]["mode"] == "autonomous":
+                manager._append_controller(record, revision, "AUTONOMOUS_ATTEMPT_STARTED",
+                                           brief["taskId"], brief["attemptId"], {
+                    "batchId": _batch["batch"]["batchId"], "batchDigest": _batch["batchDigest"],
+                    "briefDigest": state.digest(brief), "modelId": _batch["modelId"],
+                }, version=3)
         if projected["status"] == "waiting":
             manager._append(revision, "TASK_READY", brief["taskId"])
         manager._append(revision, "TASK_STARTED", brief["taskId"], brief["attemptId"])

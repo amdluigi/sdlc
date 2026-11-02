@@ -90,6 +90,14 @@ class ExecutionManagementTests(unittest.TestCase):
         self.assertIn("unavailable", report)
         self.assertIn("Structural", report)
         self.assertNotIn("PR-ready", report)
+        self.assertIn("Mode: manual metadata recording only; no worker or command dispatch.", report)
+        self.assertIn("- Independent judgment: ", report)
+        self.assertIn("; controller command ", report)
+        self.assertNotIn("Independent operator validation", report)
+        import execution_insights
+        snapshot = execution_insights.build_snapshot(self.root, "feature-one")
+        self.assertEqual(1, snapshot["schemaVersion"])
+        self.assertNotIn("acceptanceBasis", snapshot["tasks"][0])
 
     def test_replay_is_immutable_and_reproducible(self):
         self.activate()

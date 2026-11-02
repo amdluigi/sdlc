@@ -1,11 +1,12 @@
-# SDLC execution snapshot dashboard
+# SDLC execution dashboard
 
 An optional CommonJS JavaScript VS Code extension, separate from the portable
-Python skill bundle. It uses only host-provided `vscode` and Node built-ins.
-There are no dependencies, build downloads, background collectors or global
+Python skill bundle. It uses the host-provided `vscode` API, Node built-ins
+and one fixed local Python bridge to the existing execution manager. There
+are no dependencies, build downloads, background collectors or global
 installation steps.
 
-## Read-only workflow
+## Exported snapshot workflow
 
 1. Explicitly export one execution snapshot using the portable manager CLI:
 
@@ -32,18 +33,66 @@ installation steps.
    Overlapping refreshes retain only the in-flight source/binding, not displayed
    data; only the newest validated result can restore the view.
 
-Only two extension commands exist: `sdlc.execution.openSnapshot` and
-`sdlc.execution.refreshSnapshot`. The contributed view is context-hidden
-until a command opens it. The only internal VS Code command is documented
-`setContext`, used solely to expose that native view. There are no Webviews,
-HTML, MarkdownString tooltips, command URIs, messages, file watchers, network
-requests, subprocesses, approval controls or arbitrary command dispatch.
+The exported snapshot remains read-only. Its open and refresh commands retain
+their existing behavior and never contact the execution manager.
+
+## Live manager workflow
+
+1. In a trusted local workspace, invoke **SDLC: Open Live Execution Manager**.
+   Choose one currently open local project and one manager-owned execution.
+   The command reads only the selected project's execution records.
+2. Navigate **SDLC Execution Manager** for current task details, status
+   filters, aggregate progress and recent manager events. Opening the view
+   performs one read-only inspection. It does not start a worker, resume
+   autonomous dispatch or enable polling.
+3. Use **SDLC: Refresh Live Execution Manager** for one explicit refresh.
+   Live updates are off by default. **SDLC: Start Live Manager Updates**
+   enables three-second reads for that selected execution; use **Stop Live
+   Manager Updates** to turn them off. Hiding the manager view also stops
+   polling; changing the selected execution or losing a refresh stops it too.
+   Showing the view again does not restart polling automatically. Start
+   updates explicitly while the view is visible.
+4. Plan approval, controls approval, independent acceptance, pause/resume and
+   cancellation intent are separate commands. Each shows an explicit modal
+   confirmation that shows the selected project, execution, plan revision and
+   the full current plan, execution policy, controls policy and controls state
+   digests, plus the selected task, attempt and result where relevant. The
+   confirmation is bound to those values, and the manager rechecks the exact binding under its writer before
+   changing state. Acceptance requires user-entered revision, command and
+   verification summary, and never accepts a worker declaration by itself.
+   A bounded batch or autonomous result is accepted only through
+   independent operator validation bound to its exact result digest, which
+   the modal and task details show; worker verification is never treated as
+   passed, and a worker-reported failure needs a new attempt.
+   Live polling is suspended while a confirmation or acceptance input is open
+   and while the write runs, so an unchanged refresh never invalidates the
+   confirmation and a successful write never reports a false failure.
+   Afterwards polling resumes only if it was enabled and the view is still
+   visible, starting with one current refresh. A real state change is still
+   rejected by the manager writer and then refreshed; changing the selected
+   execution invalidates the pending action.
+   Cancellation records local intent only; this host has no qualified remote
+   stop operation.
+
+The bridge invokes only the package's fixed `manager_bridge.py` with
+`python -B -I`, JSON stdin, no shell and a closed operation allowlist. It does not
+accept caller-supplied scripts, discover other histories, call the network,
+or expose prompts, transcripts or raw task output. Manager event refresh is
+read-only and is never an autonomous dispatch trigger.
+
+Both contributed views remain context-hidden until their corresponding open
+command is used. There are no Webviews, HTML, MarkdownString tooltips or
+command URIs. VS Code commands are explicit palette actions; opening a view
+does not silently approve policy or control changes.
 
 ## Snapshot contract and trust boundary
 
-- Exact version 1, kind `sdlc-execution-snapshot`, required closed fields at
-  every level, unique task IDs, at most 256 tasks and 2 MiB of file/canonical
-  data. Duplicate JSON keys, malformed UTF-8, unknown fields, unsupported
+- Exact version 1 or 2, kind `sdlc-execution-snapshot`, required closed fields
+  at every level. Version 2 requires task `acceptanceBasis`, non-null exactly
+  for accepted tasks, and the tree shows it as recorded provenance
+  (independent operator validation is never shown as worker verification
+  passing). Live manager views carry the same task field. Task IDs are
+  unique, with at most 256 tasks and 2 MiB of file/canonical data. Duplicate JSON keys, malformed UTF-8, unknown fields, unsupported
   versions and noninteger/out-of-range numbers fail closed.
 - Digests use SHA-256 of all fields except `snapshotDigest`, encoded as
   sorted-key compact ASCII JSON. The parser preserves full signed-64-bit
@@ -58,6 +107,14 @@ requests, subprocesses, approval controls or arbitrary command dispatch.
 - A refresh cannot change execution ID, roll back a known plan revision or
   rewrite a plan digest at the same revision. Failures discard both data and
   the active selection; explicitly reopen a valid export to recover.
+
+The live manager view uses its own closed version-1 contract. It is produced
+by the local manager, digest-checks its structured projection and binds
+mutations to plan, policy, control and control-state digests. A displayed
+digest is not independent authentication and is never sufficient authority
+for an action. The manager writer revalidates the live binding. Unknown,
+stale or malformed state disables actions. Only task metadata and a bounded
+recent event list are rendered.
 
 **An export is never proof of live freshness or authenticity.** This fixed
 schema has no source timestamp or manager connection. A recomputed digest
@@ -89,10 +146,14 @@ npm run qualify
 ```
 
 These commands need Node 20 or newer and install nothing. Unit tests cover the
-strict contract, provider states and real filesystem reads. Provider tests
-declare a simulated VS Code API seam; they are not actual-host evidence.
+strict contracts, provider states, manager bridge against real manager files,
+and export filesystem reads. VS Code API tests use a declared simulated host
+seam; they are not actual-host evidence.
 
-For an actual-host run, create an isolated disposable workspace containing
+The existing actual-host procedure below qualifies the export TreeView and
+filesystem boundary only. It does not qualify live-manager actions, polling
+timing, worker dispatch, accessibility certification or remote cancellation.
+For an actual-host export run, create an isolated disposable workspace containing
 `python-snapshot.json`: an actual `build_snapshot` export whose first task
 has estimate `9223372036854775807` and a title containing `Ω 😀`. Do not use a
 consumer workspace. Derive the installed executable from `code.cmd`:

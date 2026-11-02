@@ -9,6 +9,10 @@ function plain(value, maximum = 180) {
   return characters.length > maximum ? characters.slice(0,maximum-1).join('') + '…' : characters.join('');
 }
 function known(value) {return value === null ? 'unknown' : String(value);}
+const BASIS = {
+  'independent-operator-validation': 'independent operator validation; worker verification not treated as passed',
+  'worker-verification-with-operator-judgment': 'operator judgment of worker-reported verification'
+};
 class SnapshotProvider {
   constructor(vscode) {
     this.vscode = vscode;
@@ -39,7 +43,8 @@ class SnapshotProvider {
         detail(`${task.id}:estimate`, 'Declared estimate: ' + known(task.estimateMs) + (task.estimateMs === null ? '' : ' ms')),
         detail(`${task.id}:interval`, 'Recorded interval: ' + known(task.recordedIntervalMs) +
           (task.recordedIntervalMs === null ? '' : ' ms') + ' (manager events, not host duration)'),
-        detail(`${task.id}:model`, 'Requested model: ' + known(task.requestedModel) + ' (not observed)')
+        detail(`${task.id}:model`, 'Requested model: ' + known(task.requestedModel) + ' (not observed)'),
+        ...(task.acceptanceBasis ? [detail(`${task.id}:acceptance-basis`, 'Acceptance basis: ' + BASIS[task.acceptanceBasis])] : [])
       ], `State: ${task.status}; read-only task metadata; ${task.title}`));
     this.nodes = [
       detail('notice','Exported snapshot only; live freshness and authenticity not verified'),

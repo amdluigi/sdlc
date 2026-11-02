@@ -214,7 +214,11 @@ def _load(root, execution_id):
 
 
 def _projection(revision, *, allow_controller=False):
-    replay = state.replay_execution_v2 if allow_controller or any(
+    replay = state.replay_execution_v3 if any(
+        isinstance(event, dict) and event.get("schemaVersion") == 3 for event in revision["events"]
+    ) or any(
+        isinstance(item, dict) and item.get("schemaVersion") == 2 for item in revision["acceptances"].values()
+    ) else state.replay_execution_v2 if allow_controller or any(
         isinstance(event, dict) and event.get("schemaVersion") == 2 for event in revision["events"]
     ) else state.replay_execution
     return replay(
@@ -276,6 +280,33 @@ def inspect_execution(project_root, execution_id):
         "mode": "manual",
     }
 
+def _check_live_binding(root, execution_id, revision, expected):
+    expected = contracts._object(expected, "/expectedBinding", (
+        "executionId", "planRevision", "planDigest", "policyDigest", "controlsDigest", "controlsStateDigest",
+    ))
+    contracts._id(expected["executionId"], "/expectedBinding/executionId")
+    contracts._number(expected["planRevision"], "/expectedBinding/planRevision")
+    contracts._digest(expected["planDigest"], "/expectedBinding/planDigest")
+    contracts._digest(expected["policyDigest"], "/expectedBinding/policyDigest")
+    if expected["controlsDigest"] is not None:
+        contracts._digest(expected["controlsDigest"], "/expectedBinding/controlsDigest")
+    for field in ("executionId", "planRevision"):
+        if expected[field] != (execution_id if field == "executionId" else revision["plan"]["revision"]):
+            raise ContractIssue("E_EXECUTION_STALE_VIEW", "/expectedBinding/" + field,
+                                "live manager view is stale")
+    current_plan = state.digest(revision["plan"])
+    current_policy = state.digest(_consent(root, enabled=True))
+    import execution_controls
+    store = execution_controls._read(root)
+    current_controls = None if store is None else execution_controls._digest(store)
+    current_control_state = None if store is None else state.digest(store)
+    if expected["planDigest"] != current_plan or expected["policyDigest"] != current_policy or (
+        expected["controlsDigest"] != current_controls
+        or expected["controlsStateDigest"] != current_control_state
+    ):
+        raise ContractIssue("E_EXECUTION_STALE_VIEW", "/expectedBinding",
+                            "live manager view is stale")
+
 
 def _append(revision, kind, task_id=None, attempt_id=None, payload=None):
     import execution_orchestration
@@ -302,10 +333,10 @@ def _append(revision, kind, task_id=None, attempt_id=None, payload=None):
     return event_id
 
 
-def _append_controller(record, revision, kind, task_id, attempt_id, payload):
+def _append_controller(record, revision, kind, task_id, attempt_id, payload, *, version=2):
     import execution_orchestration
     execution_orchestration.check_event_capacity(revision, kind, task_id, attempt_id, payload)
-    record["schemaVersion"] = 2
+    record["schemaVersion"] = max(record["schemaVersion"], version)
     sequence = len(revision["events"]) + 1
     when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if revision["events"] and when < revision["events"][-1]["recordedAt"]:
@@ -313,7 +344,7 @@ def _append_controller(record, revision, kind, task_id, attempt_id, payload):
     plan = revision["plan"]
     event_id = "event-" + str(sequence)
     revision["events"].append({
-        "schemaVersion": 2, "eventId": event_id,
+        "schemaVersion": version, "eventId": event_id,
         "binding": {"executionId": plan["executionId"], "planRevision": plan["revision"],
                     "planDigest": state.digest(plan)},
         "sequence": sequence, "occurredAt": when, "recordedAt": when,
@@ -374,10 +405,12 @@ def _transaction(project_root, execution_id, require_binding=True):
             _persist(root, record)
 
 
-def approve_plan(project_root, execution_id, plan_digest, policy_digest):
+def approve_plan(project_root, execution_id, plan_digest, policy_digest, *, expected_binding=None):
     contracts._digest(plan_digest, "/planDigest")
     contracts._digest(policy_digest, "/policyDigest")
-    with _transaction(project_root, execution_id) as (_, _, revision):
+    with _transaction(project_root, execution_id) as (root, _, revision):
+        if expected_binding is not None:
+            _check_live_binding(root, execution_id, revision, expected_binding)
         decision = {"planDigest": state.digest(revision["plan"]),
                     "policyDigest": state.digest(revision["consent"])}
         if decision != {"planDigest": plan_digest, "policyDigest": policy_digest}:
@@ -456,11 +489,16 @@ def receive_result(project_root, execution_id, result_id, brief, result):
     return semantic_fields()
 
 
-def accept_task(project_root, execution_id, acceptance):
+def accept_task(project_root, execution_id, acceptance, *, expected_binding=None):
     acceptance = state.validate_acceptance(acceptance)
-    with _transaction(project_root, execution_id) as (root, _, revision):
+    with _transaction(project_root, execution_id) as (root, record, revision):
+        if expected_binding is not None:
+            _check_live_binding(root, execution_id, revision, expected_binding)
         import execution_controls
         execution_controls.enforce_terminal(root, execution_id, acceptance["taskId"], "accept")
+        if acceptance["schemaVersion"] == 2:
+            # Older readers must refuse independent-validation acceptances instead of misreading them.
+            record["schemaVersion"] = max(record["schemaVersion"], 3)
         event_id = _append(revision, "VALIDATION_PASSED", acceptance["taskId"], acceptance["attemptId"],
                            {"acceptanceCriteria": acceptance["acceptanceCriteria"]})
         revision["acceptances"][event_id] = acceptance

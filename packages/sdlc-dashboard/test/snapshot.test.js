@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {fixture, sign, canonical} = require('./fixture');
+const {fixture, sign, canonical, acceptedSnapshotFixture} = require('./fixture');
 const target = path.join(__dirname, '..', 'snapshot.js');
 test('missing feature: a real strict snapshot validator must exist', () => {
   assert.ok(fs.existsSync(target), 'Missing read-only snapshot validator');
@@ -92,4 +92,28 @@ test('refresh binding rejects another execution, rollback and rewritten same rev
     {...original, planDigest:'sha256:'+'b'.repeat(64)}
   ]) assert.throws(() => validateReloadBinding(next, original));
   assert.doesNotThrow(() => validateReloadBinding({...original,planRevision:2}, original));
+});
+test('version-2 export snapshot keeps independent-validation acceptance provenance', () => {
+  const value = acceptedSnapshotFixture();
+  const parsed = api().parseSnapshot(Buffer.from(canonical(value)));
+  assert.equal(parsed.schemaVersion, 2);
+  assert.deepEqual(parsed.tasks.map(task => task.acceptanceBasis), ['independent-operator-validation', null]);
+});
+test('snapshot acceptance basis must match version and accepted status exactly', () => {
+  const bad = [
+    value => { delete value.tasks[0].acceptanceBasis; },
+    value => { value.tasks[1].acceptanceBasis = 'independent-operator-validation'; },
+    value => { value.tasks[0].acceptanceBasis = null; },
+    value => { value.tasks[0].acceptanceBasis = 'worker-passed'; },
+    value => { value.schemaVersion = 1; },
+    value => { value.schemaVersion = 3; }
+  ];
+  for (const mutate of bad) {
+    const value = acceptedSnapshotFixture();
+    mutate(value);
+    assert.throws(() => api().parseSnapshot(Buffer.from(canonical(sign(value)))));
+  }
+  const legacy = fixture();
+  legacy.tasks[0].acceptanceBasis = null;
+  assert.throws(() => api().parseSnapshot(Buffer.from(canonical(sign(legacy)))));
 });

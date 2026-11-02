@@ -58,6 +58,10 @@ def build_snapshot(project_root, execution_id):
     reconciled = controls.reconcile_execution(project_root, execution_id)
     barrier = reconciled["controls"]
     tasks = []
+    # Version 2 adds acceptance provenance only when an independent-validation acceptance exists,
+    # so version-1 readers refuse it instead of presenting it as worker-verified acceptance.
+    independent = any(projected["status"] == "accepted" and projected["acceptance"]["schemaVersion"] == 2
+                      for projected in current["state"]["tasks"].values())
     for task in current["plan"]["tasks"]:
         projected = current["state"]["tasks"][task["id"]]
         tasks.append({
@@ -65,9 +69,10 @@ def build_snapshot(project_root, execution_id):
             "attemptId": projected["attemptId"], "reportedStatus": projected["reportedStatus"],
             "estimateMs": task["estimateMs"], "recordedIntervalMs": _interval(projected),
             "requestedModel": task["assignment"]["model"],
+            **({"acceptanceBasis": state.acceptance_basis(projected)} if independent else {}),
         })
     return _signed({
-        "schemaVersion": 1, "kind": "sdlc-execution-snapshot", "binding": _binding(current["plan"]),
+        "schemaVersion": 2 if independent else 1, "kind": "sdlc-execution-snapshot", "binding": _binding(current["plan"]),
         "approved": current["state"]["approved"], "writerLockPresent": current["writerLockPresent"],
         "tasks": tasks,
         "controls": {

@@ -1,7 +1,7 @@
 {
   "name": "sdlc-dashboard",
-  "displayName": "SDLC Execution Snapshots",
-  "description": "Optional, explicitly opened, read-only local execution snapshot tree.",
+  "displayName": "SDLC Execution Dashboard",
+  "description": "Optional native execution dashboard with separate read-only exports and explicitly selected manager state.",
   "version": "0.1.0",
   "publisher": "sdlc",
   "license": "MIT",
@@ -9,7 +9,17 @@
   "main": "./extension.js",
   "activationEvents": [
     "onCommand:sdlc.execution.openSnapshot",
-    "onCommand:sdlc.execution.refreshSnapshot"
+    "onCommand:sdlc.execution.refreshSnapshot",
+    "onCommand:sdlc.execution.openLive",
+    "onCommand:sdlc.execution.refreshLive",
+    "onCommand:sdlc.execution.startLiveUpdates",
+    "onCommand:sdlc.execution.stopLiveUpdates",
+    "onCommand:sdlc.execution.filterLiveTasks",
+    "onCommand:sdlc.execution.approvePlan",
+    "onCommand:sdlc.execution.approveControls",
+    "onCommand:sdlc.execution.acceptTask",
+    "onCommand:sdlc.execution.togglePause",
+    "onCommand:sdlc.execution.cancelTask"
   ],
   "capabilities": {
     "untrustedWorkspaces": {"supported": false},
@@ -18,17 +28,28 @@
   "contributes": {
     "commands": [
       {"command": "sdlc.execution.openSnapshot", "title": "SDLC: Open Execution Snapshot"},
-      {"command": "sdlc.execution.refreshSnapshot", "title": "SDLC: Refresh Execution Snapshot"}
+      {"command": "sdlc.execution.refreshSnapshot", "title": "SDLC: Refresh Execution Snapshot"},
+      {"command": "sdlc.execution.openLive", "title": "SDLC: Open Live Execution Manager"},
+      {"command": "sdlc.execution.refreshLive", "title": "SDLC: Refresh Live Execution Manager"},
+      {"command": "sdlc.execution.startLiveUpdates", "title": "SDLC: Start Live Manager Updates"},
+      {"command": "sdlc.execution.stopLiveUpdates", "title": "SDLC: Stop Live Manager Updates"},
+      {"command": "sdlc.execution.filterLiveTasks", "title": "SDLC: Filter Live Manager Tasks"},
+      {"command": "sdlc.execution.approvePlan", "title": "SDLC: Approve Current Execution Plan"},
+      {"command": "sdlc.execution.approveControls", "title": "SDLC: Approve Current Execution Controls"},
+      {"command": "sdlc.execution.acceptTask", "title": "SDLC: Record Independent Task Acceptance"},
+      {"command": "sdlc.execution.togglePause", "title": "SDLC: Pause or Resume Execution"},
+      {"command": "sdlc.execution.cancelTask", "title": "SDLC: Record Cancellation Intent"}
     ],
     "views": {
       "explorer": [
-        {"id": "sdlc.execution.snapshot", "name": "SDLC Execution Snapshot", "when": "sdlc.execution.snapshotOpened"}
+        {"id": "sdlc.execution.snapshot", "name": "SDLC Execution Snapshot", "when": "sdlc.execution.snapshotOpened"},
+        {"id": "sdlc.execution.manager", "name": "SDLC Execution Manager", "when": "sdlc.execution.managerOpened"}
       ]
     }
   },
   "scripts": {
     "test": "node --test test/*.test.js",
     "qualify": "node --test test/*.test.js",
-    "check": "node --check extension.js && node --check snapshot.js && node --check provider.js"
+    "check": "node --check extension.js && node --check snapshot.js && node --check provider.js && node --check manager_provider.js && node --check manager.js"
   }
 }

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-snapshot:2",
+  "title": "Read-only selected execution snapshot, version 2",
+  "description": "At most 2 MiB canonical ASCII JSON. Digest covers all fields except snapshotDigest. Metadata is plain text, not markup or authority. Emitted only when an accepted task used independent-validation acceptance (urn:sdlc:execution-acceptance:2); otherwise version 1 is emitted unchanged. acceptanceBasis is non-null only for accepted tasks.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "binding", "approved", "writerLockPresent", "tasks", "controls", "snapshotDigest"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "kind": {"const": "sdlc-execution-snapshot"},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "approved": {"type": "boolean"},
+    "writerLockPresent": {"type": "boolean"},
+    "tasks": {
+      "type": "array", "minItems": 1, "maxItems": 256,
+      "items": {"$ref": "#/$defs/task"}
+    },
+    "controls": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled", "paused", "pendingCancellationCount", "unknownNativeAttemptCount"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "paused": {"type": "boolean"},
+        "pendingCancellationCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger", "maximum": 256},
+        "unknownNativeAttemptCount": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger", "maximum": 65536}
+      }
+    },
+    "snapshotDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"}
+  },
+  "$defs": {
+    "nullableId": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}, {"type": "null"}]},
+    "nullableDuration": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}, {"type": "null"}]},
+    "task": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "title", "status", "attemptId", "reportedStatus", "estimateMs", "recordedIntervalMs", "requestedModel", "acceptanceBasis"],
+      "properties": {
+        "id": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "title": {"$ref": "urn:sdlc:execution-plan:1#/$defs/text"},
+        "status": {"enum": ["waiting", "ready", "running", "blocked", "reported", "accepted", "failed", "cancelled"]},
+        "attemptId": {"$ref": "#/$defs/nullableId"},
+        "reportedStatus": {"enum": ["completed", "failed", "blocked", "cancelled", null]},
+        "estimateMs": {"$ref": "#/$defs/nullableDuration"},
+        "recordedIntervalMs": {"$ref": "#/$defs/nullableDuration"},
+        "requestedModel": {"anyOf": [{"$ref": "urn:sdlc:execution-plan:1#/$defs/shortText"}, {"type": "null"}]},
+        "acceptanceBasis": {"enum": ["worker-verification-with-operator-judgment", "independent-operator-validation", null]}
+      }
+    }
+  }
+}

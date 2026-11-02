@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {fixture} = require('./fixture');
+const {fixture, acceptedSnapshotFixture} = require('./fixture');
 class Emitter {
   constructor() {this.event = () => ({dispose(){}}); this.fired = 0;}
   fire() {this.fired++;}
@@ -94,4 +94,17 @@ test('overlapping refreshes retain their source and only the newest result survi
   assert.equal(provider.snapshot,null);
   assert.equal(controller.selection,null);
   assert.equal(controller.pendingSelection,null);
+});
+test('export provider shows recorded acceptance provenance without claiming worker verification passed', () => {
+  const {SnapshotProvider} = require('../provider');
+  const provider = new SnapshotProvider(vscode);
+  provider.show(acceptedSnapshotFixture());
+  const [accepted, waiting] = provider.getChildren(provider.getChildren().find(n => n.id === 'tasks'));
+  const basis = provider.getChildren(accepted).find(n => n.id === 'task-a:acceptance-basis');
+  assert.equal(basis.label, 'Acceptance basis: independent operator validation; worker verification not treated as passed');
+  assert.match(basis.accessibilityInformation.label, /independent operator validation/);
+  assert.equal(provider.getChildren(waiting).some(n => /acceptance-basis/.test(n.id)), false);
+  provider.show(fixture());
+  const legacy = provider.getChildren(provider.getChildren().find(n => n.id === 'tasks'))[0];
+  assert.equal(provider.getChildren(legacy).some(n => /acceptance-basis/.test(n.id)), false);
 });

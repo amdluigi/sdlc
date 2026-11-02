@@ -111,7 +111,7 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(digest, self.manifest["skill"]["bundleSha256"])
 
     def test_execution_contracts_are_in_exact_copy_and_link_inventory(self):
-        self.assertEqual(89, len(self.manifest["skill"]["files"]))
+        self.assertEqual(96, len(self.manifest["skill"]["files"]))
         self.assertIn("scripts/execution_contracts.py", self.manifest["skill"]["helperScripts"])
         paths = [
             "scripts/bounded_runtime.py",
@@ -128,14 +128,20 @@ class QualificationTests(unittest.TestCase):
             "contracts/execution-controls-policy-v3.schema.json",
             "contracts/execution-controls-record-v3.schema.json",
             "contracts/execution-event-v2.schema.json",
+            "contracts/execution-event-v3.schema.json",
             "contracts/execution-record-v2.schema.json",
+            "contracts/execution-record-v3.schema.json",
             "scripts/execution_orchestration.py",
             "contracts/runtime-command.schema.json",
             "contracts/execution-plan.schema.json",
             "contracts/task-brief.schema.json",
             "contracts/task-result.schema.json",
+            "contracts/execution-controls-policy-v4.schema.json",
+            "contracts/execution-controls-record-v4.schema.json",
+            "contracts/execution-live-view.schema.json",
             "contracts/execution-event.schema.json",
             "contracts/execution-acceptance.schema.json",
+            "contracts/execution-acceptance-v2.schema.json",
             "contracts/execution-consent.schema.json",
             "contracts/execution-policy.schema.json",
             "contracts/execution-record.schema.json",
@@ -145,6 +151,7 @@ class QualificationTests(unittest.TestCase):
             "scripts/manage_insights.py",
             "scripts/manage_telemetry.py",
             "contracts/execution-snapshot.schema.json",
+            "contracts/execution-snapshot-v2.schema.json",
             "contracts/execution-analysis.schema.json",
             "contracts/execution-proposal.schema.json",
             "contracts/execution-observation.schema.json",
