@@ -200,9 +200,9 @@ def _unresolved(projected):
                for item in projected["tasks"].values())
 
 
-def _project_attempt_available(root, execution_id, task_id=None, attempt_id=None, native=False):
+def _project_attempt_available(root, execution_id, task_id=None, attempt_id=None, native=False, bounded=False):
     import execution_controls
-    execution_controls.enforce_start(root, execution_id, task_id, attempt_id, native)
+    execution_controls.enforce_start(root, execution_id, task_id, attempt_id, native, bounded)
     for identifier in _record_ids(root):
         if identifier != execution_id and _unresolved(_projection(_load(root, identifier)["revisions"][-1])):
             raise ContractIssue("E_EXECUTION_CONFLICT", "/executionId",

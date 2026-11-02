@@ -109,7 +109,7 @@ def request_digest(request):
     return {**semantic_fields(), "requestDigest": state.digest(_request(request))}
 
 
-def start_request(project_root, request, approved_request_digest):
+def start_request(project_root, request, approved_request_digest, *, _guard=None, _bounded=False):
     request = _request(request)
     contracts._digest(approved_request_digest, "/approvedRequestDigest")
     if state.digest(request) != approved_request_digest:
@@ -120,7 +120,10 @@ def start_request(project_root, request, approved_request_digest):
             raise ContractIssue("E_NATIVE_APPROVAL", "/", "consent changed after request preparation")
         _validate(root, request, revision)
         brief = request["brief"]
-        manager._project_attempt_available(root, execution_id, brief["taskId"], brief["attemptId"], native=True)
+        manager._project_attempt_available(root, execution_id, brief["taskId"], brief["attemptId"],
+                                           native=True, bounded=_bounded)
+        if _guard is not None:
+            _guard(root, revision)
         projected = manager._projection(revision)["tasks"][brief["taskId"]]
         if projected["status"] == "waiting":
             manager._append(revision, "TASK_READY", brief["taskId"])
@@ -197,7 +200,7 @@ def _metadata(record):
                 yield data
 
 
-def receive_receipt(project_root, request, receipt, result_id):
+def receive_receipt(project_root, request, receipt, result_id, *, _guard=None):
     request, receipt = _request(request), _receipt(receipt)
     contracts._id(result_id, "/resultId")
     digest = state.digest(request)
@@ -205,6 +208,8 @@ def receive_receipt(project_root, request, receipt, result_id):
         raise ContractIssue("E_NATIVE_BINDING", "/", "receipt does not match the prepared native host request")
     with manager._transaction(project_root, request["binding"]["executionId"]) as (root, record, revision):
         _validate(root, request, revision, check_guidance=False)
+        if _guard is not None:
+            _guard(root, revision)
         brief = request["brief"]
         markers = [item for item in _request_markers(revision["events"], brief["taskId"], brief["attemptId"])
                    if item == digest]

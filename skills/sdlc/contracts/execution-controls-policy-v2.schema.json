@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-controls-policy:2",
+  "title": "Explicit bounded supervised controls, version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "enabled", "mode", "maxAttempts", "allowEscalation", "permittedModels"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "enabled": {"type": "boolean"},
+    "mode": {"const": "supervised"},
+    "maxAttempts": {"$ref": "urn:sdlc:execution-controls-policy:1#/properties/maxAttempts"},
+    "allowEscalation": {"type": "boolean"},
+    "permittedModels": {"$ref": "urn:sdlc:execution-controls-policy:1#/properties/permittedModels"}
+  }
+}

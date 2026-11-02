@@ -31,7 +31,10 @@ def validate_controls_policy(value):
     data = contracts._object(value, "", (
         "schemaVersion", "enabled", "mode", "maxAttempts", "allowEscalation", "permittedModels",
     ))
-    contracts._version(data)
+    if type(data["schemaVersion"]) is int and data["schemaVersion"] == 2:
+        contracts._enum(data["mode"], "/mode", ("supervised",))
+    else:
+        contracts._version(data)
     if type(data["enabled"]) is not bool or type(data["allowEscalation"]) is not bool:
         raise ContractIssue("E_SCHEMA_TYPE", "/", "controls flags must be booleans")
     contracts._enum(data["mode"], "/mode", ("manual", "supervised", "autonomous"))
@@ -58,16 +61,24 @@ def _digest(store):
 
 
 def _store(value):
+    supervised = isinstance(value, dict) and type(value.get("schemaVersion")) is int and value["schemaVersion"] == 2
     data = contracts._object(value, "", (
         "schemaVersion", "generation", "policy", "safetyActivated", "paused", "pauseReason", "approvals", "cancelRequests",
-    ))
-    contracts._version(data)
+    ) + (("retainedManual",) if supervised else ()))
+    if not supervised:
+        contracts._version(data)
     contracts._number(data["generation"], "/generation")
     validate_controls_policy(data["policy"])
-    if data["policy"]["mode"] != "manual" or type(data["paused"]) is not bool or (
+    if (data["policy"]["schemaVersion"], data["policy"]["mode"]) != (
+        (2, "supervised") if supervised else (1, "manual")
+    ) or type(data["paused"]) is not bool or (
         type(data["safetyActivated"]) is not bool or data["policy"]["enabled"] and not data["safetyActivated"]
     ):
         raise ContractIssue("E_CONTROLS_STORE", "/", "unsupported controls state")
+    if supervised and data["retainedManual"] is not None:
+        if not isinstance(data["retainedManual"], dict) or data["retainedManual"].get("schemaVersion") != 1:
+            raise ContractIssue("E_CONTROLS_STORE", "/", "retained manual controls must remain version 1")
+        _store(data["retainedManual"])
     if data["paused"]:
         contracts._text(data["pauseReason"], "/pauseReason")
     elif data["pauseReason"] is not None:
@@ -113,7 +124,7 @@ def configure_controls(project_root, policy, dry_run=False):
     policy = validate_controls_policy(policy)
     if type(dry_run) is not bool:
         raise ContractIssue("E_SCHEMA_TYPE", "/dryRun", "expected boolean")
-    if policy["mode"] != "manual":
+    if policy["schemaVersion"] == 1 and policy["mode"] != "manual":
         raise ContractIssue("E_CONTROLS_CAPABILITY", "/mode", "live runtime mode is not qualified")
     root = manager._root(project_root)
     if dry_run:
@@ -123,12 +134,17 @@ def configure_controls(project_root, policy, dry_run=False):
         if policy["enabled"]:
             manager._consent(root, enabled=True)
         previous = _read(root)
+        if previous is not None and previous["schemaVersion"] == 2 and policy["schemaVersion"] == 1:
+            raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "automatic controls downgrade would lose safety history")
         store = {
-            "schemaVersion": 1, "generation": 1 if previous is None else previous["generation"] + 1,
+            "schemaVersion": policy["schemaVersion"], "generation": 1 if previous is None else previous["generation"] + 1,
             "policy": policy, "paused": False if previous is None else previous["paused"],
             "safetyActivated": policy["enabled"] or bool(previous and previous["safetyActivated"]),
             "pauseReason": None if previous is None else previous["pauseReason"],
             "approvals": {}, "cancelRequests": [] if previous is None else previous["cancelRequests"],
+            **({"retainedManual": None if previous is None else (
+                previous if previous["schemaVersion"] == 1 else previous["retainedManual"]
+            )} if policy["schemaVersion"] == 2 else {}),
         }
         manager._write(root, controls_path(root), _store(store))
     return {**semantic_fields(), "controlsDigest": _digest(store)}
@@ -141,7 +157,8 @@ def inspect_controls(project_root):
             "paused": bool(store and store["paused"]),
             "cancelRequests": [] if store is None else store["cancelRequests"],
             "controlsDigest": None if store is None else _digest(store), "store": store,
-            "runtimeCapabilities": {"nativeDispatch": False, "autonomous": False,
+            "runtimeCapabilities": {"nativeDispatch": bool(store and store["policy"]["mode"] == "supervised"),
+                                    "autonomous": False,
                                     "hostCancellation": False, "spendEnforcement": False}}
 
 
@@ -242,7 +259,7 @@ def resolve_manual_cancel(project_root, execution_id, task_id, reason):
     return {**semantic_fields(), "cancellation": "resolved-manual-only"}
 
 
-def enforce_start(root, execution_id, task_id, attempt_id, native=False):
+def enforce_start(root, execution_id, task_id, attempt_id, native=False, bounded=False):
     store = _read(root)
     if store is None:
         return
@@ -263,7 +280,7 @@ def enforce_start(root, execution_id, task_id, attempt_id, native=False):
                 "controlsDigest": _digest(store)}
     if not manager._projection(revision)["approved"] or store["approvals"].get(execution_id) != expected:
         raise ContractIssue("E_CONTROLS_APPROVAL", "/", "separate current controls approval is required")
-    if native:
+    if native and not (bounded and store["policy"]["mode"] == "supervised"):
         raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "manual controls do not qualify native dispatch")
     contracts._id(task_id, "/taskId")
     contracts._id(attempt_id, "/attemptId")

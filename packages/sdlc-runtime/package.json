@@ -1,0 +1,22 @@
+{
+  "name": "sdlc-runtime",
+  "displayName": "SDLC Bounded Worker",
+  "description": "Explicit, optional SDK-free bounded native LM worker with manager-owned tools.",
+  "version": "0.1.0",
+  "publisher": "sdlc",
+  "license": "MIT",
+  "engines": {"vscode": "^1.95.0", "node": ">=20"},
+  "main": "./extension.js",
+  "activationEvents": ["onCommand:sdlc.runtime.run"],
+  "capabilities": {
+    "untrustedWorkspaces": {"supported": false},
+    "virtualWorkspaces": {"supported": false}
+  },
+  "contributes": {
+    "commands": [{"command": "sdlc.runtime.run", "title": "SDLC: Run Bounded Worker"}]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check extension.js && node --check driver.js && node --check bridge.js"
+  }
+}
