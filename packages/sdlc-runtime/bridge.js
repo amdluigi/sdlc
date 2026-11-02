@@ -5,7 +5,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const SCRIPT = path.resolve(__dirname, '..', '..', 'skills', 'sdlc', 'scripts', 'manage_runtime.py');
-const OPERATIONS = new Set(['prepare', 'prepare_execute', 'start', 'check', 'step', 'observe', 'tool', 'receive', 'stop']);
+const OPERATIONS = new Set(['prepare', 'prepare_execute', 'preview_batch', 'preview_batch_json', 'approve_batch',
+  'next_attempt', 'prepare_batch', 'start', 'check', 'step', 'observe', 'tool', 'receive', 'stop']);
 const CAPACITY = 2 * 1024 * 1024;
 
 function canonical(value) {

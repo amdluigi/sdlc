@@ -17,10 +17,13 @@ checkout: its bridge is fixed to
 this folder or shipping it as a standalone VSIX is not supported.
 
 Open a **separate local target project**, not the trusted extension/helper
-source, in an Extension Development Host:
+source, in an Extension Development Host. Use the executable that matches the
+IDE channel and build you are currently running; do not substitute a different
+stable/preview installation:
 
 ```powershell
-code --new-window --extensionDevelopmentPath "$SdlcCheckout\packages\sdlc-runtime" "$TargetProject"
+$CurrentIde = "C:\absolute\path\to\the\currently-running-IDE\Code.exe"
+& $CurrentIde --new-window --extensionDevelopmentPath "$SdlcCheckout\packages\sdlc-runtime" "$TargetProject"
 ```
 
 In the target project, explicitly install native profiles, enable execution,
@@ -52,6 +55,33 @@ includes every full submitted protocol/context/history prompt and every
 tool argument; output includes streamed model text and tool results.
 These byte limits are **not token, billing or monetary caps**.
 
+## Explicit finite batches
+
+The additive **SDLC: Run Approved Bounded Batch** command accepts one bounded
+local JSON batch definition. It strictly rejects duplicate JSON keys, previews
+the current plan and controls without dispatch, and requires every exact model
+ID in the batch to be uniquely available in the active IDE. The consent dialog
+binds the normalized batch digest and displays task/attempt IDs, brief digests,
+model IDs, per-attempt bounds, and cumulative bounds. The user must inspect the
+selected JSON file and current manager approvals before authorizing it.
+
+Tasks run serially and only after every prerequisite has an independent manager
+acceptance. The finite ordered attempt lists are the complete retry allowances;
+any model escalation is preselected and requires the controls policy to allow
+it. A retry is eligible only after a complete failed manager receipt and
+accounting record. Unknown, cancelled, timed-out, thrown, malformed, stale,
+environmental, or otherwise unexplained outcomes stop the batch. Restart
+requires the same batch input and fresh explicit consent; it never resumes or
+redispatches active or unknown work.
+
+No full batch brief, guidance/verification prose, prompt, streamed response,
+or transcript is persisted. Controls retain exact batch/brief digests,
+task/attempt identities, model choices and limits. Manager receipts add only
+the result-validation scope tags (allowed actions, owned paths and criterion
+IDs). Provider billing, actual spend, and remote termination remain
+unobservable; the batch supports no monetary cap. A non-null `maxSpendMinor`
+is refused before dispatch.
+
 ## Supported tools and authority
 
 - Read and literal line search: only exact brief ownership/guidance paths.
@@ -78,8 +108,9 @@ just to run it. Explicitly selected version-2 supervised controls integrate
 the same manager's approval, attempt, pause/cancel and unknown-work barriers.
 The selected model ID must be permitted. See
 [controls compatibility and retention](../../docs/EXECUTION-CONTROLS.md).
-Autonomous scheduling, automatic retries/escalation and remote-stop recovery
-are not implemented or advertised.
+Automatic policy adoption, open-ended autonomous scheduling, and remote-stop
+recovery are not implemented or advertised. The separately consented finite
+batch command is not an autonomous policy.
 
 The model uses a strict one-object text JSON protocol rather than access to
 VS Code's general agent tools. Only the extension maps permitted messages
@@ -170,7 +201,30 @@ stop recovery is not supplied by this slice.
 
 An in-flight tool wait races UI cancellation and the runtime deadline.
 Cancellation promptly persists the real manager stop marker; only explicit
-`E_EXECUTION_BUSY` stop-lock contention is retried, at most eight times.
+`E_EXECUTION_BUSY` stop-lock contention is retried, at most eight times and
+only while a two-second monotonic retry window remains. Each real helper's
+startup and validation time counts toward that window; an already-started
+helper is still awaited, not killed to meet the retry deadline.
+This is a retry-admission bound, not a two-second total-stop guarantee.
+A stop helper admitted before the deadline retains the fixed bridge's
+15-second process timeout; the driver also awaits any in-flight execute
+helper's Job Object cleanup. Thus stop reporting can take the retry window
+plus that helper timeout and execute cleanup (and local scheduling delays).
+Success after the retry window is valid observed persistence, not a timeout;
+a helper timeout or exhausted busy retries remains explicit
+`E_RUNTIME_STOP_UNCONFIRMED`. The stop helper is separate from the execute
+helper that owns descendant cleanup; cancellation never kills that owner.
+The execute watchdog holds the shared writer lock only for its stop-marker
+check; its full read-only qualification runs outside that critical section,
+so polling cannot monopolize the lock needed to persist cancellation.
+On Windows, JSON readers share deletion and existing manager records use
+`FileRenameInfoEx` replacement with POSIX rename semantics, preserving
+reader snapshots without blocking atomic updates or merging old file metadata.
+Confinement still resolves each full leaf after checking components. Only
+writer-lock checks tolerate an NTFS deleted-file identity, after rechecking
+the lock is absent or regular and its parent remains confined. No write
+retries are added; unsupported rename capability, incompatible external readers
+and other persistence failures still fail closed.
 The execute helper is kept alive and awaited so its Job Object can finish
 local descendant cleanup. A failed stop persistence is explicitly reported
 as `E_RUNTIME_STOP_UNCONFIRMED`, never silently treated as a successful stop.

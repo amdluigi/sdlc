@@ -5,13 +5,16 @@ const { performance } = require('node:perf_hooks');
 
 const MAX_NO_PROGRESS_CHUNKS = 128;
 const STREAM_YIELD_INTERVAL = 32;
+const STOP_RETRY_WINDOW_MS = 2000;
 
 async function persistStop(bridge, envelope) {
+  const deadline = performance.now() + STOP_RETRY_WINDOW_MS;
   for (let attempt = 0; attempt < 8; attempt++) {
     try { return await bridge('stop', { envelope }); }
     catch (error) {
-      if (error.code !== 'E_EXECUTION_BUSY' || attempt === 7) throw error;
+      if (error.code !== 'E_EXECUTION_BUSY' || attempt === 7 || performance.now() >= deadline) throw error;
       await new Promise(resolve => setTimeout(resolve, 25));
+      if (performance.now() >= deadline) throw error;
     }
   }
 }

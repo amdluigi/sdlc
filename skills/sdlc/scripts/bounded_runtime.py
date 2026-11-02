@@ -45,16 +45,23 @@ def _model(value):
 
 def _envelope(value):
     execute = isinstance(value, dict) and type(value.get("schemaVersion")) is int and value["schemaVersion"] == 2
+    batch_run = isinstance(value, dict) and type(value.get("schemaVersion")) is int and value["schemaVersion"] == 3
     data = contracts._object(value, "", (
         "schemaVersion", "request", "model", "limits", "controlsDigest", "guidanceDigests",
-    ) + (("commands",) if execute else ()))
-    if not execute:
+    ) + (("commands",) if execute else ("batch", "batchDigest") if batch_run else ()))
+    if not execute and not batch_run:
         contracts._version(data)
     native._request(data["request"])
     if data["request"]["host"] != (EXECUTE_HOST if execute else HOST):
         _issue("UNSUPPORTED", "runtime requires its fixed bounded host identity")
     if execute:
         _commands(data["commands"], data["request"]["projectRoot"], bound=True)
+    if batch_run:
+        from execution_orchestration import validate_batch_contract
+        data["batch"] = validate_batch_contract(data["batch"])
+        contracts._digest(data["batchDigest"], "/batchDigest")
+        if data["batch"]["executionId"] != data["request"]["binding"]["executionId"]:
+            _issue("BINDING", "batch and native request execution IDs differ")
     _model(data["model"])
     _limits(data["limits"])
     contracts._digest(data["controlsDigest"], "/controlsDigest")
@@ -102,14 +109,19 @@ def _hash(content):
     return "sha256:" + hashlib.sha256(content).hexdigest()
 
 
-def _barriers(root):
+def _barriers(root, batch=None):
     store = controls._read(root)
     if store and (store["paused"] or any(
         entry["status"] == "pending" for entry in store["cancelRequests"]
     )):
         _issue("CONTROLS", "pause or pending cancellation blocks bounded work")
-    if store and store["policy"]["enabled"] and store["policy"]["mode"] != "supervised":
-        _issue("CONTROLS", "enabled manual controls do not qualify native runtime dispatch")
+    if store and store["policy"]["enabled"]:
+        if store["policy"]["mode"] == "batch":
+            if batch is None:
+                _issue("CONTROLS", "batch controls require an exact user-approved batch")
+            controls.batch_approval(root, batch)
+        elif store["policy"]["mode"] != "supervised":
+            _issue("CONTROLS", "enabled manual controls do not qualify native runtime dispatch")
     return state.digest(store)
 
 
@@ -121,7 +133,9 @@ def _prepared(root, envelope, revision, *, in_flight=False):
     native._validate(root, request, revision)
     if manager._consent(root, enabled=True) != revision["consent"]:
         _issue("APPROVAL", "execution consent changed")
-    if envelope["controlsDigest"] != _barriers(root):
+    if envelope["controlsDigest"] != _barriers(
+        root, envelope["batch"] if envelope["schemaVersion"] == 3 else None
+    ):
         _issue("APPROVAL", "control bindings changed")
     host = EXECUTE_HOST if envelope["schemaVersion"] == 2 else HOST
     if not set(request["brief"]["allowedActions"]) <= set(host["allowedActions"]):
@@ -132,9 +146,16 @@ def _prepared(root, envelope, revision, *, in_flight=False):
                     "executionPolicyDigest": state.digest(revision["consent"]),
                     "controlsDigest": controls._digest(store)}
         if store["approvals"].get(request["binding"]["executionId"]) != expected:
-            _issue("APPROVAL", "separate current supervised controls approval is required")
+            _issue("APPROVAL", "separate current controls approval is required")
         if envelope["model"]["id"] not in store["policy"]["permittedModels"]:
-            _issue("APPROVAL", "selected model is not explicitly permitted by supervised controls")
+            _issue("APPROVAL", "selected model is not explicitly permitted by controls policy")
+    if envelope["schemaVersion"] == 3:
+        import execution_orchestration
+        execution_orchestration.check_batch_attempt(
+            root, envelope["batch"], envelope["batchDigest"], request["brief"]["taskId"],
+            request["brief"]["attemptId"], envelope["model"]["id"], envelope["limits"],
+            in_flight=in_flight,
+        )
     if envelope["schemaVersion"] == 2:
         for command in envelope["commands"]:
             _executable(command["executable"], command["executableDigest"])
@@ -171,6 +192,26 @@ def prepare(project_root, execution_id, brief, role, model, limits):
         "guidanceDigests": {p: _hash(_bytes(root, p)) for p in request["brief"]["guidance"]},
     }
     _prepared(root, envelope, manager._load(root, execution_id)["revisions"][-1])
+    return envelope
+
+
+def prepare_batch(project_root, batch, batch_digest_value, task_id, attempt_id, brief, role, model, limits):
+    root = manager._root(project_root)
+    manager._consent(root, enabled=True)
+    import execution_orchestration
+    execution_orchestration.check_batch_attempt(
+        root, batch, batch_digest_value, task_id, attempt_id, model["id"], limits,
+    )
+    request = native.prepare_request(root, batch["executionId"], brief, role, HOST)
+    store = controls._active(root)
+    revision = manager._load(root, batch["executionId"])["revisions"][-1]
+    envelope = {
+        "schemaVersion": 3, "request": request, "model": model, "limits": limits,
+        "controlsDigest": state.digest(store),
+        "guidanceDigests": {p: _hash(_bytes(root, p)) for p in request["brief"]["guidance"]},
+        "batch": batch, "batchDigest": batch_digest_value,
+    }
+    _prepared(root, envelope, revision)
     return envelope
 
 
@@ -301,7 +342,8 @@ def start(project_root, envelope, approved_runtime_digest, approved_request_dige
         if path.exists() and _store(root)["status"] != "reported":
             _issue("UNRESOLVED", "previous bounded work requires explicit host reconciliation")
         manager._write(root, path, {
-            "schemaVersion": envelope["schemaVersion"], "runtimeDigest": state.digest(envelope),
+            "schemaVersion": 1 if envelope["schemaVersion"] == 3 else envelope["schemaVersion"],
+            "runtimeDigest": state.digest(envelope),
             "requestDigest": state.digest(envelope["request"]),
             "callId": "runtime-" + uuid.uuid4().hex, "status": "active",
             "startedNs": time.monotonic_ns(), "startedWallNs": time.time_ns(), "iterations": 0, "toolCalls": 0,
@@ -309,8 +351,14 @@ def start(project_root, envelope, approved_runtime_digest, approved_request_dige
             **({"commandEvidence": []} if envelope["schemaVersion"] == 2 else {}),
         })
 
+    batch = None if envelope["schemaVersion"] != 3 else {
+        "batch": envelope["batch"], "batchDigest": envelope["batchDigest"],
+        "taskId": envelope["request"]["brief"]["taskId"],
+        "attemptId": envelope["request"]["brief"]["attemptId"],
+        "modelId": envelope["model"]["id"],
+    }
     return native.start_request(project_root, envelope["request"], approved_request_digest,
-                                _guard=guard, _bounded=True)
+                                _guard=guard, _bounded=True, _batch=batch)
 
 
 def _current(root, envelope, revision=None, *, allow_command=False):
@@ -330,6 +378,11 @@ def _current(root, envelope, revision=None, *, allow_command=False):
         native._request_markers(revision["events"], brief["taskId"], brief["attemptId"]) != [state.digest(request)]
     ):
         _issue("BINDING", "no unique current running native attempt")
+    if envelope["schemaVersion"] == 3:
+        expected = {"batchId": envelope["batch"]["batchId"], "batchDigest": envelope["batchDigest"],
+                    "modelId": envelope["model"]["id"]}
+        if native._batch_markers(revision["events"], brief["taskId"], brief["attemptId"]) != [expected]:
+            _issue("BINDING", "running attempt lacks its exact batch history binding")
     elapsed = time.monotonic_ns() - store["startedNs"]
     wall_elapsed = time.time_ns() - store["startedWallNs"]
     maximum = envelope["limits"]["maxWallMs"] * 1000000
@@ -469,7 +522,12 @@ def _execute(project_root, envelope, arguments):
     try:
         def command_guard():
             with manager._writer(project_root) as locked:
-                _current(locked, envelope, allow_command=True)
+                current = _store(locked)
+                if current["runtimeDigest"] != state.digest(envelope) or current["status"] != "active":
+                    _issue("UNRESOLVED", "command runtime is stopped or differs from this request")
+            # Polling is read-only. Do not starve stop writers with full replay,
+            # source hashing and executable validation inside the shared lock.
+            _current(locked, envelope, allow_command=True)
         output = runtime_process.run(command, command_guard)
     except BaseException:
         _stop_command(project_root, envelope)
@@ -524,14 +582,19 @@ def receive(project_root, envelope, result):
     store = _store(root)
     revision = manager._load(root, envelope["request"]["binding"]["executionId"])["revisions"][-1]
     result = contracts.validate_task_result(result, revision["plan"], envelope["request"]["brief"])["data"]
-    if envelope["schemaVersion"] == 2:
+    if envelope["schemaVersion"] in (2, 3):
         if result["findings"] or result["blockers"]:
-            _issue("PROTOCOL", "execute receipts cannot persist worker free text or command output")
+            _issue("PROTOCOL", "bounded receipts cannot persist worker free text or command output")
         for item in result["verification"]:
+            if envelope["schemaVersion"] == 3 and (
+                item["command"] is not None or item["revision"] is not None
+                or item["summary"] != item["result"]
+            ):
+                _issue("PROTOCOL", "batch verification cannot persist worker-authored free text or provenance")
             if item["result"] not in ("passed", "failed") and (
                 item["command"] is not None or item["revision"] is not None or item["summary"] != item["result"]
             ):
-                _issue("PROTOCOL", "unobserved execute verification requires null provenance and a closed status summary")
+                _issue("PROTOCOL", "unobserved verification requires null provenance and a closed status summary")
 
     def receipt_guard(locked, revision):
         current = _current(locked, envelope, revision)
@@ -541,6 +604,12 @@ def receive(project_root, envelope, result):
         for item in result["verification"]:
             if item["result"] not in ("passed", "failed"):
                 continue
+            if (
+                envelope["schemaVersion"] == 3 and result["status"] == "failed"
+                and item["result"] == "failed" and item["command"] is None
+                and item["revision"] is None and item["summary"] == "failed"
+            ):
+                continue
             matches = [entry for entry in evidence if
                        item["command"] == "runtime-command:" + entry["commandId"]
                        and item["revision"] == entry["commandDigest"]]
@@ -549,9 +618,23 @@ def receive(project_root, envelope, result):
                 _issue("UNSUPPORTED", "verification must exactly reference unique observed command evidence")
     receipt = {"schemaVersion": 1, "requestDigest": state.digest(envelope["request"]),
                "hostId": HOST["id"], "hostBuild": HOST["build"], "callId": store["callId"], "result": result}
+    batch = None
+    usage = None
+    if envelope["schemaVersion"] == 3:
+        batch = {
+            "batch": envelope["batch"], "batchDigest": envelope["batchDigest"],
+            "taskId": envelope["request"]["brief"]["taskId"],
+            "attemptId": envelope["request"]["brief"]["attemptId"],
+            "modelId": envelope["model"]["id"],
+        }
+        elapsed = (time.monotonic_ns() - store["startedNs"]) // 1000000
+        if elapsed < 0:
+            _issue("LIMIT", "monotonic runtime clock moved backwards")
+        usage = {"modelCalls": store["iterations"], "toolCalls": store["toolCalls"],
+                 "elapsedMs": elapsed, "inputBytes": store["inputBytes"], "outputBytes": store["outputBytes"]}
     output = native.receive_receipt(
         root, envelope["request"], receipt, store["callId"],
-        _guard=receipt_guard,
+        _guard=receipt_guard, _batch=batch, _usage=usage,
     )
     with manager._writer(root):
         store = _store(root)

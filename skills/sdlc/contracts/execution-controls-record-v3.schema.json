@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-controls-record:3",
+  "title": "Explicit batch state retaining the prior controls record, version 3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "generation", "policy", "safetyActivated", "paused", "pauseReason",
+    "approvals", "cancelRequests", "batchApprovals", "retainedPrevious"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 3},
+    "generation": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/generation"},
+    "policy": {"$ref": "urn:sdlc:execution-controls-policy:3"},
+    "safetyActivated": {"type": "boolean"},
+    "paused": {"type": "boolean"},
+    "pauseReason": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/pauseReason"},
+    "approvals": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/approvals"},
+    "cancelRequests": {"$ref": "urn:sdlc:execution-controls-record:1#/properties/cancelRequests"},
+    "batchApprovals": {
+      "type": "object",
+      "maxProperties": 256,
+      "propertyNames": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "planDigest", "executionPolicyDigest", "controlsDigest", "batchDigest",
+          "taskIds", "attempts", "limits", "maxSpendMinor"
+        ],
+        "properties": {
+          "planDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "executionPolicyDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "controlsDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "batchDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+          "taskIds": {
+            "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+            "items": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"}
+          },
+          "attempts": {
+            "type": "array", "minItems": 1, "maxItems": 256,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["taskId", "attemptId", "role", "modelId", "briefDigest", "limits"],
+              "properties": {
+                "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+                "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+                "role": {"enum": ["architecture", "developer", "testing", "review"]},
+                "modelId": {"$ref": "urn:sdlc:execution-batch:1#/$defs/modelId"},
+                "briefDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+                "limits": {"$ref": "urn:sdlc:execution-batch:1#/$defs/attemptLimits"}
+              }
+            }
+          },
+          "limits": {"$ref": "urn:sdlc:execution-batch:1#/$defs/limits"},
+          "maxSpendMinor": {"type": "null"}
+        }
+      }
+    },
+    "retainedPrevious": {
+      "anyOf": [
+        {"type": "null"},
+        {"$ref": "urn:sdlc:execution-controls-record:1"},
+        {"$ref": "urn:sdlc:execution-controls-record:2"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"policy": {"properties": {"enabled": {"const": true}}}}},
+      "then": {"properties": {"safetyActivated": {"const": true}}}
+    },
+    {
+      "if": {"properties": {"paused": {"const": true}}},
+      "then": {"properties": {"pauseReason": {"type": "string"}}},
+      "else": {"properties": {"pauseReason": {"type": "null"}}}
+    }
+  ]
+}

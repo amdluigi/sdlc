@@ -30,17 +30,33 @@ def _models(value):
 def validate_controls_policy(value):
     data = contracts._object(value, "", (
         "schemaVersion", "enabled", "mode", "maxAttempts", "allowEscalation", "permittedModels",
-    ))
+    ) + (("maxBatchTasks", "maxBatchCalls", "maxBatchToolCalls", "maxBatchWallMs", "maxBatchInputBytes",
+          "maxBatchOutputBytes") if isinstance(value, dict) and value.get("schemaVersion") == 3 else ()))
+    batch = type(data["schemaVersion"]) is int and data["schemaVersion"] == 3
     if type(data["schemaVersion"]) is int and data["schemaVersion"] == 2:
         contracts._enum(data["mode"], "/mode", ("supervised",))
-    else:
+    elif not batch:
         contracts._version(data)
     if type(data["enabled"]) is not bool or type(data["allowEscalation"]) is not bool:
         raise ContractIssue("E_SCHEMA_TYPE", "/", "controls flags must be booleans")
-    contracts._enum(data["mode"], "/mode", ("manual", "supervised", "autonomous"))
+    if batch and data["mode"] != "batch":
+        raise ContractIssue("E_CONTROLS_CAPABILITY", "/mode", "version 3 requires explicit batch mode")
+    contracts._enum(data["mode"], "/mode", ("batch",) if batch else ("manual", "supervised", "autonomous"))
     if contracts._number(data["maxAttempts"], "/maxAttempts") > contracts.MAX_ITEMS:
         raise ContractIssue("E_CONTROLS_LIMIT", "/maxAttempts", "attempt limit exceeds record capacity")
     _models(data["permittedModels"])
+    if batch:
+        limits = {
+            "maxBatchTasks": contracts.MAX_ITEMS,
+            "maxBatchCalls": contracts.MAX_ITEMS,
+            "maxBatchToolCalls": contracts.MAX_ITEMS,
+            "maxBatchWallMs": 300000,
+            "maxBatchInputBytes": 262144,
+            "maxBatchOutputBytes": 262144,
+        }
+        for field, ceiling in limits.items():
+            if contracts._number(data[field], "/" + field) > ceiling:
+                raise ContractIssue("E_CONTROLS_LIMIT", "/" + field, "batch bound exceeds the supported ceiling")
     return _copy(data)
 
 
@@ -60,17 +76,33 @@ def _digest(store):
     return state.digest({key: store[key] for key in ("schemaVersion", "generation", "policy")})
 
 
+def _batch_approval_metadata(batch):
+    return {
+        "taskIds": [item["taskId"] for item in batch["tasks"]],
+        "attempts": [{
+            "taskId": item["taskId"], "attemptId": attempt["attemptId"], "role": item["role"],
+            "modelId": attempt["modelId"], "briefDigest": state.digest(attempt["brief"]),
+            "limits": _copy(attempt["limits"]),
+        } for item in batch["tasks"] for attempt in item["attempts"]],
+        "limits": _copy(batch["limits"]),
+        "maxSpendMinor": None,
+    }
+
+
 def _store(value):
-    supervised = isinstance(value, dict) and type(value.get("schemaVersion")) is int and value["schemaVersion"] == 2
+    version = value.get("schemaVersion") if isinstance(value, dict) else None
+    supervised = type(version) is int and version == 2
+    batch = type(version) is int and version == 3
     data = contracts._object(value, "", (
         "schemaVersion", "generation", "policy", "safetyActivated", "paused", "pauseReason", "approvals", "cancelRequests",
-    ) + (("retainedManual",) if supervised else ()))
-    if not supervised:
+    ) + (("retainedManual",) if supervised else ()) +
+        (("batchApprovals", "retainedPrevious") if batch else ()))
+    if not supervised and not batch:
         contracts._version(data)
     contracts._number(data["generation"], "/generation")
     validate_controls_policy(data["policy"])
     if (data["policy"]["schemaVersion"], data["policy"]["mode"]) != (
-        (2, "supervised") if supervised else (1, "manual")
+        (3, "batch") if batch else (2, "supervised") if supervised else (1, "manual")
     ) or type(data["paused"]) is not bool or (
         type(data["safetyActivated"]) is not bool or data["policy"]["enabled"] and not data["safetyActivated"]
     ):
@@ -79,6 +111,13 @@ def _store(value):
         if not isinstance(data["retainedManual"], dict) or data["retainedManual"].get("schemaVersion") != 1:
             raise ContractIssue("E_CONTROLS_STORE", "/", "retained manual controls must remain version 1")
         _store(data["retainedManual"])
+    if batch:
+        previous = data["retainedPrevious"]
+        if previous is not None:
+            if not isinstance(previous, dict) or previous.get("schemaVersion") not in (1, 2):
+                raise ContractIssue("E_CONTROLS_STORE", "/retainedPrevious",
+                                    "batch controls must retain the complete prior version 1 or 2 record")
+            _store(previous)
     if data["paused"]:
         contracts._text(data["pauseReason"], "/pauseReason")
     elif data["pauseReason"] is not None:
@@ -104,6 +143,74 @@ def _store(value):
         if identity in identities:
             raise ContractIssue("E_CONTROLS_STORE", "/cancelRequests", "duplicate cancellation identity")
         identities.add(identity)
+    if batch:
+        approvals = data["batchApprovals"]
+        if not isinstance(approvals, dict) or len(approvals) > contracts.MAX_ITEMS:
+            raise ContractIssue("E_CONTROLS_STORE", "/batchApprovals", "batch approvals must be bounded")
+        for batch_id, approval in approvals.items():
+            contracts._id(batch_id, "/batchApprovals")
+            approval = contracts._object(approval, "/batchApprovals/" + batch_id, (
+                "planDigest", "executionPolicyDigest", "controlsDigest", "batchDigest",
+                "taskIds", "attempts", "limits", "maxSpendMinor",
+            ))
+            for key in ("planDigest", "executionPolicyDigest", "controlsDigest", "batchDigest"):
+                digest = approval[key]
+                contracts._digest(digest, "/batchApprovals/" + batch_id + "/" + key)
+            task_ids = contracts._strings(approval["taskIds"], "/batchApprovals/" + batch_id + "/taskIds", True)
+            for identifier in task_ids:
+                contracts._id(identifier, "/batchApprovals/" + batch_id + "/taskIds")
+            if len(set(task_ids)) != len(task_ids):
+                raise ContractIssue("E_CONTROLS_STORE", "/batchApprovals/" + batch_id + "/taskIds",
+                                    "batch task identities must be unique")
+            attempt_specs = contracts._array(
+                approval["attempts"], "/batchApprovals/" + batch_id + "/attempts", True
+            )
+            attempt_ids, attempt_tasks = set(), set()
+            for spec in attempt_specs:
+                spec = contracts._object(spec, "/batchApprovals/" + batch_id + "/attempts", (
+                    "taskId", "attemptId", "role", "modelId", "briefDigest", "limits",
+                ))
+                contracts._id(spec["taskId"], "/batchApprovals/" + batch_id + "/attempts/taskId")
+                contracts._id(spec["attemptId"], "/batchApprovals/" + batch_id + "/attempts/attemptId")
+                contracts._enum(spec["role"], "/batchApprovals/" + batch_id + "/attempts/role",
+                                ("architecture", "developer", "testing", "review"))
+                _model_id(spec["modelId"])
+                contracts._digest(spec["briefDigest"], "/batchApprovals/" + batch_id + "/attempts/briefDigest")
+                if spec["attemptId"] in attempt_ids or spec["taskId"] not in task_ids:
+                    raise ContractIssue("E_CONTROLS_STORE", "/batchApprovals/" + batch_id + "/attempts",
+                                        "attempt metadata must be unique and reference an approved task")
+                attempt_ids.add(spec["attemptId"])
+                attempt_tasks.add(spec["taskId"])
+                attempt_limits = contracts._object(spec["limits"], "/batchApprovals/attempts/limits", (
+                    "maxIterations", "maxToolCalls", "maxInputBytes", "maxOutputBytes", "maxWallMs",
+                ))
+                attempt_ceilings = {
+                    "maxIterations": 16, "maxToolCalls": 32, "maxInputBytes": 262144,
+                    "maxOutputBytes": 262144, "maxWallMs": 300000,
+                }
+                if any(contracts._number(attempt_limits[key], "/batchApprovals/attempts/limits/" + key, 1)
+                       > ceiling for key, ceiling in attempt_ceilings.items()):
+                    raise ContractIssue("E_CONTROLS_STORE", "/batchApprovals/" + batch_id + "/attempts/limits",
+                                        "per-attempt limits exceed supported bounds")
+            limits = contracts._object(
+                approval["limits"], "/batchApprovals/" + batch_id + "/limits",
+                ("maxCalls", "maxToolCalls", "maxWallMs", "maxInputBytes", "maxOutputBytes"),
+            )
+            for key, bound in limits.items():
+                contracts._number(bound, "/batchApprovals/" + batch_id + "/limits/" + key, 1)
+            ceilings = {
+                "maxCalls": contracts.MAX_ITEMS, "maxToolCalls": contracts.MAX_ITEMS,
+                "maxWallMs": 300000, "maxInputBytes": 262144, "maxOutputBytes": 262144,
+            }
+            if any(limits[key] > ceiling for key, ceiling in ceilings.items()):
+                raise ContractIssue("E_CONTROLS_STORE", "/batchApprovals/" + batch_id + "/limits",
+                                    "batch approval limits exceed supported bounds")
+            if approval["maxSpendMinor"] is not None:
+                raise ContractIssue("E_CONTROLS_STORE", "/batchApprovals/" + batch_id,
+                                    "authoritative spend limits are unavailable")
+            if not task_ids or not attempt_specs or attempt_tasks != set(task_ids):
+                raise ContractIssue("E_CONTROLS_STORE", "/batchApprovals/" + batch_id,
+                                    "batch approval metadata must retain its finite identities")
     return _copy(data)
 
 
@@ -126,6 +233,10 @@ def configure_controls(project_root, policy, dry_run=False):
         raise ContractIssue("E_SCHEMA_TYPE", "/dryRun", "expected boolean")
     if policy["schemaVersion"] == 1 and policy["mode"] != "manual":
         raise ContractIssue("E_CONTROLS_CAPABILITY", "/mode", "live runtime mode is not qualified")
+    if policy["schemaVersion"] == 2 and policy["mode"] != "supervised":
+        raise ContractIssue("E_CONTROLS_CAPABILITY", "/mode", "version 2 requires supervised mode")
+    if policy["schemaVersion"] == 3 and policy["mode"] != "batch":
+        raise ContractIssue("E_CONTROLS_CAPABILITY", "/mode", "version 3 requires explicit batch mode")
     root = manager._root(project_root)
     if dry_run:
         return {**semantic_fields(), "dryRun": True, "policy": policy}
@@ -134,7 +245,7 @@ def configure_controls(project_root, policy, dry_run=False):
         if policy["enabled"]:
             manager._consent(root, enabled=True)
         previous = _read(root)
-        if previous is not None and previous["schemaVersion"] == 2 and policy["schemaVersion"] == 1:
+        if previous is not None and previous["schemaVersion"] > policy["schemaVersion"]:
             raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "automatic controls downgrade would lose safety history")
         store = {
             "schemaVersion": policy["schemaVersion"], "generation": 1 if previous is None else previous["generation"] + 1,
@@ -145,6 +256,9 @@ def configure_controls(project_root, policy, dry_run=False):
             **({"retainedManual": None if previous is None else (
                 previous if previous["schemaVersion"] == 1 else previous["retainedManual"]
             )} if policy["schemaVersion"] == 2 else {}),
+            **({"batchApprovals": {}, "retainedPrevious": (
+                previous.get("retainedPrevious") if previous and previous["schemaVersion"] == 3 else previous
+            )} if policy["schemaVersion"] == 3 else {}),
         }
         manager._write(root, controls_path(root), _store(store))
     return {**semantic_fields(), "controlsDigest": _digest(store)}
@@ -158,6 +272,8 @@ def inspect_controls(project_root):
             "cancelRequests": [] if store is None else store["cancelRequests"],
             "controlsDigest": None if store is None else _digest(store), "store": store,
             "runtimeCapabilities": {"nativeDispatch": bool(store and store["policy"]["mode"] == "supervised"),
+                                    "batchScheduling": bool(store and store["schemaVersion"] == 3
+                                                            and store["policy"]["enabled"]),
                                     "autonomous": False,
                                     "hostCancellation": False, "spendEnforcement": False}}
 
@@ -178,6 +294,76 @@ def approve_controls(project_root, execution_id, plan_digest, execution_policy_d
         store["approvals"][execution_id] = expected
         manager._write(root, controls_path(root), _store(store))
     return semantic_fields()
+
+
+def approve_batch(project_root, batch, plan_digest, execution_policy_digest, controls_digest, batch_digest):
+    for value in (plan_digest, execution_policy_digest, controls_digest, batch_digest):
+        contracts._digest(value, "/batchApproval")
+    from execution_orchestration import batch_digest as digest_batch, validate_batch_contract
+    batch = validate_batch_contract(batch)
+    if batch["maxSpendMinor"] is not None:
+        raise ContractIssue("E_ORCHESTRATION_SPEND_UNAVAILABLE", "/maxSpendMinor",
+                            "authoritative provider usage and pricing are unavailable")
+    if digest_batch(batch, plan_digest, execution_policy_digest, controls_digest) != batch_digest:
+        raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/batchDigest", "batch approval digest differs")
+    with manager._writer(project_root) as root:
+        store = _active(root)
+        if store["schemaVersion"] != 3 or not store["policy"]["enabled"]:
+            raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "version 3 batch controls are required")
+        current = manager.inspect_execution(root, batch["executionId"])
+        expected = {
+            "planDigest": current["planDigest"],
+            "executionPolicyDigest": current["policyDigest"],
+            "controlsDigest": _digest(store),
+        }
+        if (
+            batch["planRevision"] != current["plan"]["revision"]
+            or not current["state"]["approved"]
+            or expected != {
+                "planDigest": plan_digest,
+                "executionPolicyDigest": execution_policy_digest,
+                "controlsDigest": controls_digest,
+            }
+            or store["approvals"].get(batch["executionId"]) != expected
+        ):
+            raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/", "batch policy or plan approval is stale")
+        store["batchApprovals"][batch["batchId"]] = {
+            **expected, "batchDigest": batch_digest, **_batch_approval_metadata(batch),
+        }
+        manager._write(root, controls_path(root), _store(store))
+    return {**semantic_fields(), "batchId": batch["batchId"], "batchDigest": batch_digest}
+
+
+def batch_approval(root, batch):
+    store = _active(root)
+    if store["schemaVersion"] != 3:
+        raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "version 3 batch controls are required")
+    approval = store["batchApprovals"].get(batch["batchId"])
+    current = manager.inspect_execution(root, batch["executionId"])
+    if approval is None:
+        raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/", "exact batch consent is required")
+    expected = {
+        "planDigest": current["planDigest"],
+        "executionPolicyDigest": current["policyDigest"],
+        "controlsDigest": _digest(store),
+        "batchDigest": approval["batchDigest"],
+        **_batch_approval_metadata(batch),
+    }
+    if (
+        approval != expected
+        or batch["planRevision"] != current["plan"]["revision"]
+        or not current["state"]["approved"]
+        or store["approvals"].get(batch["executionId"]) != {
+            key: expected[key] for key in ("planDigest", "executionPolicyDigest", "controlsDigest")
+        }
+    ):
+        raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/", "batch approval bindings are stale")
+    from execution_orchestration import batch_digest as digest_batch
+    if digest_batch(
+        batch, expected["planDigest"], expected["executionPolicyDigest"], expected["controlsDigest"]
+    ) != expected["batchDigest"]:
+        raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/batchDigest", "batch digest changed")
+    return approval
 
 
 def set_pause(project_root, paused, reason):
@@ -259,7 +445,7 @@ def resolve_manual_cancel(project_root, execution_id, task_id, reason):
     return {**semantic_fields(), "cancellation": "resolved-manual-only"}
 
 
-def enforce_start(root, execution_id, task_id, attempt_id, native=False, bounded=False):
+def enforce_start(root, execution_id, task_id, attempt_id, native=False, bounded=False, batch=None):
     store = _read(root)
     if store is None:
         return
@@ -280,8 +466,14 @@ def enforce_start(root, execution_id, task_id, attempt_id, native=False, bounded
                 "controlsDigest": _digest(store)}
     if not manager._projection(revision)["approved"] or store["approvals"].get(execution_id) != expected:
         raise ContractIssue("E_CONTROLS_APPROVAL", "/", "separate current controls approval is required")
-    if native and not (bounded and store["policy"]["mode"] == "supervised"):
+    batch_dispatch = bool(
+        native and bounded and batch is not None and store["schemaVersion"] == 3
+        and store["policy"]["mode"] == "batch"
+    )
+    if native and not (bounded and store["policy"]["mode"] == "supervised") and not batch_dispatch:
         raise ContractIssue("E_CONTROLS_CAPABILITY", "/", "manual controls do not qualify native dispatch")
+    if batch_dispatch:
+        batch_approval(root, batch)
     contracts._id(task_id, "/taskId")
     contracts._id(attempt_id, "/attemptId")
     started = []

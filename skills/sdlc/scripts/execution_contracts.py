@@ -45,6 +45,13 @@ EVENT_FIELDS = {
     "APPROVAL_GRANTED": (False, False, ("decisionId",)),
     "APPROVAL_REJECTED": (False, False, ("decisionId", "reason")),
 }
+CONTROLLER_EVENT_FIELDS = {
+    "TASK_RETRY_READY": ("batchId", "batchDigest", "resultId", "nextAttemptId", "modelId"),
+    "BATCH_ATTEMPT_ACCOUNTED": (
+        "batchId", "batchDigest", "resultId", "briefDigest", "modelCalls", "toolCalls",
+        "elapsedMs", "inputBytes", "outputBytes",
+    ),
+}
 
 
 def _issue(code: str, pointer: str, message: str) -> NoReturn:
@@ -416,4 +423,42 @@ def validate_execution_event(data: object, plan: object) -> dict[str, object]:
             _id(payload[field], pointer)
         else:
             _text(payload[field], pointer)
+    return _result(value)
+
+
+def validate_controller_event(data: object, plan: object) -> dict[str, object]:
+    """Validate an explicitly versioned retry/accounting event."""
+    validated, tasks = _plan(plan)
+    value = _object(data, "", (
+        "schemaVersion", "eventId", "binding", "sequence", "occurredAt", "recordedAt",
+        "actor", "type", "taskId", "attemptId", "payload",
+    ))
+    if type(value["schemaVersion"]) is not int or value["schemaVersion"] != 2:
+        _issue("E_EXECUTION_VERSION", "/schemaVersion", "controller events require schema version 2")
+    _id(value["eventId"], "/eventId")
+    _binding(value["binding"], validated)
+    _number(value["sequence"], "/sequence")
+    occurred = _time(value["occurredAt"], "/occurredAt")
+    if _time(value["recordedAt"], "/recordedAt") < occurred:
+        _issue("E_EXECUTION_TIME", "/recordedAt", "recordedAt precedes occurredAt")
+    actor = _object(value["actor"], "/actor", ("role", "id"))
+    if actor != {"role": "manager", "id": "local-orchestrator"}:
+        _issue("E_EXECUTION_ACTOR", "/actor", "controller event is outside the manager boundary")
+    kind = _enum(value["type"], "/type", tuple(CONTROLLER_EVENT_FIELDS))
+    _bound_task(value, validated, tasks)
+    _id(value["attemptId"], "/attemptId")
+    fields = CONTROLLER_EVENT_FIELDS[kind]
+    payload = _object(value["payload"], "/payload", fields)
+    _id(payload["batchId"], "/payload/batchId")
+    _digest(payload["batchDigest"], "/payload/batchDigest")
+    _id(payload["resultId"], "/payload/resultId")
+    if kind == "TASK_RETRY_READY":
+        _id(payload["nextAttemptId"], "/payload/nextAttemptId")
+        model_id = _text(payload["modelId"], "/payload/modelId", 128)
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model_id):
+            _issue("E_MODEL_ID", "/payload/modelId", "invalid model identifier")
+    else:
+        _digest(payload["briefDigest"], "/payload/briefDigest")
+        for field in ("modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes"):
+            _number(payload[field], "/payload/" + field, 0)
     return _result(value)

@@ -246,7 +246,7 @@ class ExecutionManagementTests(unittest.TestCase):
         self.activate()
         path = self.manager.execution_path(self.root, "feature-one")
         before = path.read_bytes()
-        with mock.patch.object(os, "replace", side_effect=OSError("promotion failed")):
+        with mock.patch.object(self.manager, "_replace", side_effect=OSError("promotion failed")):
             self.assert_issue(lambda: self.approve(), "E_EXECUTION_WRITE")
         self.assertEqual(before, path.read_bytes())
         self.assertFalse(list(path.parent.glob("*.tmp")))
@@ -395,7 +395,7 @@ class ExecutionManagementTests(unittest.TestCase):
         inspected = self.manager.inspect_execution(self.root, "feature-one")
         program = (
             "import os,sys; sys.path.insert(0,sys.argv[1]); import execution_manager as m; "
-            "os.replace=lambda *args: os._exit(17); "
+            "m._replace=lambda *args: os._exit(17); "
             "m.approve_plan(sys.argv[2], 'feature-one', sys.argv[3], sys.argv[4])"
         )
         interrupted = subprocess.run(

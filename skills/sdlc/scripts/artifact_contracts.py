@@ -1,6 +1,7 @@
 """Strict, deterministic contracts shared by SDLC artifact commands."""
 
 import json
+import os
 import re
 from pathlib import Path, PurePosixPath
 
@@ -69,6 +70,35 @@ def _materialize(value, pointer=""):
     return value
 
 
+def _shared_read_descriptor(path, _flags):
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                       wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    create.restype = wintypes.HANDLE
+    close = kernel.CloseHandle
+    close.argtypes = [wintypes.HANDLE]
+    close.restype = wintypes.BOOL
+    # Read a stable snapshot without denying an atomic replacement by the writer.
+    handle = create(os.fsdecode(path), 0x80000000, 0x1 | 0x2 | 0x4, None, 3, 0x80, None)
+    if handle == ctypes.c_void_p(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        return msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+    except BaseException:
+        close(handle)
+        raise
+
+
+def _open_json_text(path):
+    return open(path, encoding="utf-8",
+                opener=_shared_read_descriptor if os.name == "nt" else None)
+
+
 def strict_load_json(path):
     path = Path(path)
     if str(path) == "-" or URL_LIKE.match(str(path)):
@@ -85,7 +115,8 @@ def strict_load_json(path):
             2,
         )
     try:
-        text = path.read_text(encoding="utf-8")
+        with _open_json_text(path) as stream:
+            text = stream.read()
     except UnicodeError as error:
         raise ContractIssue("E_UTF8", str(path), "input is not valid UTF-8", 2) from error
     except OSError as error:

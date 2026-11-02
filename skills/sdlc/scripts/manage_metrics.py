@@ -77,16 +77,27 @@ def zero_store(generation=1):
     }
 
 
-def _is_link_or_reparse(path):
-    metadata = path.lstat()
+def _is_link_or_reparse(path, *, metadata=None):
+    metadata = path.lstat() if metadata is None else metadata
     return stat.S_ISLNK(metadata.st_mode) or bool(
         getattr(metadata, "st_file_attributes", 0)
         & _REPARSE_POINT_ATTRIBUTE
     )
 
 
-def _verify_existing_components(root, candidate):
-    resolved_root = root.resolve(strict=True)
+def _resolved_spelling(path):
+    spelling = str(path)
+    if os.name == "nt" and spelling.startswith("\\\\?\\"):
+        tail = spelling[4:]
+        if tail.startswith("UNC\\"):
+            return Path("\\\\" + tail[4:])
+        if tail[1:3] == ":\\":
+            return Path(tail)
+    return path
+
+
+def _verify_existing_components(root, candidate, *, ephemeral_lock=False):
+    resolved_root = _resolved_spelling(root.resolve(strict=True))
     lexical = Path(os.path.abspath(candidate))
     lexical_root = Path(os.path.abspath(root))
     try:
@@ -96,12 +107,28 @@ def _verify_existing_components(root, candidate):
     current = lexical_root
     for part in lexical.relative_to(lexical_root).parts:
         current = current / part
-        if not current.exists() and not current.is_symlink():
+        try:
+            metadata = current.lstat()
+        except FileNotFoundError:
             break
-        if _is_link_or_reparse(current):
+        if _is_link_or_reparse(current, metadata=metadata):
             raise MetricsError("metrics path contains a link or reparse point")
     try:
-        resolved = lexical.resolve(strict=False)
+        resolved = _resolved_spelling(lexical.resolve(strict=False))
+        # Only the cooperative writer lock may resolve to an NTFS tombstone
+        # during deletion. Never generalize this exception to data-file leaves.
+        tombstone = Path(resolved.anchor) / "$Extend" / "$Deleted"
+        if os.name == "nt" and ephemeral_lock and resolved.is_relative_to(tombstone):
+            try:
+                metadata = lexical.lstat()
+            except FileNotFoundError:
+                metadata = None
+            if metadata is not None and (
+                _is_link_or_reparse(lexical, metadata=metadata)
+                or not stat.S_ISREG(metadata.st_mode)
+            ):
+                raise MetricsError("metrics path contains an invalid writer lock")
+            resolved = _resolved_spelling(lexical.parent.resolve(strict=True))
         resolved.relative_to(resolved_root)
     except (OSError, ValueError) as error:
         raise MetricsError("metrics path escapes the project boundary") from error

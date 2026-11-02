@@ -28,8 +28,8 @@ test('empty native model inventory reports a blocker before model consent or dis
       },
       lm: { async selectChatModels() { return []; } },
       commands: { registerCommand(name, callback) {
-        assert.equal(name, 'sdlc.runtime.run');
-        registered = callback;
+        if (name === 'sdlc.runtime.run') registered = callback;
+        else assert.equal(name, 'sdlc.runtime.runBatch');
         return { dispose() {} };
       } }
     };
@@ -52,6 +52,87 @@ test('empty native model inventory reports a blocker before model consent or dis
       throw error;
     }), false);
   } finally { await fs.rm(root, { recursive: true, force: true }); }
+});
+
+test('batch consent binds the previewed exact digest and declining it writes no batch approval', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'sdlc-runtime-batch-ui-'));
+  try {
+    const setup = spawnSync('python', ['-B', '-c', [
+      'import json,sys',
+      'from tests.test_bounded_runtime import fixture',
+      'from tests.test_execution_orchestration import batch',
+      'from tests.test_execution_controls import batch_controls_policy',
+      'from execution_controls import configure_controls,approve_controls,inspect_controls',
+      'from execution_manager import inspect_execution',
+      'p,_=fixture(sys.argv[1])',
+      'configure_controls(sys.argv[1],batch_controls_policy())',
+      'e=inspect_execution(sys.argv[1],"feature-one")',
+      'c=inspect_controls(sys.argv[1])',
+      'approve_controls(sys.argv[1],"feature-one",e["planDigest"],e["policyDigest"],c["controlsDigest"])',
+      'print(json.dumps(batch(p)))'
+    ].join(';'), root], { cwd: path.resolve(__dirname, '..', '..', '..'), encoding: 'utf8' });
+    assert.equal(setup.status, 0, setup.stderr);
+    const batch = JSON.parse(setup.stdout);
+    const file = path.join(root, 'batch.json');
+    await fs.writeFile(file, JSON.stringify(batch));
+    let callback;
+    let progressCalls = 0;
+    const confirmations = [];
+    const errors = [];
+    const infos = [];
+    const vscode = {
+      workspace: { isTrusted: true, workspaceFolders: [{ name: 'synthetic', uri: { scheme: 'file', fsPath: root } }] },
+      env: { appName: 'Visual Studio Code Insiders' },
+      version: '1.145.0-insider',
+      window: {
+        async showQuickPick(items) { return items[0]; },
+        async showOpenDialog() { return [{ scheme: 'file', fsPath: file }]; },
+        async showErrorMessage(message) { errors.push(message); },
+        async showInformationMessage(message) { infos.push(message); },
+        async showWarningMessage(message, options) {
+          confirmations.push({ message, detail: options.detail });
+          assert.equal(message, 'Authorize this exact finite local batch?');
+          assert.match(options.detail, /1\.145\.0-insider/);
+          assert.match(options.detail, /review-batch/);
+          assert.match(options.detail, /attempt-one.*model-one.*brief sha256:/);
+          assert.match(options.detail, /monetary spend cap.*unavailable/i);
+          assert.doesNotMatch(options.detail, /Run the acceptance test/);
+          return undefined;
+        },
+        async withProgress() { progressCalls++; assert.fail('Declined consent cannot dispatch'); }
+      },
+      lm: { async selectChatModels() { return ['model-one', 'model-two'].map(id => ({
+        name: id, id, vendor: 'synthetic', family: 'test', version: '1'
+      })); } },
+      commands: { registerCommand(name, handler) {
+        if (name === 'sdlc.runtime.runBatch') callback = handler;
+        return { dispose() {} };
+      } }
+    };
+    const original = Module._load;
+    let extension;
+    try {
+      Module._load = function (name, ...args) {
+        return name === 'vscode' ? vscode : original.call(this, name, ...args);
+      };
+      delete require.cache[require.resolve('../extension')];
+      extension = require('../extension');
+    } finally { Module._load = original; }
+    extension.activate({ subscriptions: [] });
+    assert.equal(typeof callback, 'function');
+    await callback();
+    assert.equal(confirmations.length, 1);
+    assert.equal(progressCalls, 0);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(infos, []);
+    const controls = JSON.parse(await fs.readFile(
+      path.join(root, '.git', 'sdlc', 'execution-controls.json'), 'utf8'
+    ));
+    assert.deepEqual(controls.batchApprovals, {});
+    assert.equal(await fs.stat(path.join(root, '.git', 'sdlc', 'bounded-runtime.json')).then(
+      () => true, error => { if (error.code === 'ENOENT') return false; throw error; }
+    ), false);
+  } finally { await fs.rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
 });
 
 for (const declined of ['commands', 'runtime']) {
@@ -100,7 +181,10 @@ for (const declined of ['commands', 'runtime']) {
         },
         lm: { async selectChatModels() { return [{ name: 'synthetic', id: 'synthetic-model',
           vendor: 'synthetic', family: 'test', version: '1' }]; } },
-        commands: { registerCommand(name, handler) { callback = handler; return { dispose() {} }; } }
+        commands: { registerCommand(name, handler) {
+          if (name === 'sdlc.runtime.run') callback = handler;
+          return { dispose() {} };
+        } }
       };
       const original = Module._load;
       let extension;

@@ -33,6 +33,151 @@ class RuntimeCommandsTests(unittest.TestCase):
                 "argv": ["-I", "-S", "-c", code], "cwd": str(self.root),
                 "timeoutMs": 1500, "maxOutputBytes": 2048, **changes}
 
+    def test_regular_or_missing_leaf_swapped_to_outside_link_is_rejected(self):
+        project = self.root / "boundary"
+        project.mkdir()
+        outside = self.root / "outside-boundary"
+        outside.mkdir()
+        leaf = project / "record"
+        original_lstat = Path.lstat
+
+        def link():
+            try:
+                leaf.symlink_to(outside, target_is_directory=True)
+            except OSError as error:
+                if os.name != "nt" or error.winerror != 1314:
+                    raise
+                subprocess.run(["cmd", "/c", "mklink", "/J", str(leaf), str(outside)],
+                               check=True, capture_output=True)
+
+        for existing, writer_lock in ((True, False), (False, False), (True, True), (False, True)):
+            with self.subTest(existing=existing, writer_lock=writer_lock):
+                if existing:
+                    leaf.write_bytes(b"regular")
+                swapped = False
+
+                def swap_after_metadata(path, *args, **kwargs):
+                    nonlocal swapped
+                    if path != leaf or swapped:
+                        return original_lstat(path, *args, **kwargs)
+                    swapped = True
+                    try:
+                        metadata = original_lstat(path, *args, **kwargs)
+                    except FileNotFoundError:
+                        link()
+                        raise
+                    leaf.unlink()
+                    link()
+                    return metadata
+
+                try:
+                    with mock.patch.object(Path, "lstat", swap_after_metadata):
+                        with self.assertRaises(ContractIssue) as caught:
+                            manager._safe(project, leaf, _writer_lock=writer_lock)
+                    self.assertEqual("E_EXECUTION_PATH", caught.exception.code)
+                    self.assertTrue(swapped)
+                finally:
+                    if leaf.is_symlink():
+                        leaf.unlink()
+                    elif leaf.exists():
+                        leaf.rmdir()
+
+    @unittest.skipUnless(os.name == "nt", "Windows deleted-file final-path race")
+    def test_deleted_identity_exception_is_exclusive_to_writer_lock_checks(self):
+        metrics = importlib.import_module("manage_metrics")
+        leaf = self.root / ".git" / "sdlc" / "executions.lock"
+        leaf.parent.mkdir(parents=True, exist_ok=True)
+        leaf.write_bytes(b"regular")
+        original_resolve = Path.resolve
+        tombstone = Path(self.root.anchor) / "$Extend" / "$Deleted" / "deleted-lock-id"
+
+        def deleted_identity(path, *args, **kwargs):
+            return tombstone if path == leaf else original_resolve(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "resolve", deleted_identity):
+            with self.assertRaises(metrics.MetricsError):
+                metrics._verify_existing_components(self.root, leaf)
+            self.assertEqual(leaf, metrics._verify_existing_components(
+                self.root, leaf, ephemeral_lock=True))
+            leaf.unlink()
+            self.assertEqual(leaf, metrics._verify_existing_components(
+                self.root, leaf, ephemeral_lock=True))
+
+    @unittest.skipUnless(os.name == "nt", "Windows deleted-file final-path race")
+    def test_disappearing_regular_lock_keeps_its_checked_parent_boundary(self):
+        lock = self.root / ".git" / "sdlc" / "executions.lock"
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        stop = threading.Event()
+        errors = []
+
+        def churn():
+            try:
+                while not stop.is_set():
+                    descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                    os.close(descriptor)
+                    lock.unlink()
+            except BaseException as error:
+                errors.append(error)
+
+        worker = threading.Thread(target=churn)
+        worker.start()
+        try:
+            for _ in range(2000):
+                self.assertEqual(lock, manager._safe(self.root, lock, _writer_lock=True))
+        finally:
+            stop.set()
+            worker.join()
+        self.assertEqual([], errors)
+
+    @unittest.skipUnless(os.name == "nt", "Windows atomic replacement sharing")
+    def test_repeated_atomic_promotions_keep_exact_unicode_path_and_content(self):
+        path = self.root / "record-\u6f22.json"
+        before = set(self.root.iterdir())
+        for generation in range(100):
+            manager._write(self.root, path, {"generation": generation})
+            self.assertEqual({"generation": generation}, manager._read(path))
+        self.assertEqual(before | {path}, set(self.root.iterdir()))
+
+    @unittest.skipUnless(os.name == "nt", "Windows atomic replacement sharing")
+    def test_json_reader_allows_atomic_manager_replace_and_keeps_old_snapshot(self):
+        contracts = importlib.import_module("artifact_contracts")
+        path = self.root / ".git" / "sdlc" / "execution-controls.json"
+        manager._write(self.root, path, {"generation": 1})
+        with contracts._open_json_text(path) as reader:
+            manager._write(self.root, path, {"generation": 2})
+            self.assertEqual({"generation": 1}, json.load(reader))
+        self.assertEqual({"generation": 2}, manager._read(path))
+        with path.open(encoding="utf-8") as reader:
+            with self.assertRaises(ContractIssue) as caught:
+                manager._write(self.root, path, {"generation": 3})
+            self.assertEqual("E_EXECUTION_WRITE", caught.exception.code)
+            self.assertEqual({"generation": 2}, json.load(reader))
+        self.assertEqual({"generation": 2}, manager._read(path))
+        self.assertEqual([], list(path.parent.glob("execution-*.tmp")))
+        with self.assertRaises(OSError):
+            with contracts._open_json_text(path.parent):
+                self.fail("a directory must not become a JSON input")
+
+    @unittest.skipUnless(os.name == "nt", "Windows extended resolved-path spelling")
+    def test_resolved_windows_prefix_preserves_confinement_without_retry(self):
+        metrics = importlib.import_module("manage_metrics")
+        root = self.root.resolve(strict=True)
+        candidate = root / ".git" / "sdlc" / "executions.lock"
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_bytes(b"")
+        extended = Path("\\\\?\\" + str(candidate))
+        self.assertTrue(candidate.samefile(extended))
+        self.assertEqual(candidate, metrics._resolved_spelling(extended.resolve(strict=True)))
+        self.assertEqual(candidate.relative_to(root),
+                         metrics._resolved_spelling(extended).relative_to(metrics._resolved_spelling(root)))
+        outside = Path("\\\\?\\" + str(root.parent / "outside" / "executions.lock"))
+        with self.assertRaises(ValueError):
+            metrics._resolved_spelling(outside).relative_to(metrics._resolved_spelling(root))
+        unc = Path(r"\\?\UNC\server\share\project\executions.lock")
+        self.assertEqual(Path(r"\\server\share\project\executions.lock"), metrics._resolved_spelling(unc))
+        device = Path(r"\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\outside")
+        self.assertEqual(device, metrics._resolved_spelling(device))
+
     def test_posix_execute_is_rejected_before_spawn_or_writes(self):
         process = importlib.import_module("runtime_process")
         self.brief["allowedActions"].append("execute")
@@ -233,6 +378,12 @@ class RuntimeCommandsTests(unittest.TestCase):
                 "scripts/runtime_process.py", "scripts/bounded_runtime.py",
                 "contracts/execution-controls-policy-v2.schema.json",
                 "contracts/execution-controls-record-v2.schema.json", "contracts/runtime-command.schema.json",
+                "contracts/execution-batch.schema.json",
+                "contracts/execution-controls-policy-v3.schema.json",
+                "contracts/execution-controls-record-v3.schema.json",
+                "contracts/execution-event-v2.schema.json",
+                "contracts/execution-record-v2.schema.json",
+                "scripts/execution_orchestration.py",
             ):
                 self.assertEqual((ROOT / "skills" / "sdlc" / relative).read_bytes(),
                                  (target / relative).read_bytes())
@@ -276,7 +427,9 @@ class RuntimeCommandsTests(unittest.TestCase):
         before = heartbeat.read_bytes()
         time.sleep(.2)
         self.assertEqual(before, heartbeat.read_bytes())
-        self.assertEqual("unknown", self.api.inspect(self.root)["status"])
+        self.assertEqual("unknown", self.api.inspect(self.root)["status"],
+                         [(type(error).__name__, str(error), repr(error.__cause__),
+                           repr(getattr(error.__cause__, "__cause__", None))) for error in errors])
         self.assertEqual({}, manager.inspect_execution(self.root, "feature-one")["receipts"])
 
     @unittest.skipUnless(os.name == "nt", "execute requires Windows owner-death Job containment")

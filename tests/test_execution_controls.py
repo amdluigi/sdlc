@@ -28,6 +28,15 @@ def inventory():
             ]}
 
 
+def batch_controls_policy(enabled=True):
+            return {
+                "schemaVersion": 3, "enabled": enabled, "mode": "batch",
+                "maxAttempts": 2, "allowEscalation": True, "permittedModels": ["model-one", "model-two"],
+                "maxBatchTasks": 8, "maxBatchCalls": 32, "maxBatchToolCalls": 32, "maxBatchWallMs": 300000,
+                "maxBatchInputBytes": 262144, "maxBatchOutputBytes": 262144,
+            }
+
+
 class ExecutionControlsTests(unittest.TestCase):
     def setUp(self):
         self.assertTrue((SCRIPTS / "execution_controls.py").is_file(), "Execution controls not provided")
@@ -129,6 +138,40 @@ class ExecutionControlsTests(unittest.TestCase):
         self.approve()
         self.issue(lambda: self.start("attempt-two"), "E_CONTROLS_ESCALATION")
 
+    def test_batch_controls_version_retains_supervised_history_and_forbids_downgrade(self):
+        self.activate()
+        self.controls.configure_controls(self.root, controls_policy())
+        self.approve()
+        supervised = self.controls.inspect_controls(self.root)["store"]
+
+        self.controls.configure_controls(self.root, batch_controls_policy())
+        current = self.controls.inspect_controls(self.root)
+        self.assertEqual(3, current["store"]["schemaVersion"])
+        self.assertEqual(supervised, current["store"]["retainedPrevious"])
+        self.assertFalse(current["store"]["approvals"])
+        self.assertTrue(current["runtimeCapabilities"]["batchScheduling"])
+        self.issue(lambda: self.controls.configure_controls(self.root, controls_policy()),
+                   "E_CONTROLS_CAPABILITY")
+        generation = current["store"]["generation"]
+        updated = batch_controls_policy()
+        updated["allowEscalation"] = False
+        self.controls.configure_controls(self.root, updated)
+        refreshed = self.controls.inspect_controls(self.root)["store"]
+        self.assertEqual(generation + 1, refreshed["generation"])
+        self.assertEqual(supervised, refreshed["retainedPrevious"])
+        self.assertEqual({}, refreshed["batchApprovals"])
+
+    def test_batch_controls_reject_unbounded_or_unsupported_policy(self):
+        invalid = batch_controls_policy()
+        invalid["maxBatchCalls"] = 257
+        self.issue(lambda: self.controls.configure_controls(self.root, invalid),
+                   "E_CONTROLS_LIMIT")
+
+        invalid = batch_controls_policy()
+        invalid["mode"] = "autonomous"
+        self.issue(lambda: self.controls.configure_controls(self.root, invalid),
+                   "E_CONTROLS_CAPABILITY")
+
     def test_manual_cancel_intent_is_not_a_stop_and_requires_resolution(self):
         self.activate()
         self.controls.configure_controls(self.root, controls_policy())
@@ -172,7 +215,7 @@ class ExecutionControlsTests(unittest.TestCase):
         self.activate()
         self.controls.configure_controls(self.root, controls_policy())
         before = self.controls.controls_path(self.root).read_bytes()
-        with mock.patch.object(self.manager.os, "replace", side_effect=OSError("synthetic failure")):
+        with mock.patch.object(self.manager, "_replace", side_effect=OSError("synthetic failure")):
             self.issue(lambda: self.controls.configure_controls(self.root, controls_policy(False)))
         self.assertEqual(before, self.controls.controls_path(self.root).read_bytes())
 
@@ -395,6 +438,22 @@ class ExecutionControlsTests(unittest.TestCase):
         invalid = self.controls.inspect_controls(self.root)["store"]
         invalid["safetyActivated"] = False
         self.issue(lambda: self.controls._store(invalid), "E_CONTROLS_STORE")
+        self.controls.configure_controls(self.root, batch_controls_policy())
+        batch_store = self.controls.inspect_controls(self.root)["store"]
+        policy_schema = json.loads(
+            (SCRIPTS.parent / "contracts" / "execution-controls-policy-v3.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        record_schema = json.loads(
+            (SCRIPTS.parent / "contracts" / "execution-controls-record-v3.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(set(batch_store["policy"]), set(policy_schema["required"]))
+        self.assertEqual(set(batch_store["policy"]), set(policy_schema["properties"]))
+        self.assertEqual(set(batch_store), set(record_schema["required"]))
+        self.assertEqual(set(batch_store), set(record_schema["properties"]))
 
     def test_invalid_models_snapshots_prices_and_policy_bounds_are_explicit(self):
         source = inventory()

@@ -222,7 +222,7 @@ class ExecutionTelemetryTests(unittest.TestCase):
             self.root, {"schemaVersion": 1, "enabled": False}), "E_EXECUTION_BUSY")
         self.assertEqual(before, path.read_bytes())
         lock.unlink()
-        with mock.patch.object(self.manager.os, "replace", side_effect=OSError("synthetic promotion failure")):
+        with mock.patch.object(self.manager, "_replace", side_effect=OSError("synthetic promotion failure")):
             self.issue(lambda: self.telemetry.record_observation(self.root, self.observation()))
         self.assertEqual(before, path.read_bytes())
         path.write_text('{"schemaVersion":1}', encoding="utf-8")

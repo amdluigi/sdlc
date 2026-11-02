@@ -1,9 +1,11 @@
 # Opt-in execution controls
 
 This M3 slice adds local safety controls and pure model resolution around the
-existing manual/native manager. It does not complete live M2 qualification,
-dispatch workers, enable telemetry, or claim autonomous execution or spend
-enforcement. Absence of controls preserves existing behavior.
+existing manual/native manager. Its additive version-3 mode enables only the
+separately consented finite batch controller described in
+[finite local batch orchestration](EXECUTION-ORCHESTRATION.md). It does not
+complete live host qualification, enable telemetry, claim autonomous policy
+adoption or enforce spend. Absence of controls preserves existing behavior.
 
 ## Locked interfaces and invariants
 
@@ -23,6 +25,15 @@ It does not schedule attempts, retry, escalate, enforce money limits or
 qualify autonomous operation. Attempts and unknown-work protection still
 come from the existing manager's immutable history.
 
+The separately selected version-3 policy requires `schemaVersion: 3` and
+`mode: "batch"`. It adds explicit `maxBatchTasks`, `maxBatchCalls`,
+`maxBatchToolCalls`, `maxBatchWallMs`, `maxBatchInputBytes`, and
+`maxBatchOutputBytes` bounds. The policy permits only the finite batch
+controller and an explicit, per-batch consent digest. Ordered attempt/model
+choices must already be permitted. It does not enable open-ended autonomous
+dispatch, worker-selected models, automatic acceptance, manager approval or
+money limits.
+
 There is no automatic conversion. Only an explicit version-2 configure
 operation selects the new mode. The new record retains
 the entire previous manual record under `retainedManual`, including its
@@ -35,6 +46,12 @@ refused even after disabling: reverting code does not erase attempt history,
 stop unknown work or authorize restoration of old approvals. Keep the current
 reader available for inspection/disable/reconciliation. No destructive
 migration or automatic rollback is supplied.
+Version-3 configuration retains the preceding complete version-1 or
+version-2 controls record. Reconfiguring version 3 invalidates all batch
+approvals, increments the generation, and retains that original historical
+snapshot; it never stores raw batch briefs in controls state. Version-1 and
+version-2 manager history remains inspectable in the existing execution
+record. Older readers fail closed on additive versioned records.
 
 `configure_controls(root, policy, dry_run=False)` stores a generation-bound
 policy in private metadata beside the existing manager lock. Every configure
@@ -102,6 +119,21 @@ exact picker model ID:
 ```json
 {"schemaVersion":2,"enabled":true,"mode":"supervised","maxAttempts":1,"allowEscalation":false,"permittedModels":["approved-model-id"]}
 ```
+
+For the finite batch controller, explicitly configure version 3 and list
+every exact model ID that may appear in an approved batch:
+
+```json
+{"schemaVersion":3,"enabled":true,"mode":"batch","maxAttempts":2,"allowEscalation":true,"permittedModels":["approved-model-id","approved-escalation-model"],"maxBatchTasks":8,"maxBatchCalls":32,"maxBatchToolCalls":32,"maxBatchWallMs":300000,"maxBatchInputBytes":262144,"maxBatchOutputBytes":262144}
+```
+
+Batch runtime and cumulative bounds are separate fields in the selected batch
+file. They must fit these controls ceilings and the finite attempt list. A
+non-null spend request is refused because authoritative provider usage and
+pricing are unavailable. Use **SDLC: Run Approved Bounded Batch** only after
+the current plan, base execution policy, controls policy and controls approval
+are current. The command displays the exact batch digest and requires
+independent user consent before dispatch.
 
 After explicitly configuring base execution consent and approving its plan,
 configure controls without `--dry-run`, inspect both sets of digests, and
