@@ -215,7 +215,7 @@ class ExecutionControlsTests(unittest.TestCase):
         self.activate()
         self.controls.configure_controls(self.root, controls_policy())
         before = self.controls.controls_path(self.root).read_bytes()
-        with mock.patch.object(self.manager.os, "replace", side_effect=OSError("synthetic failure")):
+        with mock.patch.object(self.manager, "_replace", side_effect=OSError("synthetic failure")):
             self.issue(lambda: self.controls.configure_controls(self.root, controls_policy(False)))
         self.assertEqual(before, self.controls.controls_path(self.root).read_bytes())
 

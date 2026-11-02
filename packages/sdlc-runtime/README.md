@@ -217,6 +217,14 @@ helper that owns descendant cleanup; cancellation never kills that owner.
 The execute watchdog holds the shared writer lock only for its stop-marker
 check; its full read-only qualification runs outside that critical section,
 so polling cannot monopolize the lock needed to persist cancellation.
+On Windows, JSON readers share deletion and existing manager records use
+`FileRenameInfoEx` replacement with POSIX rename semantics, preserving
+reader snapshots without blocking atomic updates or merging old file metadata.
+Confinement still resolves each full leaf after checking components. Only
+writer-lock checks tolerate an NTFS deleted-file identity, after rechecking
+the lock is absent or regular and its parent remains confined. No write
+retries are added; unsupported rename capability, incompatible external readers
+and other persistence failures still fail closed.
 The execute helper is kept alive and awaited so its Job Object can finish
 local descendant cleanup. A failed stop persistence is explicitly reported
 as `E_RUNTIME_STOP_UNCONFIRMED`, never silently treated as a successful stop.

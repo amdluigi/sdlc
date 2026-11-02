@@ -187,7 +187,7 @@ class NativeExecutionTests(unittest.TestCase):
         self.activate()
         request = self.prepare()
         before = self.manager.execution_path(self.root, "feature-one").read_bytes()
-        with mock.patch.object(self.manager.os, "replace", side_effect=OSError("synthetic promotion failure")):
+        with mock.patch.object(self.manager, "_replace", side_effect=OSError("synthetic promotion failure")):
             self.assert_issue(lambda: self.start(request))
         self.assertEqual(before, self.manager.execution_path(self.root, "feature-one").read_bytes())
 

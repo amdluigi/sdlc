@@ -13,9 +13,9 @@ import execution_state as state
 import manage_metrics
 
 
-def _safe(root, candidate):
+def _safe(root, candidate, *, _writer_lock=False):
     try:
-        return manage_metrics._verify_existing_components(root, candidate)
+        return manage_metrics._verify_existing_components(root, candidate, ephemeral_lock=_writer_lock)
     except (manage_metrics.MetricsError, OSError, ValueError) as error:
         raise ContractIssue("E_EXECUTION_PATH", "/", "unsafe execution path") from error
 
@@ -63,7 +63,7 @@ def execution_path(project_root, execution_id):
 
 def lock_path(project_root):
     root, directory = _directory(project_root)
-    return _safe(root, directory.parent / "executions.lock")
+    return _safe(root, directory.parent / "executions.lock", _writer_lock=True)
 
 
 def _consent_path(root):
@@ -99,7 +99,7 @@ def _writer(project_root):
     owned = False
     try:
         directory.parent.mkdir(parents=True, exist_ok=True)
-        _safe(root, lock)
+        _safe(root, lock, _writer_lock=True)
         try:
             descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError as error:
@@ -118,11 +118,53 @@ def _writer(project_root):
             os.close(descriptor)
         # A lock belonging to another writer must never be removed.
         if owned:
-            _safe(root, lock)
+            _safe(root, lock, _writer_lock=True)
             try:
                 lock.unlink()
             except OSError as error:
                 raise ContractIssue("E_EXECUTION_WRITE", "/", "cannot release owned execution lock") from error
+
+
+def _replace(temporary, path):
+    if os.name != "nt" or not path.exists():
+        os.replace(temporary, path)
+        return
+    import ctypes
+    from ctypes import wintypes
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                       wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    create.restype = wintypes.HANDLE
+    close = kernel.CloseHandle
+    close.argtypes = [wintypes.HANDLE]
+    close.restype = wintypes.BOOL
+    rename = kernel.SetFileInformationByHandle
+    rename.argtypes = [wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD]
+    rename.restype = wintypes.BOOL
+
+    class RenameInfo(ctypes.Structure):
+        _fields_ = [("Flags", wintypes.DWORD), ("RootDirectory", wintypes.HANDLE),
+                    ("FileNameLength", wintypes.DWORD), ("FileName", wintypes.WCHAR * 1)]
+
+    name = str(path).encode("utf-16-le")
+    size = RenameInfo.FileName.offset + len(name) + 2
+    buffer = ctypes.create_string_buffer(max(size, ctypes.sizeof(RenameInfo)))
+    info = RenameInfo.from_buffer(buffer)
+    # FileRenameInfoEx: atomic replacement with POSIX semantics keeps open,
+    # delete-shared snapshots alive, without ReplaceFileW's metadata merge.
+    info.Flags = 0x1 | 0x2
+    info.FileNameLength = len(name)
+    ctypes.memmove(ctypes.addressof(buffer) + RenameInfo.FileName.offset, name, len(name))
+    handle = create(str(temporary), 0x10000, 0x1 | 0x2 | 0x4, None, 3, 0x80, None)
+    if handle == ctypes.c_void_p(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        if not rename(handle, 22, buffer, size):
+            raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        close(handle)
 
 
 def _write(root, path, value):
@@ -142,7 +184,7 @@ def _write(root, path, value):
             stream.flush()
             os.fsync(stream.fileno())
         _safe(root, path)
-        os.replace(temporary, path)
+        _replace(temporary, path)
     except OSError as error:
         raise ContractIssue("E_EXECUTION_WRITE", "/", "cannot atomically persist execution record") from error
     finally:
