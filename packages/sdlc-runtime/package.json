@@ -7,7 +7,8 @@
   "license": "MIT",
   "engines": {"vscode": "^1.95.0", "node": ">=20"},
   "main": "./extension.js",
-  "activationEvents": ["onCommand:sdlc.runtime.run", "onCommand:sdlc.runtime.runBatch"],
+  "activationEvents": ["onCommand:sdlc.runtime.run", "onCommand:sdlc.runtime.runBatch",
+    "onCommand:sdlc.runtime.runParallelBatches"],
   "capabilities": {
     "untrustedWorkspaces": {"supported": false},
     "virtualWorkspaces": {"supported": false}
@@ -15,7 +16,8 @@
   "contributes": {
     "commands": [
       {"command": "sdlc.runtime.run", "title": "SDLC: Run Bounded Worker"},
-      {"command": "sdlc.runtime.runBatch", "title": "SDLC: Run Approved Bounded Batch"}
+      {"command": "sdlc.runtime.runBatch", "title": "SDLC: Run Approved Bounded Batch"},
+      {"command": "sdlc.runtime.runParallelBatches", "title": "SDLC: Run Two Isolated Batches"}
     ]
   },
   "scripts": {

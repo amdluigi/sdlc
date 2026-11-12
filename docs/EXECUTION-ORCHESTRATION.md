@@ -1,5 +1,10 @@
 # Finite local batch orchestration
 
+The optional [two-isolated-project command](PARALLEL-BATCHES.md) can run two
+independently consented batches concurrently in distinct, nonoverlapping
+project roots. Each batch below remains serial and keeps its existing manager
+and acceptance boundaries. No same-project parallel dispatch is enabled.
+
 The explicit batch command schedules a finite, serial set of already approved
 tasks through the existing native manager and fixed runtime bridge. It is
 additive to **SDLC: Run Bounded Worker**. Batch preparation and preview do not

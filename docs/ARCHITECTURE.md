@@ -77,6 +77,16 @@ only model IDs before the existing batch preview and consent flow. It never
 dispatches, adopts policy, authenticates billing or accepts results. Existing
 insights formats and execution authority remain unchanged.
 
+### Isolated project concurrency
+
+The explicit [two-project command](PARALLEL-BATCHES.md) groups exactly two
+independent, resolved, nonoverlapping roots. Both retain their existing finite
+serial controller and exact batch consent. A shared local abort controller
+requests sibling cancellation on failure or cancellation, and the extension
+waits for both loops before releasing its busy latch. No global manager,
+shared-worktree parallelism, automatic acceptance, combined timeline or new
+stored format is introduced.
+
 ### Inactive execution data boundary
 
 The [execution contracts](EXECUTION-CONTRACTS.md) define version-1 plans,

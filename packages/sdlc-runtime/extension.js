@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs/promises');
+const path = require('node:path');
 const vscode = require('vscode');
 const { createBridge, digest } = require('./bridge');
 const { run } = require('./driver');
@@ -132,16 +133,18 @@ async function batchCommand() {
   finally { busy = false; }
 }
 
-async function runBatchCommand() {
+async function runBatchCommand({ folder: suppliedFolder, prepareOnly = false } = {}) {
   if (!vscode.workspace.isTrusted) throw new Error('A trusted local workspace is required');
   if (vscode.env.remoteName) throw new Error('Only a local extension host is supported');
   const folders = (vscode.workspace.workspaceFolders || []).filter(folder => folder.uri.scheme === 'file');
-  const folder = await vscode.window.showQuickPick(folders.map(item => ({
+  const folder = suppliedFolder || await vscode.window.showQuickPick(folders.map(item => ({
     label: item.name, description: item.uri.fsPath, folder: item
   })), { title: 'Select the explicitly approved execution project', ignoreFocusOut: true });
   if (!folder) return;
   const chosen = await vscode.window.showOpenDialog({ canSelectMany: false,
-    filters: { 'Execution batch': ['json'] }, title: 'Select the exact finite local batch definition' });
+    filters: { 'Execution batch': ['json'] },
+    title: suppliedFolder ? `Select the exact finite batch for ${folder.label}` :
+      'Select the exact finite local batch definition' });
   if (!chosen?.length || chosen[0].scheme !== 'file') return;
   const info = await fs.lstat(chosen[0].fsPath);
   if (!info.isFile() || info.isSymbolicLink() || info.size > MAX_BATCH_FILE_BYTES) {
@@ -212,14 +215,28 @@ async function runBatchCommand() {
   }, 'Authorize exact batch');
   if (confirmed !== 'Authorize exact batch') return;
   await bridge('approve_batch', { batch: preview.batch, batchDigest: preview.batchDigest });
+  const prepared = { folder, bridge, preview, modelById };
+  return prepareOnly ? prepared : executeBatch(prepared);
+}
+
+async function executeBatch({ folder, bridge, preview, modelById }, group) {
   let finalStatus = 'unknown-barrier';
   await vscode.window.withProgress({
     location: vscode.ProgressLocation.Notification,
     title: 'SDLC bounded batch (local cancellation only)', cancellable: true
   }, async (_, token) => {
     const controller = new AbortController();
-    const subscription = token.onCancellationRequested(() => controller.abort());
-    if (token.isCancellationRequested) controller.abort();
+    const cancel = () => controller.abort();
+    const subscription = token.onCancellationRequested(() => {
+      controller.abort();
+      group?.abort();
+    });
+    group?.signal.addEventListener('abort', cancel, { once: true });
+    if (group?.signal.aborted) controller.abort();
+    if (token.isCancellationRequested) {
+      controller.abort();
+      group?.abort();
+    }
     try {
       const maximumAttempts = preview.batch.tasks.reduce((total, task) => total + task.attempts.length, 0);
       for (let count = 0; count <= maximumAttempts; count++) {
@@ -227,6 +244,7 @@ async function runBatchCommand() {
         const next = await bridge('next_attempt', {
           batch: preview.batch, batchDigest: preview.batchDigest
         });
+        if (controller.signal.aborted) return;
         finalStatus = next.status;
         if (!next.dispatch) return;
         const model = modelById.get(next.modelId);
@@ -242,6 +260,7 @@ async function runBatchCommand() {
           model: { id: model.id, vendor: model.vendor, family: model.family, version: model.version },
           limits: next.limits
         });
+        if (controller.signal.aborted) return;
         await run({ envelope, bridge, signal: controller.signal,
           respond: async (prompt, signal) => {
             const cancellation = new vscode.CancellationTokenSource();
@@ -265,15 +284,74 @@ async function runBatchCommand() {
         });
       }
       finalStatus = 'attempts-exhausted';
-    } finally { subscription.dispose(); }
+    } finally {
+      subscription.dispose();
+      group?.signal.removeEventListener('abort', cancel);
+    }
   });
+  const prefix = group ? `[${folder.label}] ` : '';
   if (finalStatus === 'complete') {
-    vscode.window.showInformationMessage('Batch attempts are complete. Independent manager acceptance is still required.');
+    vscode.window.showInformationMessage(prefix +
+      'Batch attempts are complete. Independent manager acceptance is still required.');
   } else {
     vscode.window.showInformationMessage(
-      `Batch paused (${finalStatus}); no implicit acceptance or unconfirmed-work redispatch occurred.`
+      `${prefix}Batch paused (${finalStatus}); no implicit acceptance or unconfirmed-work redispatch occurred.`
     );
   }
+}
+
+async function parallelBatchCommand() {
+  if (busy) throw new Error('A local bounded worker is already active');
+  busy = true;
+  try {
+    if (!vscode.workspace.isTrusted) throw new Error('A trusted local workspace is required');
+    if (vscode.env.remoteName) throw new Error('Only a local extension host is supported');
+    const folders = (vscode.workspace.workspaceFolders || []).filter(folder => folder.uri.scheme === 'file');
+    const selected = await vscode.window.showQuickPick(folders.map(folder => ({
+      label: folder.name, description: folder.uri.fsPath, folder
+    })), { title: 'Select exactly two independent isolated projects', canPickMany: true, ignoreFocusOut: true });
+    if (!selected) return;
+    if (selected.length !== 2) throw new Error('Exactly two independent project roots are required');
+    const roots = await Promise.all(selected.map(item => fs.realpath(item.folder.uri.fsPath)));
+    const info = await Promise.all(roots.map(root => fs.stat(root, { bigint: true })));
+    const nested = (parent, child) => {
+      const relative = path.relative(parent, child);
+      return relative === '' || (relative !== '..' && !relative.startsWith('..' + path.sep) &&
+        !path.isAbsolute(relative));
+    };
+    if (info.some(item => !item.isDirectory()) ||
+        info[0].dev === info[1].dev && info[0].ino === info[1].ino ||
+        nested(roots[0], roots[1]) || nested(roots[1], roots[0])) {
+      throw new Error('Parallel project roots must be distinct and nonoverlapping');
+    }
+    const confirmed = await vscode.window.showWarningMessage('Run two independent project batches in parallel?', {
+      modal: true,
+      detail: [
+        ...roots.map((root, index) => `Project ${index + 1}: ${root}`),
+        'Use independent checkouts/worktrees only; no shared editable project or cross-project dependencies.',
+        'Each project requires its own current exact batch/model/budget confirmation before either starts.',
+        'At most two existing finite serial controllers run. No automatic acceptance or policy adoption.',
+        'Cancellation or failure stops local progress in both; remote termination and billing remain unknown.'
+      ].join('\n')
+    }, 'Review both exact batches');
+    if (confirmed !== 'Review both exact batches') return;
+    const prepared = [];
+    for (let index = 0; index < selected.length; index++) {
+      const folder = { ...selected[index], folder: {
+        ...selected[index].folder, uri: { scheme: 'file', fsPath: roots[index] }
+      } };
+      const batch = await runBatchCommand({ folder, prepareOnly: true });
+      if (!batch) return;
+      prepared.push(batch);
+    }
+    const group = new AbortController();
+    const outcomes = await Promise.allSettled(prepared.map(async batch => {
+      try { await executeBatch(batch, group); }
+      catch (error) { group.abort(); throw error; }
+    }));
+    const failures = outcomes.filter(item => item.status === 'rejected');
+    if (failures.length) throw new AggregateError(failures.map(item => item.reason), 'Parallel batch failure');
+  } finally { busy = false; }
 }
 
 function activate(context) {
@@ -287,6 +365,16 @@ function activate(context) {
       const code = /^E_[A-Z_]+$/.test(error?.code || '') ? error.code : 'E_RUNTIME_UNKNOWN';
       vscode.window.showErrorMessage(
         `Bounded batch stopped (${code}). Inspect local manager history before taking further action.`
+      );
+    })
+  ));
+  context.subscriptions.push(vscode.commands.registerCommand('sdlc.runtime.runParallelBatches', () =>
+    parallelBatchCommand().catch(error => {
+      const failures = error instanceof AggregateError ? error.errors : [error];
+      const codes = [...new Set(failures.map(item =>
+        /^E_[A-Z_]+$/.test(item?.code || '') ? item.code : 'E_RUNTIME_UNKNOWN'))];
+      vscode.window.showErrorMessage(
+        `Parallel batches stopped (${codes.join(', ')}). Inspect both local managers; unknown work must not be redispatched.`
       );
     })
   ));

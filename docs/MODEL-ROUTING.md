@@ -29,7 +29,7 @@ Supply four explicit UTF-8 JSON files:
   ],
   "profiles": [
     {
-      "id": "development",
+      "id": "host-default",
       "minimumCapacity": 2,
       "candidates": ["small-model", "strong-model"]
     }
@@ -96,6 +96,11 @@ another request. Worker completion never becomes independent acceptance.
 The existing attempt ledger records actual chosen model IDs and outcomes;
 match task/attempt IDs to the proposal for analysis. Planning does not prove
 remote receipt, effective routing, billing, improved quality or lower cost.
+The current native worker still requires plan assignments with
+`modelProfile: "host-default"` and `model: null`. Other profile IDs and
+explicit pins can be structurally planned, but the native capability guard
+does not qualify them for execution. Use exact model IDs in the finite
+batch; do not confuse planning support with host qualification.
 No telemetry, credentials, provider calls, historical discovery, scheduler,
 parallel execution, production migration or automatic policy adoption is added.
 

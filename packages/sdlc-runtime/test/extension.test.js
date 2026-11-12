@@ -29,7 +29,7 @@ test('empty native model inventory reports a blocker before model consent or dis
       lm: { async selectChatModels() { return []; } },
       commands: { registerCommand(name, callback) {
         if (name === 'sdlc.runtime.run') registered = callback;
-        else assert.equal(name, 'sdlc.runtime.runBatch');
+        else assert.ok(['sdlc.runtime.runBatch', 'sdlc.runtime.runParallelBatches'].includes(name));
         return { dispose() {} };
       } }
     };
