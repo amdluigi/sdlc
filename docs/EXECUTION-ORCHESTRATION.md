@@ -139,10 +139,17 @@ execution fails visibly before the provider request.
 
 Distinct does not imply continuation-relevant: this conservative policy can
 retain obsolete observations and exhaust a prompt limit. It deliberately
-does not guess at relevance or delete unique evidence. FR-2 / AC-2 therefore
-remains partial until an explicit PRD amendment is approved or a separately
-approved deterministic relevance contract is implemented. See the
+does not guess at relevance or delete unique evidence. The approved
+[PRD version 2](prds/token-efficiency-foundation.md) permits this conservative
+retention while preserving mandatory content and evidence. AC-2 was
+successfully reassessed against that amended FR-2 contract using prompt tests
+and independent review. This does not claim minimal history or token savings.
+See the
 [history acceptance decision](plans/token-efficiency-foundation.md#history-acceptance-decision).
+
+The unexplained Windows cancellation, heartbeat and cleanup failures remain
+tracked in [amdluigi/sdlc#42](https://github.com/amdluigi/sdlc/issues/42).
+Passing tests do not establish their cause or a fix.
 
 The local bounded-runtime record stores aggregate measurements only. Component
 and total model-facing input bytes are UTF-8 byte lengths of transmitted prompt
