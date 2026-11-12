@@ -249,6 +249,53 @@ test('history compacts only consecutive exact duplicate observations and preserv
     'validated edits should be referenced by path and digest, not repeated as file content');
 });
 
+test('AC-2: consecutive identical searches retain the unchanged observation and exact count', () => {
+  const search = { request: { type: 'tool', name: 'search', arguments: {
+    path: 'src/feature.js', query: 'feature'
+  } }, output: { matches: ['required evidence'] } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [search, search, search]).prompt);
+  assert.deepEqual(history, [{ observation: search, occurrenceCount: 3 }]);
+});
+
+test('AC-2: distinct and nonconsecutive read/search evidence remains in order', () => {
+  const read = { request: { type: 'tool', name: 'read', arguments: { path: 'src/feature.js' } },
+    output: { content: 'required evidence', digest: 'first' } };
+  const changedRead = { ...read, output: { ...read.output, content: 'different evidence' } };
+  const search = { request: { type: 'tool', name: 'search', arguments: {
+    path: 'src/feature.js', query: 'feature'
+  } }, output: { matches: ['required evidence'] } };
+  const changedSearch = { ...search, output: { matches: ['different evidence'] } };
+  const observations = [read, changedRead, search, changedSearch, read, search];
+  assert.deepEqual(promptHistory(buildPrompt(promptEnvelope(), observations).prompt), observations);
+});
+
+test('AC-2: identical execute outcomes retain both copies and their verification evidence', () => {
+  const executed = { request: { type: 'tool', name: 'execute', arguments: { commandId: 'check' } },
+    output: { exitCode: 0, content: 'required verification evidence' } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [executed, executed]).prompt);
+  assert.deepEqual(history, [executed, executed]);
+});
+
+test('AC-2: validated edit references retain separate outcomes and exact before/after bindings', () => {
+  const edit = { request: { type: 'tool', name: 'edit', arguments: {
+    path: 'src/feature.js', expectedDigest: `sha256:${'1'.repeat(64)}`, content: 'replacement source'
+  } }, output: { digest: `sha256:${'2'.repeat(64)}` } };
+  const reference = { artifactReference: {
+    type: 'edited-file', path: edit.request.arguments.path,
+    expectedDigest: edit.request.arguments.expectedDigest, digest: edit.output.digest
+  } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [edit, edit]).prompt);
+  assert.deepEqual(history, [reference, reference]);
+});
+
+test('AC-2: unvalidated edits retain their full evidence rather than becoming references', () => {
+  const edit = { request: { type: 'tool', name: 'edit', arguments: {
+    path: 'src/feature.js', expectedDigest: 'before', content: 'required content'
+  } }, output: { error: 'failed edit' } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [edit, edit]).prompt);
+  assert.deepEqual(history, [edit, edit]);
+});
+
 test('prompt limits fail visibly without truncating required components', () => {
   const envelope = promptEnvelope({ limits: { maxInputBytes: 512 } });
   assert.throws(() => buildPrompt(envelope), error => {
