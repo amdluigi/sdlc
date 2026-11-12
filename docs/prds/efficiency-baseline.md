@@ -21,10 +21,15 @@ an enforceable monetary cap. Existing null values are intentional, not zero
 consumption. See the [runtime documentation](../../packages/sdlc-runtime/README.md)
 and [accounting boundary](../EXECUTION-ORCHESTRATION.md).
 
+The official [VS Code API declarations](https://github.com/microsoft/vscode/blob/main/src/vscode-dts/vscode.d.ts),
+checked on 2026-11-12, expose `LanguageModelChatResponse.stream` and `.text`,
+not request usage or billing. `countTokens` counts supplied text or messages;
+it is not evidence of actual provider input, cached tokens or billing.
+
 Measurement must precede optimization and intelligent orchestration. This
-PRD proposes the baseline stage only. The roadmap continuation request
-authorizes preparation; it does not supply a usage source, spending policy,
-approved workload or independent quality judgments.
+PRD covers the baseline stage only. The maintainer endorsed version 1 and
+its proposed protocol on 2026-11-12. That approval does not supply a usage
+source, spending policy or independent quality judgments.
 
 ## Target users and benefit
 
@@ -208,8 +213,8 @@ with five repetitions of each under one fixed configuration: a focused bug
 fix, a small additive validation change, a regression-test task, a
 documentation consistency task, and a multi-step read/search/edit task.
 Create and freeze the exact fixtures and acceptance evidence before collecting
-results. These 25 proposed executions are not authorized or measured runs;
-an exhausted budget produces an explicitly incomplete cohort, not a
+results. These 25 proposed executions are not measured runs or monetary
+authorization; an exhausted budget produces an explicitly incomplete cohort, not a
 post-hoc reduction of the required sample.
 
 The proposed independent rubric records pass/fail/unavailable separately for
@@ -231,8 +236,16 @@ reviewer's behalf.
 ## Approval
 
 - Status: Draft
-- Approver: Not approved
-- Evidence: Roadmap continuation was requested on 2026-11-12, but the
-  blocking measurement decisions and this PRD have not been approved.
-  An unavailable clarification response is not approval.
-- Approved version: Not approved
+- Approver: Maintainer
+- Evidence: Explicit approval of the attached version 1 and a request to
+  continue execution were received on 2026-11-12. A subsequent request for
+  the usage source and spending boundary could not obtain those inputs.
+- Approved version: 1, requirements and proposed protocol endorsed
+
+The explicit endorsement is recorded, not treated as missing approval.
+The artifact remains draft for implementation gates because the two
+approval-blocking operational decisions above are still unresolved. No
+provider, export, spend authorization or quality result is inferred from
+endorsement. Until those inputs exist, preparation makes no new provider
+calls or expenditure. The measured baseline and later milestones remain
+blocked, not complete.
