@@ -152,6 +152,8 @@ class QualificationTests(unittest.TestCase):
             "scripts/execution_insights.py",
             "scripts/execution_telemetry.py",
             "scripts/manage_insights.py",
+            "scripts/execution_routing.py",
+            "scripts/manage_routing.py",
             "scripts/manage_telemetry.py",
             "contracts/execution-snapshot.schema.json",
             "contracts/execution-snapshot-v2.schema.json",

@@ -67,6 +67,16 @@ unknown usage and actual cost remain null. Software delivery does not imply
 measured savings. Benchmark artifacts are separate from host qualification
 and private local metrics.
 
+### Task-aware finite model planning
+
+The explicitly invoked [model planner](MODEL-ROUTING.md) classifies declared
+task shape and chooses suitable model IDs by user-declared capacity and cost
+rank. Its metadata-only proposals are inactive and bind the plan, finite
+batch, supplied inventory and preferences. Explicit materialization changes
+only model IDs before the existing batch preview and consent flow. It never
+dispatches, adopts policy, authenticates billing or accepts results. Existing
+insights formats and execution authority remain unchanged.
+
 ### Inactive execution data boundary
 
 The [execution contracts](EXECUTION-CONTRACTS.md) define version-1 plans,
