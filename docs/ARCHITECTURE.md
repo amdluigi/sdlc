@@ -57,6 +57,16 @@ rather than replace, operational readiness and debugging.
 
 ## Repository Components
 
+### Offline baseline reporting
+
+The repository-local [baseline tool](../benchmarks/README.md) validates a
+frozen task/configuration manifest and explicitly supplied aggregate
+observations. It never dispatches work, authenticates provider billing,
+changes manager state or enables telemetry. Recorded inputs remain unverified;
+unknown usage and actual cost remain null. Software delivery does not imply
+measured savings. Benchmark artifacts are separate from host qualification
+and private local metrics.
+
 ### Inactive execution data boundary
 
 The [execution contracts](EXECUTION-CONTRACTS.md) define version-1 plans,
