@@ -1,8 +1,8 @@
 ---
 type: prd
 id: efficiency-baseline
-status: draft
-version: 1
+status: approved
+version: 2
 ---
 
 # Product requirements: SDLC efficiency baseline
@@ -26,10 +26,12 @@ checked on 2026-11-12, expose `LanguageModelChatResponse.stream` and `.text`,
 not request usage or billing. `countTokens` counts supplied text or messages;
 it is not evidence of actual provider input, cached tokens or billing.
 
-Measurement must precede optimization and intelligent orchestration. This
-PRD covers the baseline stage only. The maintainer endorsed version 1 and
-its proposed protocol on 2026-11-12. That approval does not supply a usage
-source, spending policy or independent quality judgments.
+This PRD covers baseline tooling only. On 2026-11-12 the maintainer approved
+continuation and explicitly deferred proving token savings to users. Software
+delivery therefore does not require live benchmark calls, provider billing
+access or a demonstrated efficiency improvement. None of those results may
+be inferred from that decision. Version 2 supersedes the version-1 requirement
+to obtain measurement access before implementing the tooling.
 
 ## Target users and benefit
 
@@ -39,10 +41,11 @@ behavior.
 
 ## Outcome
 
-Produce a reproducible baseline over an explicitly approved representative
-task set, with authoritative usage where available, measured execution
-behavior and independent quality assessment. Incomplete evidence is reported
-as incomplete, never as measured savings or permission to advance the roadmap.
+Provide a deterministic, offline baseline manifest validator and report
+generator. Users can inspect their own explicitly supplied execution
+observations and quality assessments. Missing evidence is reported as
+missing. Software readiness and the completeness or authenticity of the
+supplied measurements are separate decisions.
 
 ## Goals
 
@@ -62,8 +65,7 @@ as incomplete, never as measured savings or permission to advance the roadmap.
   optimization is cheaper.
 - Task-aware model selection, decomposition, parallel specialists, new
   orchestration services or changes to manager authority.
-- A new provider integration, credential setup or paid benchmark calls under
-  this draft.
+- A new provider integration, credential setup or paid benchmark calls.
 - Estimating provider token consumption or savings from prompt bytes,
   tokenizer estimates or unrelated coding-session usage.
 - Resolving or closing the separate Windows cancellation investigation.
@@ -91,11 +93,11 @@ as incomplete, never as measured savings or permission to advance the roadmap.
   criteria, verification procedure and independent quality rubric. Record
   the model requested, effective model when authoritatively known, host
   version, execution bounds, repetitions and relevant configuration.
-- **FR-2**: Collect request-level authoritative input/output tokens and,
-  where exposed, cached and billable tokens, with inspectable source and
-  coverage provenance. Bind observations to the exact execution, task,
-  attempt and request. Reject duplicate or mismatched observations rather
-  than double counting or silently assigning them elsewhere.
+- **FR-2**: Accept explicitly supplied request-level usage with source and
+  evidence-digest provenance. Bind observations to the manifest, exact task,
+  repetition, attempt and request. Reject duplicates and mismatches rather
+  than double counting. Imported values are caller-reported, not independently
+  authenticated provider evidence; label that limitation explicitly.
 - **FR-3**: Report provider tokens separately from local UTF-8 prompt/input
   and output bytes. Missing values remain null. Cached tokens are not
   subtracted from transmitted input or reclassified as billable tokens.
@@ -115,11 +117,16 @@ as incomplete, never as measured savings or permission to advance the roadmap.
   billing evidence establish that cost, with currency and scope. Otherwise
   cost remains null. Public list prices or an assumed model choice do not
   establish an actual bill. A required spend bound must be enforceable before
-  any new paid execution is authorized.
+  any new paid execution is authorized. This offline tool never makes paid
+  calls, estimates cost or authenticates billing. Its actual-cost field
+  remains null and unsupported non-null actual-cost inputs are rejected.
 - **FR-6**: Independently assess each deliverable against the predeclared
   rubric and acceptance evidence. The producing worker cannot validate its
   own quality or accept its own task. Preserve quality failures, missing
-  assessments and evidence limitations in the baseline report.
+  assessments and evidence limitations in the baseline report. The offline
+  tool validates declared reviewer/producer separation and evidence bindings;
+  it does not authenticate identities or grant manager acceptance. Missing
+  assessments remain missing rather than blocking delivery of the tool.
 - **FR-7**: Baseline reporting is explicitly opt-in and separate from
   persistent telemetry and existing host qualification. Retain only the
   approved aggregate measurements, configuration metadata and validated
@@ -127,13 +134,13 @@ as incomplete, never as measured savings or permission to advance the roadmap.
   transcripts, responses, source code, command output, credentials or account
   data in aggregate artifacts. Do not modify manager records or grant
   execution authority through imported measurements.
-- **FR-8**: Produce an evidence-based baseline readiness decision. A complete
-  token/cost comparison requires comparable task/configuration coverage and
-  authoritative usage for the claimed scope; quality conclusions require
-  independent assessments. Missing evidence blocks the corresponding claim.
-  Offline fixtures are labeled synthetic and cannot satisfy the live
-  measurement gate. No optimization, routing or parallel-agent milestone
-  advances automatically from a structural validator or passing fixture.
+- **FR-8**: Separate software readiness from measurement completeness. Report
+  missing repetitions, interrupted/unknown requests, missing usage and absent
+  quality assessments. Label synthetic inputs and unverified recorded inputs
+  explicitly. Token savings, cost savings and quality non-regression remain
+  unproven, not inferred from bytes or passing fixtures. Proof of savings is
+  not a software-delivery gate; later product changes still require their own
+  scoped contracts, tests and review.
 
 ## Acceptance criteria
 
@@ -144,27 +151,27 @@ as incomplete, never as measured savings or permission to advance the roadmap.
 - **AC-2** (`FR-2`, `FR-3`): Focused tests cover exact attribution,
   duplicate/mismatch rejection, repeated requests and retries, complete and
   partial usage, distinct cached/billable fields and absent values remaining
-  null. A real authoritative observation must be traceable before a live
-  provider-usage result is claimed.
-- **AC-3** (`FR-4`): Tests and representative executions verify cumulative
+  null. Imported usage is labeled unverified and is never represented as an
+  authenticated provider result.
+- **AC-3** (`FR-4`): Tests and synthetic representative observations verify cumulative
   durations, calls, tools, retries and handoffs under their declared
   definitions, including interruption and unknown outcomes. No successful
   acceptance or confirmed remote delivery is inferred from local completion.
 - **AC-4** (`FR-5`): Tests reject unsupported actual-cost claims and preserve
-  null unavailable cost. Before paid runs, the approved budget, enforcement
-  mechanism and stop behavior are demonstrated; inability to enforce a
-  required cap blocks execution.
-- **AC-5** (`FR-6`): Every baseline task has a frozen rubric and independently
-  recorded assessment or an explicit missing-assessment status. Worker
-  receipts alone cannot satisfy quality or manager acceptance.
+  null unavailable cost. CLI tests prove that reporting executes no model,
+  tool, provider or shell action. Live paid execution is outside this tool.
+- **AC-5** (`FR-6`): Every task has a frozen rubric. Tests reject a declared
+  self-review, validate assessment evidence bindings and report absent
+  assessments without a successful quality conclusion or manager acceptance.
 - **AC-6** (`FR-7`): Tests verify opt-in behavior, aggregate-only persistence,
   invalid-input rejection and no raw-content or credential retention.
   Existing telemetry consent, execution/acceptance behavior and legacy
   artifacts remain unchanged.
 - **AC-7** (`FR-8`): The report clearly separates measured, partial,
   unavailable and synthetic evidence. Incomplete usage or quality prevents
-  a complete efficiency conclusion. No token-savings claim is derived from
-  bytes, and later roadmap milestones remain separately gated.
+  a complete efficiency conclusion, not delivery of the software. No
+  token-savings claim is derived from bytes. Tests, security and independent
+  review are not waived by deferring efficiency proof.
 
 ## Data, permissions, privacy, and security
 
@@ -173,8 +180,12 @@ context and sensitive data must not be sent to a provider. External usage
 records are untrusted inputs and require validation and exact attribution.
 An aggregate report is not an execution, consent or acceptance authority.
 
-Any future benchmark artifact must have its own explicitly approved data and
-retention contract. Do not broaden private local metrics or sanitized host
+The offline contract retains only bounded task/attempt/request identifiers,
+revision/configuration/evidence digests, enumerated states, numeric aggregate
+observations and declared quality verdicts. CLI input selection is explicit
+opt-in; JSON output goes to stdout only, with no automatic file persistence.
+Task objectives and acceptance instructions live in the separate manifest
+and are not copied into reports. Do not broaden private local metrics or sanitized host
 qualification records to accommodate benchmark identifiers or model metadata.
 Normal task artifacts and independently inspectable evidence remain separate
 from aggregate measurements. Never request secrets in a specification or
@@ -185,9 +196,9 @@ report.
 - Preserve the approved
   [token-efficiency-foundation v2](token-efficiency-foundation.md), manager
   authority, existing immutable plans and finite execution limits.
-- No production implementation begins from this draft. Provider integration,
-  artifact shapes and implementation sequencing require the approved
-  baseline contract first.
+- Implementation follows approved PRD version 2 and its validated plan.
+  The offline CLI is repository tooling, not an installed runtime adapter.
+  It reads only explicitly supplied local JSON and never dispatches work.
 - No new paid benchmark calls, provider changes, credential access or
   monetary authorization are inferred from the unattended roadmap request.
   Preparation uses no new provider spend.
@@ -197,14 +208,15 @@ report.
 - Preserve [amdluigi/sdlc#42](https://github.com/amdluigi/sdlc/issues/42) as an
   open, unexplained Windows investigation. Passing tests do not establish a
   cause or fix.
-- Optimization follows a credible baseline. Model routing and parallel
-  orchestration require later, separately approved contracts and evidence.
+- The maintainer defers efficiency proof to users. Model routing and parallel
+  orchestration remain separate product changes; neither is implemented by
+  this baseline tool.
 
 ## Success measures
 
-Baseline success means reproducible provenance, complete coverage for each
-claimed measurement and independently assessed quality. It is not a reduction
-in tokens or cost. Report per-task observations, repetition counts, failures,
+Software success means deterministic validation and reporting with explicit
+provenance and missingness. It does not mean measured savings or independently
+proven quality. Report per-task observations, repetition counts, failures,
 missingness and suitable aggregate distributions without pooling incompatible
 cohorts or hiding unknown attempts.
 
@@ -230,22 +242,16 @@ reviewer's behalf.
 
 | Decision | Owner | Blocks approval | Resolution |
 |----------|-------|-----------------|------------|
-| Authoritative usage source and exact execution/request attribution | Maintainer | yes | Unresolved; current adapter supplies text, not authoritative usage. |
-| Export-only or live collection, budget, consent and enforceable spending boundary | Maintainer | yes | Unresolved; no new paid calls authorized during preparation. |
+| Authoritative usage source | Users collecting measurements | no | Deferred; imported usage is labeled unverified and missing usage stays null. No live evidence is required to deliver this offline tool. |
+| Live collection, budget and spending enforcement | Maintainer of a future provider adapter | no | Out of scope. This tool performs no model calls and incurs no benchmark provider spend. |
 
 ## Approval
 
-- Status: Draft
+- Status: Approved
 - Approver: Maintainer
-- Evidence: Explicit approval of the attached version 1 and a request to
-  continue execution were received on 2026-11-12. A subsequent request for
-  the usage source and spending boundary could not obtain those inputs.
-- Approved version: 1, requirements and proposed protocol endorsed
-
-The explicit endorsement is recorded, not treated as missing approval.
-The artifact remains draft for implementation gates because the two
-approval-blocking operational decisions above are still unresolved. No
-provider, export, spend authorization or quality result is inferred from
-endorsement. Until those inputs exist, preparation makes no new provider
-calls or expenditure. The measured baseline and later milestones remain
-blocked, not complete.
+- Evidence: Version 1 was explicitly endorsed on 2026-11-12. The maintainer
+  then repeatedly authorized continuation and explicitly instructed that
+  proving token savings is deferred for users to evaluate. Version 2 records
+  that scope decision; it does not waive software verification or authorize
+  new provider spending.
+- Approved version: 2

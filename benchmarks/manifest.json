@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdlc-efficiency-manifest",
+  "id": "initial-five-task-protocol",
+  "sourceRevision": "d34d61fc998bbfa87b9e089947e8dd8a2c28be5f",
+  "configurationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "requestedModel": "user-selected",
+  "effectiveModel": null,
+  "hostVersion": "unavailable",
+  "repetitions": 5,
+  "maxAttempts": 2,
+  "maxRequestsPerAttempt": 4,
+  "tasks": [
+    {
+      "id": "bug-fix",
+      "objective": "Correct a synthetic nonnegative-count predicate that rejects zero, without accepting booleans.",
+      "permittedActions": ["read", "search", "edit", "execute"],
+      "acceptanceCriteria": ["Zero and positive integers pass.", "Negative values, booleans and non-integers fail.", "Unrelated behavior is unchanged."],
+      "verification": ["Run focused tests for zero, a positive integer, a negative integer, True and a string."],
+      "rubric": ["correctness", "verification", "security", "scope"]
+    },
+    {
+      "id": "validation-change",
+      "objective": "Add explicit validation to a synthetic role normalizer accepting developer and reviewer.",
+      "permittedActions": ["read", "search", "edit", "execute"],
+      "acceptanceCriteria": ["Allowed roles normalize consistently.", "Unknown, blank and non-string roles raise a clear validation error."],
+      "verification": ["Run positive normalization and invalid-type/value tests."],
+      "rubric": ["correctness", "verification", "security", "scope"]
+    },
+    {
+      "id": "regression-test",
+      "objective": "Add a regression test for duplicate request identifiers in an isolated synthetic accounting reader.",
+      "permittedActions": ["read", "search", "edit", "execute"],
+      "acceptanceCriteria": ["Duplicate identifiers are rejected.", "Distinct identifiers are preserved.", "The regression fails when duplicate checking is removed."],
+      "verification": ["Run the focused regression before and after the isolated correction."],
+      "rubric": ["correctness", "verification", "security", "scope"]
+    },
+    {
+      "id": "documentation-consistency",
+      "objective": "Reconcile a synthetic README that incorrectly calls missing usage zero with an API that returns null.",
+      "permittedActions": ["read", "search", "edit"],
+      "acceptanceCriteria": ["The README distinguishes missing usage from zero consumption.", "No token or cost savings are invented.", "Executable behavior is unchanged."],
+      "verification": ["Compare the corrected text with the supplied API contract and inspect the complete diff."],
+      "rubric": ["correctness", "verification", "security", "scope"]
+    },
+    {
+      "id": "read-search-edit",
+      "objective": "Trace and correct a synthetic stale-context binding across a caller, validator and consumer.",
+      "permittedActions": ["read", "search", "edit", "execute"],
+      "acceptanceCriteria": ["The consumer uses the validated revision.", "A stale revision fails visibly.", "The regression exercises the caller-to-consumer boundary."],
+      "verification": ["Run current-binding and stale-binding integration tests and inspect all dependent call sites."],
+      "rubric": ["correctness", "verification", "security", "scope"]
+    }
+  ]
+}

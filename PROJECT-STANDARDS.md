@@ -8,6 +8,10 @@
   their host APIs and built-in dependencies.
 - Preserve strict, versioned JSON contracts and explicit manager authority.
 - Keep public prose independently understandable and avoid em dashes.
+- This distributable source tree deliberately excludes project `.sdlc/`
+  configuration and memory; `tests/test_public_release.py` enforces that
+  boundary. Preserve public decisions in PRDs, plans and architecture instead
+  of bootstrapping development-only policy here.
 
 ## Verification
 
