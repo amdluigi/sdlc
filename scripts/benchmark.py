@@ -150,6 +150,7 @@ def _requests(values, maximum, usage_available, pointer):
 def _summarize(attempts, planned_repetitions, evidence, usage_available):
     requests = [request for attempt in attempts for request in attempt["requests"]]
     repetitions = {(item["taskId"], item["repetition"]) for item in attempts}
+    missing = planned_repetitions - len(repetitions)
     outcomes = {status: sum(item["outcome"] == status for item in attempts) for status in OUTCOMES}
     quality = dict.fromkeys(("declaredPassed", "declaredFailed", "missing", "unavailable"), 0)
     for attempt in attempts:
@@ -161,7 +162,7 @@ def _summarize(attempts, planned_repetitions, evidence, usage_available):
     accounting = {
         "observedModelCalls": len(invoked), "unknownInvocations": unknown_invocations,
         "observedInputBytes": _total(item["inputBytes"] for item in invoked),
-        "totalInputBytes": None if unknown_invocations else _total(item["inputBytes"] for item in invoked),
+        "totalInputBytes": None if missing or unknown_invocations else _total(item["inputBytes"] for item in invoked),
         "observedOutputBytes": _total(item["outputBytes"] for item in requests),
         "toolCalls": _total(item["toolCalls"] for item in attempts),
         "attemptElapsedMs": _total(item["elapsedMs"] for item in attempts),
@@ -171,10 +172,13 @@ def _summarize(attempts, planned_repetitions, evidence, usage_available):
         "authoritativeCost": None,
     }
     for field in TOKEN_FIELDS:
-        complete = (usage_available and bool(invoked) and not unknown_invocations
+        complete = (usage_available and bool(invoked) and not missing and not unknown_invocations
                     and all(item[field] is not None for item in invoked))
         accounting[field] = _total(item[field] for item in invoked) if complete else None
-    missing = planned_repetitions - len(repetitions)
+    accounting["observedUsage"] = {
+        field: (_total(item[field] for item in invoked if item[field] is not None)
+                if usage_available and any(item[field] is not None for item in invoked) else None)
+        for field in TOKEN_FIELDS}
     partial = (bool(missing) or bool(unknown_invocations) or outcomes["unknown"] > 0
                or request_counts["unknown"] > 0 or request_counts["dispatched"] > 0
                or request_counts["prepared"] > 0 or quality["missing"] > 0

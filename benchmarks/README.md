@@ -102,8 +102,11 @@ Quality counts are per observed attempt, not accepted tasks.
 - `unknownInvocations` stays separate; `observedInputBytes` preserves known
   observations while `totalInputBytes` is null if invocation is uncertain.
 - Token totals are null if any contributing request lacks that field or any
-  invocation is unknown. Cached and billable fields are never inferred from
-  other tokens. No usage source means null, not zero consumption.
+  invocation or planned repetition is missing. `observedUsage` preserves
+  supplied partial sums separately. Cached and billable fields are never
+  inferred from other tokens. No usage source means null, not zero consumption.
+- `totalInputBytes` is also null when repetitions are missing. An entirely
+  unobserved repetition does not become zero total consumption.
 - `attemptElapsedMs` sums attempt durations. `endToEndElapsedMs` is null;
   the tool does not invent a wall-clock interval from that sum.
 - Handoff totals are observed lower bounds; `handoffsComplete` exposes

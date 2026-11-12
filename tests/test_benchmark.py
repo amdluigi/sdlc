@@ -117,11 +117,13 @@ class BenchmarkTests(unittest.TestCase):
         self.assertFalse(result["claims"]["managerAcceptance"])
 
     def test_ac3_attempts_retries_and_request_ids_are_bound_to_the_attempt(self):
-        item = observations()
+        source = manifest()
+        source["repetitions"] = 1
+        item = observations(source)
         retry = copy.deepcopy(item["attempts"][0])
         retry.update(attempt=2, attemptId="attempt-2", elapsedMs=25, handoffs=1)
         item["attempts"].append(retry)
-        result = benchmark.report(manifest(), item)
+        result = benchmark.report(source, item)
         self.assertEqual(1, result["coverage"]["observedRetries"])
         self.assertEqual(1, result["coverage"]["observedRepetitions"])
         self.assertEqual(2, result["accounting"]["observedModelCalls"])
@@ -146,27 +148,31 @@ class BenchmarkTests(unittest.TestCase):
         self.assertIsNone(result["accounting"]["endToEndElapsedMs"])
 
     def test_ac2_usage_requires_provenance_and_partial_fields_stay_null(self):
-        item = observations()
+        source = manifest()
+        source["repetitions"] = 1
+        item = observations(source)
         item["attempts"][0]["requests"][0]["providerInputTokens"] = 20
         with self.assertRaises(ContractIssue):
-            benchmark.report(manifest(), item)
+            benchmark.report(source, item)
         item.update(usageSource="caller-reported", usageEvidenceDigest=HASH)
         item["attempts"][0]["requests"].append(request("second"))
-        result = benchmark.report(manifest(), item)
+        result = benchmark.report(source, item)
         self.assertIsNone(result["accounting"]["providerInputTokens"])
         item["attempts"][0]["requests"][1]["providerInputTokens"] = 30
-        result = benchmark.report(manifest(), item)
+        result = benchmark.report(source, item)
         self.assertEqual(50, result["accounting"]["providerInputTokens"])
         self.assertIsNone(result["accounting"]["cachedInputTokens"])
         self.assertEqual("not-assessed", result["evidenceVerification"])
 
     def test_ac2_cached_and_billable_tokens_are_not_subtracted_or_reclassified(self):
-        item = observations()
+        source = manifest()
+        source["repetitions"] = 1
+        item = observations(source)
         item.update(usageSource="caller-reported", usageEvidenceDigest=HASH)
         item["attempts"][0]["requests"][0].update(
             providerInputTokens=100, providerOutputTokens=20, cachedInputTokens=80,
             billableInputTokens=25, billableOutputTokens=20)
-        result = benchmark.report(manifest(), item)
+        result = benchmark.report(source, item)
         self.assertEqual(100, result["accounting"]["providerInputTokens"])
         self.assertEqual(80, result["accounting"]["cachedInputTokens"])
         self.assertEqual(25, result["accounting"]["billableInputTokens"])
@@ -255,6 +261,21 @@ class BenchmarkTests(unittest.TestCase):
         self.assertTrue(all(row["coverage"]["missingRepetitions"] == 1
                             for row in tasks["documentation"]["repetitions"]))
         self.assertEqual(1, tasks["bug-fix"]["repetitions"][0]["outcomes"]["completed"])
+
+    def test_ac7_missing_repetitions_do_not_turn_observed_usage_into_cohort_totals(self):
+        source = manifest()
+        item = observations(source)
+        item.update(usageSource="caller-reported", usageEvidenceDigest=HASH)
+        item["attempts"][0]["requests"][0].update(
+            providerInputTokens=100, providerOutputTokens=20)
+        result = benchmark.report(source, item)
+        self.assertIsNone(result["accounting"]["totalInputBytes"])
+        self.assertIsNone(result["accounting"]["providerInputTokens"])
+        self.assertEqual(100, result["accounting"]["observedUsage"]["providerInputTokens"])
+        self.assertIsNone(result["tasks"][0]["accounting"]["totalInputBytes"])
+        missing = result["tasks"][0]["repetitions"][1]
+        self.assertIsNone(missing["accounting"]["totalInputBytes"])
+        self.assertIsNone(missing["accounting"]["providerInputTokens"])
 
     def test_cli_selected_inputs_success_and_error_have_no_file_side_effects(self):
         with tempfile.TemporaryDirectory() as directory:
