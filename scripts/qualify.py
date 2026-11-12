@@ -129,6 +129,7 @@ HELPERS = {
     "scripts/execution_orchestration.py",
     "scripts/execution_profiles.py",
     "scripts/execution_renderers.py",
+    "scripts/execution_routing.py",
     "scripts/execution_state.py",
     "scripts/execution_telemetry.py",
     "scripts/handoff_renderers.py",
@@ -139,6 +140,7 @@ HELPERS = {
     "scripts/manage_insights.py",
     "scripts/manage_metrics.py",
     "scripts/manage_native.py",
+    "scripts/manage_routing.py",
     "scripts/manage_runtime.py",
     "scripts/manage_telemetry.py",
     "scripts/native_execution.py",
@@ -148,7 +150,7 @@ HELPERS = {
     "scripts/runtime_process.py",
     "scripts/validate_artifacts.py",
 }
-BUNDLE_FILE_COUNT = 101
+BUNDLE_FILE_COUNT = 103
 IMPLEMENTATION_COUNT = 22
 DISCOVERABLE_SKILL_COUNT = IMPLEMENTATION_COUNT + 1
 DETERMINISTIC_EVIDENCE = {

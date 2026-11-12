@@ -23,6 +23,7 @@
       "scripts/execution_orchestration.py",
       "scripts/execution_profiles.py",
       "scripts/execution_renderers.py",
+      "scripts/execution_routing.py",
       "scripts/execution_state.py",
       "scripts/execution_telemetry.py",
       "scripts/handoff_renderers.py",
@@ -33,6 +34,7 @@
       "scripts/manage_install.py",
       "scripts/manage_metrics.py",
       "scripts/manage_native.py",
+      "scripts/manage_routing.py",
       "scripts/manage_runtime.py",
       "scripts/manage_telemetry.py",
       "scripts/native_execution.py",
@@ -368,6 +370,10 @@
         "sha256": "f3d7dc52f636672ee2fa9ec657a1cc76db6adf66e9c2543e6f688624a345f43f"
       },
       {
+        "path": "scripts/execution_routing.py",
+        "sha256": "1c90a38fb87e011bce0c931f6d16a90682d38cef42b7f86f550b996d748dd223"
+      },
+      {
         "path": "scripts/execution_state.py",
         "sha256": "ac4dd453264ab23d09c4518e01aea21b22b16e54127e3720fba758092e4dbe7e"
       },
@@ -406,6 +412,10 @@
       {
         "path": "scripts/manage_native.py",
         "sha256": "f3e5700050da215bba22462e4a25e02f70987ed338da3e2bab9d042f475cd36c"
+      },
+      {
+        "path": "scripts/manage_routing.py",
+        "sha256": "a9d925aeef1545946de38693fd5fba61f1dd3d9bf13fa0971cab511f2e96ac40"
       },
       {
         "path": "scripts/manage_runs.py",
@@ -448,7 +458,7 @@
         "sha256": "f4c497786dee09027df8898bd3c2d253e1cf58045904a011975adc477c2c2f08"
       }
     ],
-    "bundleSha256": "90e5ca3179f59eeda4e5d6c7f65ea1b46f19c8f67ba69454df308ec3aa05f56f"
+    "bundleSha256": "323b97830440e548ed269e8df36e347200e30d93375936600c6a673071f6e9ae"
   },
   "profiles": [
     {
