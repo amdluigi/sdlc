@@ -73,9 +73,22 @@ revision/event/receipt records, current plan/policy binding approvals,
 independent manual evidence acceptance and escaped read-only reports.
 The project-local execution policy is separate and disabled when absent.
 Configure and record operations share a single-writer consent boundary.
-No worker, command, model routing, telemetry, global storage or legacy
-workflow invocation is added. This is a cooperative same-user controller
-boundary, not authentication or a filesystem sandbox.
+The manager also supports explicitly authorized bounded-worker and finite
+batch flows through the existing VS Code runtime; manual record operations
+still do not dispatch work. The bounded worker receives only the selected,
+digest-validated role and applicable context, then builds a deterministic
+prompt and records aggregate local accounting. Persistent telemetry remains
+separately consent-gated. No new orchestration service, automatic routing,
+parallel execution, global storage or legacy workflow invocation is added.
+This is a cooperative same-user controller boundary, not authentication or a
+filesystem sandbox.
+
+Attempt start and context mutation share the manager writer lock. Operator
+updates are refused throughout running and unresolved native attempts, not
+merely revalidated after provider work. A confirmed receipt releases the
+snapshot freeze without accepting the task; subsequent attempts bind the
+latest context. See [context lifetime](EXECUTION-MANAGEMENT.md#project-gantt-and-context)
+and [prompt/accounting semantics](EXECUTION-ORCHESTRATION.md#prompt-construction-and-accounting).
 
 ```text
 commands/                       the operating surface, where hosts support it

@@ -122,6 +122,21 @@ def inspect_profile(project_root, role):
     return next(item for item in snapshot if item["role"] == role)
 
 
+def role_instructions(project_root, role, expected_digest):
+    info = inspect_profile(project_root, role)
+    contracts._digest(expected_digest, "/profileDigest")
+    if info["digest"] != expected_digest:
+        raise ContractIssue("E_PROFILE_DRIFT", "/profileDigest", "selected role profile digest is stale")
+    try:
+        content = (SOURCE / info["file"]).read_bytes()
+        if "sha256:" + hashlib.sha256(content).hexdigest() != info["contentDigest"]:
+            raise ContractIssue("E_PROFILE_SOURCE", "/", "profile source changed during instruction loading")
+        _, body = _frontmatter(content.decode("utf-8").replace("\r\n", "\n"), "native-profile")
+        return body
+    except (OSError, UnicodeError) as error:
+        raise ContractIssue("E_PROFILE_SOURCE", "/", "cannot read verified profile instructions") from error
+
+
 def install_profiles(project_root, mode="copy", dry_run=True):
     contracts._enum(mode, "/mode", ("copy", "link"))
     if type(dry_run) is not bool:

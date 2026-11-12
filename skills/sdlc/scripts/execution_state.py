@@ -233,12 +233,16 @@ def _replay_execution(plan, events, receipts=None, policy_digest=None, acceptanc
     approvals = _mapping({} if approvals is None else approvals, "/approvals")
     used_receipts, used_acceptances, used_approvals, event_ids = set(), set(), set(), set()
     accounted_attempts = set()
+    accounted_batch_attempts = set()
+    unknown_attempts = set()
     autonomous_starts = {}
     started_autonomous = {}
     for position, raw in enumerate(events):
-        if isinstance(raw, dict) and raw.get("schemaVersion") in (2, 3):
+        if isinstance(raw, dict) and raw.get("schemaVersion") in (2, 3, 4, 5):
             event_version = raw.get("schemaVersion")
-            if event_version == 2 and not allow_controller or event_version == 3 and not allow_autonomous:
+            if event_version in (2, 4, 5) and not allow_controller or (
+                event_version == 3 and not allow_autonomous
+            ):
                 raise ContractIssue("E_EXECUTION_VERSION", "/schemaVersion",
                                     "version-1 replay does not accept controller events")
             event = contracts.validate_controller_event(raw, plan)["data"]
@@ -273,13 +277,16 @@ def _replay_execution(plan, events, receipts=None, policy_digest=None, acceptanc
                 ):
                     raise ContractIssue("E_EXECUTION_RECEIPT", "/payload",
                                         "accounting differs from the autonomous start binding")
+                batch_attempt_key = (payload["batchId"], payload["batchDigest"], task_id, attempt)
                 accounting_key = (
                     payload["batchId"], payload["batchDigest"], task_id, attempt, payload["resultId"]
                 )
                 _transition(current is not None and current["status"] == "reported"
                             and current["attemptId"] == attempt
                             and current["resultId"] == payload["resultId"]
-                            and accounting_key not in accounted_attempts, "/payload/resultId")
+                            and accounting_key not in accounted_attempts
+                            and batch_attempt_key not in unknown_attempts
+                            and batch_attempt_key not in accounted_batch_attempts, "/payload/resultId")
                 receipt = receipts.get(payload["resultId"])
                 if receipt is None or receipt["result"]["taskId"] != task_id or (
                     receipt["result"]["attemptId"] != attempt
@@ -290,6 +297,22 @@ def _replay_execution(plan, events, receipts=None, policy_digest=None, acceptanc
                     raise ContractIssue("E_EXECUTION_RECEIPT", "/payload/resultId",
                                         "accounting requires the matching complete manager receipt")
                 accounted_attempts.add(accounting_key)
+                accounted_batch_attempts.add(batch_attempt_key)
+            elif kind == "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN":
+                start = started_autonomous.get((task_id, attempt))
+                if start is not None and (
+                    start["batchId"] != payload["batchId"]
+                    or start["batchDigest"] != payload["batchDigest"]
+                    or start["briefDigest"] != payload["briefDigest"]
+                ):
+                    raise ContractIssue("E_EXECUTION_RECEIPT", "/payload",
+                                        "unknown accounting differs from the autonomous start binding")
+                batch_attempt_key = (payload["batchId"], payload["batchDigest"], task_id, attempt)
+                _transition(current is not None and current["status"] == "running"
+                            and current["attemptId"] == attempt
+                            and batch_attempt_key not in unknown_attempts
+                            and batch_attempt_key not in accounted_batch_attempts, "/payload")
+                unknown_attempts.add(batch_attempt_key)
             elif kind == "TASK_RETRY_READY":
                 accounting_key = (
                     payload["batchId"], payload["batchDigest"], task_id, attempt, payload["resultId"]
@@ -466,10 +489,10 @@ def validate_record(value):
     if not isinstance(value, dict):
         raise ContractIssue("E_SCHEMA_TYPE", "/", "expected an object")
     version = value.get("schemaVersion")
+    if type(version) is not int or version not in (1, 2, 3, 4):
+        raise ContractIssue("E_EXECUTION_VERSION", "/schemaVersion", "unsupported execution record version")
     record_fields = ("schemaVersion", "executionId", "revisions") + (("context",) if version == 4 else ())
     record = contracts._object(value, "", record_fields)
-    if type(record["schemaVersion"]) is not int or record["schemaVersion"] not in (1, 2, 3, 4):
-        raise ContractIssue("E_EXECUTION_VERSION", "/schemaVersion", "unsupported execution record version")
     contracts._id(record["executionId"], "/executionId")
     revisions = contracts._array(record["revisions"], "/revisions", True)
     previous, attempts, receipt_ids = 0, set(), set()

@@ -7,7 +7,7 @@ const { performance } = require('node:perf_hooks');
 const { spawnSync } = require('node:child_process');
 const { createRequire } = require('node:module');
 const vm = require('node:vm');
-const { run } = require('../driver');
+const { run, buildPrompt } = require('../driver');
 const { createBridge, digest } = require('../bridge');
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
@@ -27,7 +27,7 @@ function driverWithClock(overrides) {
   return module.exports.run;
 }
 
-async function fixture(t, limits = {}) {
+async function fixture(t, limits = {}, withContext = false) {
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'sdlc-runtime-'));
   t.after(() => fs.rmSync(project, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
   const setup = spawnSync('python', ['-B', '-c', [
@@ -35,17 +35,67 @@ async function fixture(t, limits = {}) {
     'from tests.test_bounded_runtime import fixture,LIMITS,MODEL',
     'from tests.test_execution_contracts import result',
     'from bounded_runtime import prepare',
+    'import execution_manager as manager',
     'p,b=fixture(sys.argv[1])',
+    'if sys.argv[3] == "1":',
+    ' current=manager.inspect_execution(sys.argv[1],"feature-one")',
+    ' manager.update_context(sys.argv[1],"feature-one","shared",None,"Shared runtime context.",current["planDigest"],current["context"]["revision"])',
+    ' current=manager.inspect_execution(sys.argv[1],"feature-one")',
+    ' manager.update_context(sys.argv[1],"feature-one","agent","developer","Developer specialist context.",current["planDigest"],current["context"]["revision"])',
+    ' current=manager.inspect_execution(sys.argv[1],"feature-one")',
+    ' manager.update_context(sys.argv[1],"feature-one","agent","architecture","Unselected specialist context.",current["planDigest"],current["context"]["revision"])',
     'r=result(p)',
     'r["verification"][0]["result"]="unavailable"',
     'print(json.dumps({"envelope":prepare(sys.argv[1],"feature-one",b,"developer",MODEL,{**LIMITS,**json.loads(sys.argv[2])}),"result":r}))'
-  ].join(';'), project, JSON.stringify(limits)], { cwd: ROOT, encoding: 'utf8' });
+  ].join('\n'), project, JSON.stringify(limits), withContext ? '1' : '0'], { cwd: ROOT, encoding: 'utf8' });
   assert.equal(setup.status, 0, setup.stderr);
   return { ...JSON.parse(setup.stdout), project, bridge: createBridge(project) };
 }
 
 function response(value) {
   return (async function* () { yield JSON.stringify(value); })();
+}
+
+function promptHistory(prompt) {
+  const marker = '\n## history\n';
+  const content = prompt.slice(prompt.indexOf(marker) + marker.length);
+  return content === 'No prior tool interactions.' ? [] : JSON.parse(content);
+}
+
+function promptEnvelope(overrides = {}) {
+  const request = {
+    role: 'developer',
+    profileDigest: `sha256:${'a'.repeat(64)}`,
+    policyDigest: `sha256:${'b'.repeat(64)}`,
+    outcome: 'Implement the approved behavior.',
+    host: { allowedActions: ['read', 'search', 'edit'] },
+    brief: {
+      schemaVersion: 1, taskId: 'implement', attemptId: 'attempt-one',
+      allowedActions: ['read', 'search', 'edit'], ownership: ['src/feature.js'],
+      guidance: ['docs/guide.md'], acceptanceCriteria: ['AC-1'],
+      verification: 'Run the focused test.'
+    },
+    context: {
+      schemaVersion: 1, revision: 3, digest: `sha256:${'c'.repeat(64)}`,
+      shared: { content: 'Shared context.', digest: `sha256:${'d'.repeat(64)}` },
+      agents: {
+        developer: { content: 'Developer context.', digest: `sha256:${'e'.repeat(64)}` },
+        architecture: { content: 'Unselected architecture context.', digest: `sha256:${'f'.repeat(64)}` }
+      }
+    }
+  };
+  return {
+    schemaVersion: 1,
+    request,
+    roleInstructions: 'Follow the selected developer role.',
+    promptContext: {
+      role: request.role, profileDigest: request.profileDigest,
+      contextRevision: request.context.revision, contextDigest: request.context.digest,
+      shared: request.context.shared, specialist: request.context.agents.developer
+    },
+    limits: { maxInputBytes: 32768 },
+    ...overrides
+  };
 }
 
 function status(project) {
@@ -146,6 +196,146 @@ test('a bounded runtime driver is executable', () => {
   assert.equal(typeof run, 'function');
 });
 
+test('prompt builder includes validated role, selected context, requirements and permitted tools in fixed order', () => {
+  const envelope = promptEnvelope();
+  const first = buildPrompt(envelope);
+  const second = buildPrompt(envelope);
+  assert.deepEqual(first, second, 'identical validated input must produce byte-identical prompt output');
+  const ids = first.components.map(component => component.id);
+  assert.deepEqual(ids, [
+    'executionProtocol', 'taskBrief', 'selectedRole', 'sharedContext', 'specialistContext',
+    'requirements', 'securityConstraints', 'permittedTools', 'history'
+  ]);
+  const text = first.prompt;
+  for (const required of [
+    'developer', envelope.request.profileDigest, envelope.roleInstructions,
+    'Shared context.', 'Developer context.', 'AC-1', 'Run the focused test.',
+    'src/feature.js', 'docs/guide.md', 'read', 'search', 'edit'
+  ]) assert.ok(text.includes(required), `prompt must include ${required}`);
+  assert.equal(text.includes('Unselected architecture context.'), false);
+  assert.equal(first.promptBytes, Buffer.byteLength(first.prompt, 'utf8'));
+  assert.equal(first.components.reduce((total, component) => total + component.bytes, 0), first.promptBytes);
+  for (const component of first.components) {
+    assert.equal(component.bytes, Buffer.byteLength(component.text, 'utf8'));
+  }
+});
+
+test('history compacts only consecutive exact duplicate observations and preserves occurrence counts', () => {
+  const read = { request: { type: 'tool', name: 'read', arguments: { path: 'src/feature.js' } },
+    output: { path: 'src/feature.js', digest: 'digest-one', content: 'before' } };
+  const changedRead = { request: read.request, output: { ...read.output, digest: 'digest-two', content: 'after' } };
+  const search = { request: { type: 'tool', name: 'search', arguments: {
+    path: 'src/feature.js', query: 'feature'
+  } }, output: { matches: ['src/feature.js'] } };
+  const edit = { request: { type: 'tool', name: 'edit', arguments: {
+    path: 'src/feature.js', expectedDigest: 'digest-two', content: 'replacement source'
+  } }, output: { digest: `sha256:${'3'.repeat(64)}` } };
+  const built = buildPrompt(promptEnvelope(), [read, read, changedRead, search, read, edit, edit]);
+  const history = JSON.parse(built.components.find(component => component.id === 'history').content);
+  assert.deepEqual(history, [
+    { observation: read, occurrenceCount: 2 },
+    changedRead,
+    search,
+    read,
+    { artifactReference: {
+      type: 'edited-file', path: 'src/feature.js', expectedDigest: 'digest-two',
+      digest: `sha256:${'3'.repeat(64)}`
+    } },
+    { artifactReference: {
+      type: 'edited-file', path: 'src/feature.js', expectedDigest: 'digest-two',
+      digest: `sha256:${'3'.repeat(64)}`
+    } }]);
+  assert.equal(JSON.stringify(history).includes('replacement source'), false,
+    'validated edits should be referenced by path and digest, not repeated as file content');
+});
+
+test('AC-2: consecutive identical searches retain the unchanged observation and exact count', () => {
+  const search = { request: { type: 'tool', name: 'search', arguments: {
+    path: 'src/feature.js', query: 'feature'
+  } }, output: { matches: ['required evidence'] } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [search, search, search]).prompt);
+  assert.deepEqual(history, [{ observation: search, occurrenceCount: 3 }]);
+});
+
+test('AC-2: distinct and nonconsecutive read/search evidence remains in order', () => {
+  const read = { request: { type: 'tool', name: 'read', arguments: { path: 'src/feature.js' } },
+    output: { content: 'required evidence', digest: 'first' } };
+  const changedRead = { ...read, output: { ...read.output, content: 'different evidence' } };
+  const search = { request: { type: 'tool', name: 'search', arguments: {
+    path: 'src/feature.js', query: 'feature'
+  } }, output: { matches: ['required evidence'] } };
+  const changedSearch = { ...search, output: { matches: ['different evidence'] } };
+  const observations = [read, changedRead, search, changedSearch, read, search];
+  assert.deepEqual(promptHistory(buildPrompt(promptEnvelope(), observations).prompt), observations);
+});
+
+test('AC-2: identical execute outcomes retain both copies and their verification evidence', () => {
+  const executed = { request: { type: 'tool', name: 'execute', arguments: { commandId: 'check' } },
+    output: { exitCode: 0, content: 'required verification evidence' } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [executed, executed]).prompt);
+  assert.deepEqual(history, [executed, executed]);
+});
+
+test('AC-2: validated edit references retain separate outcomes and exact before/after bindings', () => {
+  const edit = { request: { type: 'tool', name: 'edit', arguments: {
+    path: 'src/feature.js', expectedDigest: `sha256:${'1'.repeat(64)}`, content: 'replacement source'
+  } }, output: { digest: `sha256:${'2'.repeat(64)}` } };
+  const reference = { artifactReference: {
+    type: 'edited-file', path: edit.request.arguments.path,
+    expectedDigest: edit.request.arguments.expectedDigest, digest: edit.output.digest
+  } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [edit, edit]).prompt);
+  assert.deepEqual(history, [reference, reference]);
+});
+
+test('AC-2: unvalidated edits retain their full evidence rather than becoming references', () => {
+  const edit = { request: { type: 'tool', name: 'edit', arguments: {
+    path: 'src/feature.js', expectedDigest: 'before', content: 'required content'
+  } }, output: { error: 'failed edit' } };
+  const history = promptHistory(buildPrompt(promptEnvelope(), [edit, edit]).prompt);
+  assert.deepEqual(history, [edit, edit]);
+});
+
+test('prompt limits fail visibly without truncating required components', () => {
+  const envelope = promptEnvelope({ limits: { maxInputBytes: 512 } });
+  assert.throws(() => buildPrompt(envelope), error => {
+    assert.equal(error.code, 'E_RUNTIME_PROMPT_LIMIT');
+    assert.match(error.message, /exceeds.*512.*narrow/i);
+    return true;
+  });
+});
+
+test('model-facing prompt receives only the manager-selected role and context', async t => {
+  const context = await fixture(t, {}, true);
+  const prompts = [];
+  const receipt = await run({ ...context, respond: async prompt => {
+    prompts.push(prompt);
+    return response({ type: 'result', result: context.result });
+  } });
+  assert.equal(prompts.length, 1);
+  assert.match(prompts[0], /"role":"developer"/);
+  assert.ok(prompts[0].includes(JSON.stringify(context.envelope.roleInstructions).slice(1, -1)));
+  assert.match(prompts[0], /Shared runtime context\./);
+  assert.match(prompts[0], /Developer specialist context\./);
+  assert.equal(prompts[0].includes('Unselected specialist context.'), false);
+  assert.equal(receipt.acceptance, 'not-assessed');
+});
+
+test('an oversized assembled prompt fails before a model request and is visibly unknown', async t => {
+  const context = await fixture(t, { maxInputBytes: 512 });
+  let calls = 0;
+  await assert.rejects(run({ ...context, respond: async () => {
+    calls++;
+    return response({ type: 'result', result: context.result });
+  } }), error => {
+    assert.equal(error.code, 'E_RUNTIME_PROMPT_LIMIT');
+    assert.match(error.message, /narrow optional scope or context/i);
+    return true;
+  });
+  assert.equal(calls, 0);
+  assert.equal(status(context.project), 'unknown');
+});
+
 test('stop retry window counts real busy helper latency without exhausting eight process starts', async t => {
   const context = await fixture(t);
   const lock = path.join(context.project, '.git', 'sdlc', 'executions.lock');
@@ -231,7 +421,7 @@ test('version-2 real command CLI reports exact observed evidence without automat
     calls++;
     assert.match(prompt, /"commandIds":\["check"\]/);
     if (calls === 1) return response({ type: 'tool', name: 'execute', arguments: { commandId: 'check' } });
-    const observed = JSON.parse(prompt.slice(prompt.lastIndexOf('\n') + 1)).history[0].output;
+    const observed = promptHistory(prompt)[0].output;
     assert.equal(observed.evidence.status, 'passed');
     assert.match(observed.output, /in-memory-only-command-output/);
     context.result.verification[0] = { acceptanceCriterion: 'AC-1', command: 'runtime-command:check',
@@ -254,7 +444,7 @@ test('real CLI tools edit exact owned files and manager receives an unaccepted r
     count++;
     if (count === 1) return response({ type: 'tool', name: 'read', arguments: { path: 'src/feature.py' } });
     if (count === 2) {
-      const read = JSON.parse(prompt.slice(prompt.lastIndexOf('\n') + 1)).history[0].output;
+      const read = promptHistory(prompt)[0].output;
       return response({ type: 'tool', name: 'edit', arguments: {
         path: 'src/feature.py', expectedDigest: read.digest, content: 'synthetic change\n'
       } });
@@ -419,4 +609,236 @@ test('each immediate stream iteration checks its monotonic deadline before consu
   assert.equal(calls, 1);
   assert.equal(chunks, 1);
   assertUnresolved(context);
+});
+
+test('cancellation after prompt preparation but before adapter invocation is not a dispatched call', async t => {
+  const context = await fixture(t);
+  const controller = new AbortController();
+  let calls = 0;
+  const bridge = async (operation, payload) => {
+    const result = await context.bridge(operation, payload);
+    if (operation === 'step') controller.abort();
+    return result;
+  };
+  await assert.rejects(run({ ...context, bridge, signal: controller.signal, respond: async () => {
+    calls++;
+    return response({ type: 'result', result: context.result });
+  } }));
+  assert.equal(calls, 0);
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(store.iterations, 0);
+  assert.equal(store.inputBytes, 0);
+  assert.equal(store.requestAccounting.prepared, 1);
+  assert.equal(store.requestAccounting.dispatched, 0);
+});
+
+test('provider invocation precedes durable dispatch confirmation', async t => {
+  const context = await fixture(t);
+  const order = [];
+  const bridge = async (operation, payload) => {
+    order.push(`bridge:${operation}`);
+    return context.bridge(operation, payload);
+  };
+  await run({ ...context, bridge, respond: async () => {
+    order.push('adapter');
+    return response({ type: 'result', result: context.result });
+  } });
+  assert.ok(order.indexOf('adapter') >= 0);
+  assert.ok(order.indexOf('bridge:dispatch') > order.indexOf('adapter'));
+});
+
+test('a helper without request lifecycle support fails before adapter invocation', async t => {
+  const context = await fixture(t);
+  let calls = 0;
+  const bridge = async (operation, payload) => {
+    const output = await context.bridge(operation, payload);
+    if (operation === 'step') delete output.requestId;
+    return output;
+  };
+  await assert.rejects(run({ ...context, bridge, respond: async () => {
+    calls++;
+    return response({ type: 'result', result: context.result });
+  } }), /request lifecycle/);
+  assert.equal(calls, 0);
+  assertUnresolved(context);
+});
+
+test('an oversized delivered chunk records observed bytes and never reaches a tool or receipt', async t => {
+  const context = await fixture(t, { maxOutputBytes: 64 });
+  const prefix = 'é😀';
+  const overflow = 'x'.repeat(65);
+  const operations = [];
+  const bridge = async (operation, payload) => {
+    operations.push(operation);
+    return context.bridge(operation, payload);
+  };
+  await assert.rejects(run({ ...context, bridge, respond: async () => (async function* () {
+    yield prefix;
+    yield overflow;
+  })() }), /remaining output bound/);
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(store.outputBytes, Buffer.byteLength(prefix + overflow));
+  assert.equal(store.requestAccounting.unknown, 1);
+  assert.equal(JSON.stringify(store).includes(overflow), false);
+  assert.equal(operations.includes('tool'), false);
+  assert.equal(operations.includes('receive'), false);
+  assertUnresolved(context);
+});
+
+test('provider callback source drift still records the invoked request and observed output', async t => {
+  const context = await fixture(t);
+  let calls = 0;
+  const output = JSON.stringify({ type: 'result', result: context.result });
+  await assert.rejects(run({ ...context, respond: async () => {
+    calls++;
+    fs.writeFileSync(path.join(context.project, 'docs', 'plans', 'feature.md'), 'changed source');
+    return (async function* () { yield output; })();
+  } }));
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(calls, 1);
+  assert.equal(store.iterations, 1);
+  assert.equal(store.requestAccounting.dispatched, 1);
+  assert.equal(store.outputBytes, Buffer.byteLength(output));
+  assert.equal(store.status, 'unknown');
+  assertUnresolved(context);
+});
+
+for (const persisted of [false, true]) {
+  test(`dispatch confirmation loss preserves uncertainty without duplicate settlement; persisted ${persisted}`, async t => {
+    const context = await fixture(t);
+    let invocations = 0;
+    let dispatches = 0;
+    const bridge = async (operation, payload) => {
+      if (operation === 'dispatch') {
+        dispatches++;
+        if (dispatches === 1) {
+          if (persisted) await context.bridge(operation, payload);
+          throw new Error('dispatch confirmation lost');
+        }
+      }
+      return context.bridge(operation, payload);
+    };
+    await assert.rejects(run({ ...context, bridge, respond: async () => {
+      invocations++;
+      return response({ type: 'result', result: context.result });
+    } }), /dispatch confirmation lost/);
+    assert.equal(invocations, 1);
+    const store = JSON.parse(fs.readFileSync(
+      path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+    const built = buildPrompt(context.envelope);
+    assert.equal(store.iterations, 1);
+    assert.equal(store.inputBytes, built.promptBytes);
+    assert.equal(store.totalInputBytes, built.promptBytes);
+    assert.deepEqual(store.promptComponents, Object.fromEntries(
+      built.components.map(component => [component.id, component.bytes])));
+    assert.equal(store.requestAccounting.prepared, 1);
+    assert.equal(store.requestAccounting.dispatched, persisted ? 1 : 0);
+    assert.equal(store.requestAccounting.unknown, 1);
+    assert.equal(store.requestAccounting.completed, 0);
+    assert.equal(store.activeRequest, null);
+    assertUnresolved(context);
+  });
+}
+
+test('synchronous adapter throws are counted as unknown invocations without a receipt', async t => {
+  const context = await fixture(t);
+  let calls = 0;
+  await assert.rejects(run({ ...context, respond: () => {
+    calls++;
+    throw new Error('synchronous provider failure');
+  } }), /synchronous provider failure/);
+  assert.equal(calls, 1);
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(store.iterations, 1);
+  assert.equal(store.requestAccounting.unknown, 1);
+  assert.equal(store.requestAccounting.dispatched, 0);
+  assertUnresolved(context);
+});
+
+test('interruption persists the exact partial UTF-8 output once without retaining text', async t => {
+  const context = await fixture(t);
+  const controller = new AbortController();
+  let yielded;
+  let release;
+  const firstChunk = new Promise(resolve => { yielded = resolve; });
+  const held = new Promise(resolve => { release = resolve; });
+  try {
+    const outcome = run({ ...context, signal: controller.signal, respond: async () => (async function* () {
+      yield 'é😀';
+      yielded();
+      await held;
+      yield 'unconsumed';
+    })() });
+    await firstChunk;
+    controller.abort();
+    await assert.rejects(outcome, /remote work is unconfirmed/);
+  } finally { release(); }
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(store.outputBytes, Buffer.byteLength('é😀', 'utf8'));
+  assert.equal(store.requestAccounting.interrupted, 1);
+  assert.equal(JSON.stringify(store).includes('é😀'), false);
+  assertUnresolved(context);
+});
+
+test('a chunk delivered at the abort boundary is counted before stopping', async t => {
+  const context = await fixture(t);
+  const controller = new AbortController();
+  await assert.rejects(run({ ...context, signal: controller.signal, respond: async () => ({
+    [Symbol.asyncIterator]() {
+      let first = true;
+      return {
+        next() {
+          if (!first) return new Promise(() => {});
+          first = false;
+          controller.abort();
+          return Promise.resolve({ done: false, value: 'é😀' });
+        },
+        return() { return Promise.resolve({ done: true }); }
+      };
+    }
+  }) }), /remote work is unconfirmed/);
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(store.outputBytes, Buffer.byteLength('é😀', 'utf8'));
+  assert.equal(store.requestAccounting.interrupted, 1);
+});
+
+test('provider stream failure keeps prior partial output in unknown accounting', async t => {
+  const context = await fixture(t);
+  await assert.rejects(run({ ...context, respond: async () => (async function* () {
+    yield 'é😀';
+    throw new Error('provider stream failed');
+  })() }), /provider stream failed/);
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(store.outputBytes, Buffer.byteLength('é😀', 'utf8'));
+  assert.equal(store.requestAccounting.unknown, 1);
+  assertUnresolved(context);
+});
+
+test('UTF-8 response limits treat a surrogate pair split across chunks as one scalar', async t => {
+  const baseline = await fixture(t);
+  baseline.result.blockers = ['😀'];
+  const value = { type: 'result', result: baseline.result };
+  const serialized = JSON.stringify(value);
+  const pairStart = serialized.indexOf('😀');
+  assert.ok(pairStart >= 0);
+  const context = await fixture(t, { maxOutputBytes: Buffer.byteLength(serialized, 'utf8') });
+  context.result.blockers = ['😀'];
+  const chunks = [
+    serialized.slice(0, pairStart + 1),
+    serialized.slice(pairStart + 1, pairStart + 2),
+    serialized.slice(pairStart + 2)
+  ];
+  await run({ ...context, respond: async () => (async function* () {
+    for (const chunk of chunks) yield chunk;
+  })() });
+  const store = JSON.parse(fs.readFileSync(
+    path.join(context.project, '.git', 'sdlc', 'bounded-runtime.json'), 'utf8'));
+  assert.equal(store.outputBytes, Buffer.byteLength(serialized, 'utf8'));
 });

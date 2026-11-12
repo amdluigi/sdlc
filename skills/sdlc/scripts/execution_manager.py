@@ -216,7 +216,7 @@ def _load(root, execution_id):
 
 def _projection(revision, *, allow_controller=False):
     replay = state.replay_execution_v3 if any(
-        isinstance(event, dict) and event.get("schemaVersion") == 3 for event in revision["events"]
+        isinstance(event, dict) and event.get("schemaVersion") in (3, 4, 5) for event in revision["events"]
     ) or any(
         isinstance(item, dict) and item.get("schemaVersion") == 2 for item in revision["acceptances"].values()
     ) else state.replay_execution_v2 if allow_controller or any(
@@ -348,6 +348,15 @@ def update_context(project_root, execution_id, scope, agent_id, content,
         if current["revision"] != expected_context_revision:
             raise ContractIssue("E_EXECUTION_STALE_VIEW", "/expectedContextRevision",
                                 "context changed after the current view was read")
+        import execution_controls
+        tasks = _projection(revision)["tasks"].values()
+        if any(task["status"] == "running" or (
+            task["status"] == "blocked" and task["blockedFrom"] == "running"
+        ) for task in tasks) or execution_controls._unknown_native_attempts(record):
+            raise ContractIssue(
+                "E_EXECUTION_CONTEXT_ACTIVE", "/context",
+                "context is frozen until active attempts finish and native outcomes are confirmed",
+            )
         current_entry = current["shared"] if scope == "shared" else current["agents"].get(agent_id)
         if current_entry is not None and current_entry["content"] == content and current_entry["source"] == "operator":
             return {**semantic_fields(), "idempotent": True, "context": current}
@@ -411,7 +420,9 @@ def _append(revision, kind, task_id=None, attempt_id=None, payload=None):
 def _append_controller(record, revision, kind, task_id, attempt_id, payload, *, version=2):
     import execution_orchestration
     execution_orchestration.check_event_capacity(revision, kind, task_id, attempt_id, payload)
-    record["schemaVersion"] = max(record["schemaVersion"], version)
+    # Detailed accounting versions the event schema, not the record shape.
+    record_version = 3 if version in (4, 5) else version
+    record["schemaVersion"] = max(record["schemaVersion"], record_version)
     sequence = len(revision["events"]) + 1
     when = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if revision["events"] and when < revision["events"][-1]["recordedAt"]:

@@ -53,6 +53,35 @@ CONTROLLER_EVENT_FIELDS = {
         "elapsedMs", "inputBytes", "outputBytes",
     ),
 }
+PROMPT_COMPONENT_FIELDS = (
+    "executionProtocol", "taskBrief", "selectedRole", "sharedContext", "specialistContext",
+    "requirements", "securityConstraints", "permittedTools", "history",
+)
+CONTROLLER_EVENT_V4_FIELDS = {
+    "BATCH_ATTEMPT_ACCOUNTED": (
+        "batchId", "batchDigest", "resultId", "briefDigest", "modelCalls", "toolCalls",
+        "elapsedMs", "inputBytes", "outputBytes", "totalInputBytes", "promptComponents",
+        "retries", "modelId", "providerId", "hostId", "hostBuild", "providerInputTokens",
+        "providerOutputTokens", "cachedInputTokens", "billableInputTokens",
+        "billableOutputTokens", "authoritativeCost",
+    ),
+}
+CONTROLLER_EVENT_V5_FIELDS = {
+    "BATCH_ATTEMPT_ACCOUNTED": (
+        "batchId", "batchDigest", "resultId", "briefDigest", "modelCalls", "toolCalls",
+        "elapsedMs", "inputBytes", "outputBytes", "totalInputBytes", "promptComponents",
+        "retries", "modelId", "providerId", "hostId", "hostBuild", "providerInputTokens",
+        "providerOutputTokens", "cachedInputTokens", "billableInputTokens",
+        "billableOutputTokens", "authoritativeCost", "requestAccounting",
+    ),
+    "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN": (
+        "batchId", "batchDigest", "briefDigest", "modelCalls", "toolCalls", "elapsedMs",
+        "inputBytes", "outputBytes", "totalInputBytes", "promptComponents", "retries",
+        "modelId", "providerId", "hostId", "hostBuild", "providerInputTokens",
+        "providerOutputTokens", "cachedInputTokens", "billableInputTokens",
+        "billableOutputTokens", "authoritativeCost", "requestAccounting",
+    ),
+}
 
 
 def _issue(code: str, pointer: str, message: str) -> NoReturn:
@@ -446,8 +475,9 @@ def validate_controller_event(data: object, plan: object) -> dict[str, object]:
         "schemaVersion", "eventId", "binding", "sequence", "occurredAt", "recordedAt",
         "actor", "type", "taskId", "attemptId", "payload",
     ))
-    if type(value["schemaVersion"]) is not int or value["schemaVersion"] not in (2, 3):
-        _issue("E_EXECUTION_VERSION", "/schemaVersion", "controller events require schema version 2 or 3")
+    version = value["schemaVersion"]
+    if type(version) is not int or version not in (2, 3, 4, 5):
+        _issue("E_EXECUTION_VERSION", "/schemaVersion", "controller events require schema version 2, 3, 4 or 5")
     _id(value["eventId"], "/eventId")
     _binding(value["binding"], validated)
     _number(value["sequence"], "/sequence")
@@ -457,13 +487,21 @@ def validate_controller_event(data: object, plan: object) -> dict[str, object]:
     actor = _object(value["actor"], "/actor", ("role", "id"))
     if actor != {"role": "manager", "id": "local-orchestrator"}:
         _issue("E_EXECUTION_ACTOR", "/actor", "controller event is outside the manager boundary")
-    kind = _enum(value["type"], "/type", tuple(CONTROLLER_EVENT_FIELDS))
-    if (kind == "AUTONOMOUS_ATTEMPT_STARTED") != (value["schemaVersion"] == 3):
+    event_fields = (
+        CONTROLLER_EVENT_V5_FIELDS if version == 5 else
+        CONTROLLER_EVENT_V4_FIELDS if version == 4 else CONTROLLER_EVENT_FIELDS
+    )
+    kind = _enum(value["type"], "/type", tuple(event_fields))
+    if (kind == "AUTONOMOUS_ATTEMPT_STARTED") != (version == 3) or (
+        version == 4 and kind != "BATCH_ATTEMPT_ACCOUNTED"
+    ) or (
+        version == 5 and kind not in ("BATCH_ATTEMPT_ACCOUNTED", "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN")
+    ):
         _issue("E_EXECUTION_VERSION", "/schemaVersion",
-               "autonomous start markers require version 3 and existing controller events require version 2")
+               "autonomous starts require version 3; detailed and unresolved accounting require versions 4 and 5")
     _bound_task(value, validated, tasks)
     _id(value["attemptId"], "/attemptId")
-    fields = CONTROLLER_EVENT_FIELDS[kind]
+    fields = event_fields[kind]
     payload = _object(value["payload"], "/payload", fields)
     _id(payload["batchId"], "/payload/batchId")
     _digest(payload["batchDigest"], "/payload/batchDigest")
@@ -478,6 +516,59 @@ def validate_controller_event(data: object, plan: object) -> dict[str, object]:
         model_id = _text(payload["modelId"], "/payload/modelId", 128)
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model_id):
             _issue("E_MODEL_ID", "/payload/modelId", "invalid model identifier")
+    elif version in (4, 5):
+        for field in ("modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes",
+                      "totalInputBytes", "retries"):
+            _number(payload[field], "/payload/" + field, 0)
+        if payload["totalInputBytes"] > payload["inputBytes"]:
+            _issue("E_EXECUTION_ACCOUNTING", "/payload/totalInputBytes",
+                   "model-facing input bytes exceed bounded input bytes")
+        if payload["retries"] > 1:
+            _issue("E_EXECUTION_ACCOUNTING", "/payload/retries", "retry count exceeds the attempt bound")
+        components = _object(payload["promptComponents"], "/payload/promptComponents", PROMPT_COMPONENT_FIELDS)
+        for component in PROMPT_COMPONENT_FIELDS:
+            _number(components[component], "/payload/promptComponents/" + component, 0)
+        if sum(components.values()) != payload["totalInputBytes"]:
+            _issue("E_EXECUTION_ACCOUNTING", "/payload/promptComponents",
+                   "component totals differ from model-facing input bytes")
+        model_id = _text(payload["modelId"], "/payload/modelId", 128)
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model_id):
+            _issue("E_MODEL_ID", "/payload/modelId", "invalid model identifier")
+        _text(payload["providerId"], "/payload/providerId", 128)
+        _id(payload["hostId"], "/payload/hostId")
+        _text(payload["hostBuild"], "/payload/hostBuild", 128)
+        for field in ("providerInputTokens", "providerOutputTokens", "cachedInputTokens",
+                      "billableInputTokens", "billableOutputTokens"):
+            if payload[field] is not None:
+                _number(payload[field], "/payload/" + field, 0)
+        if payload["authoritativeCost"] is not None:
+            _issue("E_EXECUTION_ACCOUNTING", "/payload/authoritativeCost",
+                   "authoritative cost is unavailable from the current host")
+        if version == 5:
+            _digest(payload["briefDigest"], "/payload/briefDigest")
+            if kind == "BATCH_ATTEMPT_ACCOUNTED":
+                _id(payload["resultId"], "/payload/resultId")
+            accounting = _object(payload["requestAccounting"], "/payload/requestAccounting", (
+                "prepared", "dispatched", "completed", "interrupted", "unknown",
+            ))
+            for field in ("prepared", "dispatched", "completed", "interrupted", "unknown"):
+                _number(accounting[field], "/payload/requestAccounting/" + field, 0)
+            if (
+                accounting["prepared"] < accounting["dispatched"]
+                or accounting["prepared"] < accounting["completed"] + accounting["interrupted"]
+                + accounting["unknown"]
+                or accounting["dispatched"] < accounting["completed"] + accounting["interrupted"]
+            ):
+                _issue("E_EXECUTION_ACCOUNTING", "/payload/requestAccounting",
+                       "request lifecycle totals are inconsistent")
+            for field in ("providerInputTokens", "providerOutputTokens", "cachedInputTokens",
+                          "billableInputTokens", "billableOutputTokens"):
+                if payload[field] is not None:
+                    _issue("E_EXECUTION_ACCOUNTING", "/payload/" + field,
+                           "provider usage is unavailable from the current host")
+            if payload["authoritativeCost"] is not None:
+                _issue("E_EXECUTION_ACCOUNTING", "/payload/authoritativeCost",
+                       "authoritative provider pricing is unavailable")
     else:
         _id(payload["resultId"], "/payload/resultId")
         _digest(payload["briefDigest"], "/payload/briefDigest")

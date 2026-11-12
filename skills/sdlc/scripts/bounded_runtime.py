@@ -11,6 +11,7 @@ from artifact_contracts import ContractIssue, semantic_fields
 import execution_contracts as contracts
 import execution_controls as controls
 import execution_manager as manager
+import execution_profiles as profiles
 import execution_state as state
 import native_execution as native
 import runtime_process
@@ -22,6 +23,19 @@ CEILINGS = {"maxIterations": 16, "maxToolCalls": 32, "maxInputBytes": 262144,
             "maxOutputBytes": 262144, "maxWallMs": 300000}
 FILE_BYTES = 65536
 EXECUTE_HOST = {**HOST, "allowedActions": [*HOST["allowedActions"], "execute"]}
+PROMPT_COMPONENTS = (
+    "executionProtocol", "taskBrief", "selectedRole", "sharedContext", "specialistContext",
+    "requirements", "securityConstraints", "permittedTools", "history",
+)
+PROVIDER_USAGE_FIELDS = (
+    "providerInputTokens", "providerOutputTokens", "cachedInputTokens",
+    "billableInputTokens", "billableOutputTokens", "authoritativeCost",
+)
+ACCOUNTING_STORE_FIELDS = (
+    "totalInputBytes", "promptComponents", "retries", "modelId", "providerId", "modelFamily",
+    "modelVersion", "hostId", "hostBuild", *PROVIDER_USAGE_FIELDS,
+)
+REQUEST_ACCOUNTING_FIELDS = ("prepared", "dispatched", "completed", "interrupted", "unknown")
 
 
 def _issue(code, message):
@@ -43,15 +57,73 @@ def _model(value):
     return data
 
 
+def _prompt_context(request):
+    context = request.get("context")
+    if request["schemaVersion"] != 2 or not isinstance(context, dict):
+        _issue("BINDING", "bounded prompts require validated manager context")
+    role = request["role"]
+    return {
+        "role": role,
+        "profileDigest": request["profileDigest"],
+        "contextRevision": context["revision"],
+        "contextDigest": context["digest"],
+        "shared": context["shared"],
+        "specialist": context["agents"].get(role),
+    }
+
+
+def _prompt_bindings(root, request):
+    return {
+        "roleInstructions": profiles.role_instructions(
+            root, request["role"], request["profileDigest"],
+        ),
+        "promptContext": _prompt_context(request),
+    }
+
+
+def _approved_retries(envelope):
+    if envelope["schemaVersion"] != 3:
+        return 0
+    task_id = envelope["request"]["brief"]["taskId"]
+    attempt_id = envelope["request"]["brief"]["attemptId"]
+    for item in envelope["batch"]["tasks"]:
+        if item["taskId"] == task_id:
+            for index, attempt in enumerate(item["attempts"]):
+                if attempt["attemptId"] == attempt_id:
+                    return int(index > 0)
+    _issue("BINDING", "runtime attempt is absent from its approved batch")
+
+
+def _instruction_text(value):
+    if not isinstance(value, str) or not value.strip():
+        _issue("BINDING", "verified role instructions must be nonempty text")
+    try:
+        encoded = value.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise ContractIssue("E_RUNTIME_BINDING", "/", "role instructions are not valid UTF-8 text") from error
+    if len(encoded) > 65536 or any(ord(char) < 32 and char != "\n" for char in value):
+        _issue("BINDING", "verified role instructions exceed their supported text bounds")
+
+
 def _envelope(value):
     execute = isinstance(value, dict) and type(value.get("schemaVersion")) is int and value["schemaVersion"] == 2
     batch_run = isinstance(value, dict) and type(value.get("schemaVersion")) is int and value["schemaVersion"] == 3
+    prompt_fields = ("roleInstructions", "promptContext")
+    present_prompt_fields = tuple(
+        field for field in prompt_fields if isinstance(value, dict) and field in value
+    )
+    if present_prompt_fields and len(present_prompt_fields) != len(prompt_fields):
+        _issue("BINDING", "role instructions and selected context must be bound together")
     data = contracts._object(value, "", (
         "schemaVersion", "request", "model", "limits", "controlsDigest", "guidanceDigests",
-    ) + (("commands",) if execute else ("batch", "batchDigest") if batch_run else ()))
+    ) + present_prompt_fields + (("commands",) if execute else ("batch", "batchDigest") if batch_run else ()))
     if not execute and not batch_run:
         contracts._version(data)
     native._request(data["request"])
+    if present_prompt_fields:
+        _instruction_text(data["roleInstructions"])
+        if data["promptContext"] != _prompt_context(data["request"]):
+            _issue("BINDING", "prompt context differs from the manager-selected request context")
     if data["request"]["host"] != (EXECUTE_HOST if execute else HOST):
         _issue("UNSUPPORTED", "runtime requires its fixed bounded host identity")
     if execute:
@@ -131,6 +203,10 @@ def _prepared(root, envelope, revision, *, in_flight=False):
         _issue("UNSUPPORTED", "execute requires qualified owner-death containment; POSIX execute is unavailable")
     request = envelope["request"]
     native._validate(root, request, revision)
+    if "roleInstructions" not in envelope or "promptContext" not in envelope:
+        _issue("BINDING", "runtime envelope lacks validated role and context prompt bindings")
+    if envelope["roleInstructions"] != _prompt_bindings(root, request)["roleInstructions"]:
+        _issue("BINDING", "role instructions do not match the validated profile digest")
     if manager._consent(root, enabled=True) != revision["consent"]:
         _issue("APPROVAL", "execution consent changed")
     if envelope["controlsDigest"] != _barriers(
@@ -190,6 +266,7 @@ def prepare(project_root, execution_id, brief, role, model, limits):
         "schemaVersion": 1, "request": request, "model": model, "limits": limits,
         "controlsDigest": _barriers(root),
         "guidanceDigests": {p: _hash(_bytes(root, p)) for p in request["brief"]["guidance"]},
+        **_prompt_bindings(root, request),
     }
     _prepared(root, envelope, manager._load(root, execution_id)["revisions"][-1])
     return envelope
@@ -210,6 +287,7 @@ def prepare_batch(project_root, batch, batch_digest_value, task_id, attempt_id, 
         "controlsDigest": state.digest(store),
         "guidanceDigests": {p: _hash(_bytes(root, p)) for p in request["brief"]["guidance"]},
         "batch": batch, "batchDigest": batch_digest_value,
+        **_prompt_bindings(root, request),
     }
     _prepared(root, envelope, revision)
     return envelope
@@ -279,6 +357,7 @@ def prepare_execute(project_root, execution_id, brief, role, model, limits, comm
         "guidanceDigests": {p: _hash(_bytes(root, p)) for p in request["brief"]["guidance"]},
         "commands": [{**command, "executableDigest": _executable(command["executable"])}
                      for command in commands],
+        **_prompt_bindings(root, request),
     }
     _prepared(root, envelope, manager._load(root, execution_id)["revisions"][-1])
     return envelope
@@ -296,13 +375,18 @@ def _store_path(root):
 
 def _store(root):
     value = manager._read(_store_path(root))
-    execute = isinstance(value, dict) and type(value.get("schemaVersion")) is int and value["schemaVersion"] == 2
+    version = value.get("schemaVersion") if isinstance(value, dict) else None
+    if type(version) is not int or version not in (1, 2, 3, 4, 5):
+        _issue("BINDING", "runtime store version is unsupported")
+    execute = version in (2, 4, 5)
+    accounting = version in (3, 4, 5)
+    lifecycle = version == 5
     contracts._object(value, "", (
         "schemaVersion", "runtimeDigest", "requestDigest", "callId", "status",
         "startedNs", "startedWallNs", "iterations", "toolCalls", "inputBytes", "outputBytes",
-    ) + (("commandEvidence",) if execute else ()))
-    if not execute:
-        contracts._version(value)
+    ) + (ACCOUNTING_STORE_FIELDS if accounting else ()) + (("commandEvidence",) if execute else ()) + (
+        ("requestAccounting", "activeRequest", "endedNs", "elapsedMs") if lifecycle else ()
+    ))
     if execute:
         for evidence in contracts._array(value["commandEvidence"], "/commandEvidence"):
             contracts._object(evidence, "/commandEvidence", (
@@ -324,6 +408,63 @@ def _store(root):
     contracts._enum(value["status"], "/status", ("active", "unknown", "reported"))
     for key in ("startedNs", "startedWallNs", "iterations", "toolCalls", "inputBytes", "outputBytes"):
         contracts._number(value[key], "/" + key, 0)
+    if accounting:
+        contracts._number(value["totalInputBytes"], "/totalInputBytes", 0)
+        components = contracts._object(value["promptComponents"], "/promptComponents", PROMPT_COMPONENTS)
+        for key in PROMPT_COMPONENTS:
+            contracts._number(components[key], "/promptComponents/" + key, 0)
+        if sum(components.values()) != value["totalInputBytes"]:
+            _issue("BINDING", "prompt component totals differ from transmitted input bytes")
+        if contracts._number(value["retries"], "/retries", 0) > 1:
+            _issue("BINDING", "runtime retry count is outside its approved attempt bound")
+        contracts._text(value["modelId"], "/modelId", 128)
+        contracts._text(value["providerId"], "/providerId", 128)
+        contracts._text(value["modelFamily"], "/modelFamily", 128)
+        contracts._text(value["modelVersion"], "/modelVersion", 128)
+        contracts._id(value["hostId"], "/hostId")
+        contracts._text(value["hostBuild"], "/hostBuild", 128)
+        for field in PROVIDER_USAGE_FIELDS:
+            if field == "authoritativeCost":
+                if value[field] is not None:
+                    _issue("USAGE", "authoritative pricing is unavailable from the current host")
+            elif value[field] is not None:
+                contracts._number(value[field], "/" + field, 0)
+    if lifecycle:
+        counts = contracts._object(
+            value["requestAccounting"], "/requestAccounting", REQUEST_ACCOUNTING_FIELDS,
+        )
+        for field in REQUEST_ACCOUNTING_FIELDS:
+            contracts._number(counts[field], "/requestAccounting/" + field, 0)
+        active = value["activeRequest"]
+        if active is not None:
+            active = contracts._object(active, "/activeRequest", (
+                "requestId", "status", "inputBytes", "promptComponents",
+            ))
+            contracts._number(active["requestId"], "/activeRequest/requestId", 1)
+            contracts._enum(active["status"], "/activeRequest/status", ("prepared", "dispatched"))
+            contracts._number(active["inputBytes"], "/activeRequest/inputBytes", 0)
+            components = contracts._object(
+                active["promptComponents"], "/activeRequest/promptComponents", PROMPT_COMPONENTS,
+            )
+            for key in PROMPT_COMPONENTS:
+                contracts._number(components[key], "/activeRequest/promptComponents/" + key, 0)
+            if sum(components.values()) != active["inputBytes"]:
+                _issue("BINDING", "active prompt components differ from its input byte count")
+            if active["requestId"] != counts["prepared"]:
+                _issue("BINDING", "active request is not the latest prepared request")
+        if (
+            counts["prepared"] < counts["dispatched"]
+            or counts["prepared"] < counts["completed"] + counts["interrupted"] + counts["unknown"]
+            or counts["dispatched"] < counts["completed"] + counts["interrupted"]
+            or value["iterations"] < counts["dispatched"]
+        ):
+            _issue("BINDING", "request lifecycle totals are inconsistent")
+        if value["activeRequest"] is not None and value["status"] != "active":
+            _issue("BINDING", "only active runtimes may retain an unfinished request")
+        if value["endedNs"] is not None:
+            contracts._number(value["endedNs"], "/endedNs", 0)
+        if value["elapsedMs"] is not None:
+            contracts._number(value["elapsedMs"], "/elapsedMs", 0)
     return value
 
 
@@ -342,13 +483,21 @@ def start(project_root, envelope, approved_runtime_digest, approved_request_dige
         if path.exists() and _store(root)["status"] != "reported":
             _issue("UNRESOLVED", "previous bounded work requires explicit host reconciliation")
         manager._write(root, path, {
-            "schemaVersion": 1 if envelope["schemaVersion"] == 3 else envelope["schemaVersion"],
+            "schemaVersion": 5,
             "runtimeDigest": state.digest(envelope),
             "requestDigest": state.digest(envelope["request"]),
             "callId": "runtime-" + uuid.uuid4().hex, "status": "active",
             "startedNs": time.monotonic_ns(), "startedWallNs": time.time_ns(), "iterations": 0, "toolCalls": 0,
             "inputBytes": 0, "outputBytes": 0,
-            **({"commandEvidence": []} if envelope["schemaVersion"] == 2 else {}),
+                "totalInputBytes": 0, "promptComponents": {name: 0 for name in PROMPT_COMPONENTS},
+                "retries": _approved_retries(envelope),
+                "modelId": envelope["model"]["id"], "providerId": envelope["model"]["vendor"],
+                "modelFamily": envelope["model"]["family"], "modelVersion": envelope["model"]["version"],
+                "hostId": envelope["request"]["host"]["id"], "hostBuild": envelope["request"]["host"]["build"],
+                **{field: None for field in PROVIDER_USAGE_FIELDS},
+            "commandEvidence": [],
+            "requestAccounting": {name: 0 for name in REQUEST_ACCOUNTING_FIELDS},
+            "activeRequest": None, "endedNs": None, "elapsedMs": None,
         })
 
     batch = None if envelope["schemaVersion"] != 3 else {
@@ -361,7 +510,7 @@ def start(project_root, envelope, approved_runtime_digest, approved_request_dige
                                 _guard=guard, _bounded=True, _batch=batch)
 
 
-def _current(root, envelope, revision=None, *, allow_command=False):
+def _current(root, envelope, revision=None, *, allow_command=False, allow_expired=False):
     envelope = _envelope(envelope)
     revision = revision or manager._load(root, envelope["request"]["binding"]["executionId"])["revisions"][-1]
     request = _prepared(root, envelope, revision, in_flight=True)
@@ -386,7 +535,9 @@ def _current(root, envelope, revision=None, *, allow_command=False):
     elapsed = time.monotonic_ns() - store["startedNs"]
     wall_elapsed = time.time_ns() - store["startedWallNs"]
     maximum = envelope["limits"]["maxWallMs"] * 1000000
-    if elapsed < 0 or elapsed >= maximum or wall_elapsed < 0 or wall_elapsed >= maximum:
+    if elapsed < 0 or wall_elapsed < 0 or (
+        not allow_expired and (elapsed >= maximum or wall_elapsed >= maximum)
+    ):
         _issue("LIMIT", "runtime wall-time lease expired")
     return store
 
@@ -404,16 +555,154 @@ def _charge(store, envelope, field, amount, limit):
     store[field] += amount
 
 
-def step(project_root, envelope, prompt):
+def step(project_root, envelope, prompt, component_bytes=None):
     manager._consent(manager._root(project_root), enabled=True)
     if not isinstance(prompt, str):
         _issue("PROTOCOL", "prompt must be text")
+    try:
+        prompt_size = len(prompt.encode("utf-8"))
+    except UnicodeEncodeError as error:
+        raise ContractIssue("E_RUNTIME_PROTOCOL", "/", "prompt must be valid UTF-8 text") from error
+    if component_bytes is None:
+        _issue("PROMPT", "prompt component byte accounting is required")
+    components = contracts._object(component_bytes, "/componentBytes", PROMPT_COMPONENTS)
+    for key in PROMPT_COMPONENTS:
+        contracts._number(components[key], "/componentBytes/" + key, 0)
+    if sum(components.values()) != prompt_size:
+        _issue("PROMPT", "component byte totals differ from the transmitted prompt")
     with manager._writer(project_root) as root:
         store = _current(root, envelope)
+        if store["schemaVersion"] == 5:
+            if store["activeRequest"] is not None:
+                _issue("UNRESOLVED", "a prepared model request must be dispatched or abandoned first")
+            if store["iterations"] >= envelope["limits"]["maxIterations"] or (
+                store["requestAccounting"]["prepared"] >= envelope["limits"]["maxIterations"]
+            ):
+                _issue("LIMIT", "approved runtime budget exhausted")
+            if store["inputBytes"] + prompt_size > envelope["limits"]["maxInputBytes"]:
+                _issue("LIMIT", "approved runtime budget exhausted")
+            request_id = store["requestAccounting"]["prepared"] + 1
+            store["requestAccounting"]["prepared"] += 1
+            store["activeRequest"] = {
+                "requestId": request_id, "status": "prepared", "inputBytes": prompt_size,
+                "promptComponents": components,
+            }
+            manager._write(root, _store_path(root), store)
+            return {**semantic_fields(), "requestId": request_id,
+                    "remainingOutputBytes": envelope["limits"]["maxOutputBytes"] - store["outputBytes"]}
         _charge(store, envelope, "iterations", 1, "maxIterations")
-        _charge(store, envelope, "inputBytes", len(prompt.encode("utf-8")), "maxInputBytes")
+        _charge(store, envelope, "inputBytes", prompt_size, "maxInputBytes")
+        if store["schemaVersion"] not in (3, 4):
+            _issue("PROMPT", "legacy runtime records cannot accept new prompt accounting")
+        store["totalInputBytes"] += prompt_size
+        for key in PROMPT_COMPONENTS:
+            store["promptComponents"][key] += components[key]
         manager._write(root, _store_path(root), store)
     return {**semantic_fields(), "remainingOutputBytes": envelope["limits"]["maxOutputBytes"] - store["outputBytes"]}
+
+
+def _active_request(store, request_id, status):
+    active = store.get("activeRequest")
+    if active is None or active["requestId"] != request_id or active["status"] != status:
+        _issue("BINDING", "model request lifecycle differs from the persisted prepared request")
+    return active
+
+
+def _accounting_current(root, envelope):
+    """Bind observation-only bookkeeping to the durable start, not current permission."""
+    envelope = _envelope(envelope)
+    store = _store(root)
+    request = envelope["request"]
+    if store["runtimeDigest"] != state.digest(envelope) or store["requestDigest"] != state.digest(request):
+        _issue("BINDING", "accounting differs from the started runtime")
+    if store["schemaVersion"] != 5 or store["status"] != "active":
+        _issue("UNRESOLVED", "accounting requires an active lifecycle runtime")
+    revision = manager._load(root, request["binding"]["executionId"])["revisions"][-1]
+    if state.digest(revision["plan"]) != request["binding"]["planDigest"]:
+        _issue("BINDING", "accounting plan differs from the started request")
+    brief = request["brief"]
+    if native._request_markers(revision["events"], brief["taskId"], brief["attemptId"]) != [
+        state.digest(request)
+    ]:
+        _issue("BINDING", "accounting lacks the unique durable native start")
+    if envelope["schemaVersion"] == 3 and native._batch_markers(
+        revision["events"], brief["taskId"], brief["attemptId"],
+    ) != [{"batchId": envelope["batch"]["batchId"], "batchDigest": envelope["batchDigest"],
+           "modelId": envelope["model"]["id"]}]:
+        _issue("BINDING", "accounting lacks the exact durable batch start")
+    return store
+
+
+def _finish(store):
+    ended = time.monotonic_ns()
+    elapsed = ended - store["startedNs"]
+    if elapsed < 0:
+        _issue("LIMIT", "monotonic runtime clock moved backwards")
+    store["endedNs"] = ended
+    store["elapsedMs"] = elapsed // 1000000
+
+
+def dispatch(project_root, envelope, request_id, outcome):
+    contracts._number(request_id, "/requestId", 1)
+    contracts._enum(outcome, "/outcome", ("dispatched", "unknown"))
+    with manager._writer(project_root) as root:
+        store = _accounting_current(root, envelope)
+        if store["schemaVersion"] != 5:
+            _issue("VERSION", "request lifecycle is unavailable for a legacy runtime store")
+        active = store["activeRequest"]
+        if active is None or active["requestId"] != request_id or (
+            active["status"] != "prepared" and outcome != "unknown"
+        ):
+            _issue("BINDING", "model request lifecycle differs from the persisted active request")
+        if active["status"] == "prepared":
+            _charge(store, envelope, "iterations", 1, "maxIterations")
+            _charge(store, envelope, "inputBytes", active["inputBytes"], "maxInputBytes")
+            store["totalInputBytes"] += active["inputBytes"]
+            for key in PROMPT_COMPONENTS:
+                store["promptComponents"][key] += active["promptComponents"][key]
+        if outcome == "dispatched":
+            store["requestAccounting"]["dispatched"] += 1
+            active["status"] = "dispatched"
+        else:
+            store["requestAccounting"]["unknown"] += 1
+            store["activeRequest"] = None
+            store["status"] = "unknown"
+        manager._write(root, _store_path(root), store)
+    return semantic_fields()
+
+
+def abandon(project_root, envelope, request_id):
+    manager._consent(manager._root(project_root), enabled=True)
+    contracts._number(request_id, "/requestId", 1)
+    with manager._writer(project_root) as root:
+        store = _current(root, envelope, allow_expired=True)
+        if store["schemaVersion"] != 5:
+            _issue("VERSION", "request lifecycle is unavailable for a legacy runtime store")
+        _active_request(store, request_id, "prepared")
+        store["activeRequest"] = None
+        manager._write(root, _store_path(root), store)
+    return semantic_fields()
+
+
+def settle(project_root, envelope, request_id, output_bytes, outcome):
+    contracts._number(request_id, "/requestId", 1)
+    contracts._number(output_bytes, "/outputBytes", 0)
+    contracts._enum(outcome, "/outcome", ("completed", "interrupted", "unknown"))
+    with manager._writer(project_root) as root:
+        store = _accounting_current(root, envelope)
+        if store["schemaVersion"] != 5:
+            _issue("VERSION", "request lifecycle is unavailable for a legacy runtime store")
+        active = _active_request(store, request_id, "dispatched")
+        if outcome == "completed":
+            _charge(store, envelope, "outputBytes", output_bytes, "maxOutputBytes")
+        else:
+            store["outputBytes"] += output_bytes
+        store["requestAccounting"][outcome] += 1
+        store["activeRequest"] = None
+        if outcome != "completed":
+            store["status"] = "unknown"
+        manager._write(root, _store_path(root), store)
+    return semantic_fields()
 
 
 def observe(project_root, envelope, response):
@@ -422,6 +711,8 @@ def observe(project_root, envelope, response):
         _issue("PROTOCOL", "response must be text")
     with manager._writer(project_root) as root:
         store = _current(root, envelope)
+        if store["schemaVersion"] == 5:
+            _issue("REQUEST", "new bounded calls must settle a dispatched request by byte count")
         _charge(store, envelope, "outputBytes", len(response.encode("utf-8")), "maxOutputBytes")
         manager._write(root, _store_path(root), store)
     return semantic_fields()
@@ -561,12 +852,42 @@ def _stop_command(project_root, envelope):
 
 def stop(project_root, envelope):
     envelope = _envelope(envelope)
-    _store(manager._root(project_root))
+    root = manager._root(project_root)
     with manager._writer(project_root) as root:
         store = _store(root)
         if store["runtimeDigest"] != state.digest(envelope):
             _issue("BINDING", "cannot stop a different runtime")
-        if store["status"] == "active":
+        if store["schemaVersion"] == 5:
+            if store["status"] in ("active", "unknown"):
+                if store["activeRequest"] is not None:
+                    store["requestAccounting"]["unknown"] += 1
+                    store["activeRequest"] = None
+                for entry in store["commandEvidence"]:
+                    if entry["status"] == "running":
+                        entry["status"] = "unknown"
+                store["status"] = "unknown"
+                if store["endedNs"] is None:
+                    _finish(store)
+                manager._write(root, _store_path(root), store)
+                if envelope["schemaVersion"] == 3:
+                    import execution_orchestration
+                    record = manager._load(root, envelope["request"]["binding"]["executionId"])
+                    revision = record["revisions"][-1]
+                    execution_orchestration.record_unknown_accounting_locked(
+                        root, record, revision, envelope["batch"], envelope["batchDigest"],
+                        envelope["request"]["brief"]["taskId"],
+                        envelope["request"]["brief"]["attemptId"], {
+                            "modelCalls": store["iterations"], "toolCalls": store["toolCalls"],
+                            "elapsedMs": store["elapsedMs"], "inputBytes": store["inputBytes"],
+                            "outputBytes": store["outputBytes"], "totalInputBytes": store["totalInputBytes"],
+                            "promptComponents": store["promptComponents"], "retries": store["retries"],
+                            "modelId": store["modelId"], "providerId": store["providerId"],
+                            "hostId": store["hostId"], "hostBuild": store["hostBuild"],
+                            "requestAccounting": store["requestAccounting"],
+                            **{field: store[field] for field in PROVIDER_USAGE_FIELDS},
+                        },
+                    )
+        elif store["status"] == "active":
             store["status"] = "unknown"
             for entry in store.get("commandEvidence", []):
                 if entry["status"] == "running":
@@ -598,6 +919,8 @@ def receive(project_root, envelope, result):
 
     def receipt_guard(locked, revision):
         current = _current(locked, envelope, revision)
+        if current.get("schemaVersion") == 5 and current["activeRequest"] is not None:
+            _issue("UNRESOLVED", "a model request has not completed before receipt")
         evidence = current.get("commandEvidence", [])
         if any(item["status"] == "running" for item in evidence):
             _issue("UNRESOLVED", "command work is not confirmed")
@@ -630,8 +953,16 @@ def receive(project_root, envelope, result):
         elapsed = (time.monotonic_ns() - store["startedNs"]) // 1000000
         if elapsed < 0:
             _issue("LIMIT", "monotonic runtime clock moved backwards")
-        usage = {"modelCalls": store["iterations"], "toolCalls": store["toolCalls"],
-                 "elapsedMs": elapsed, "inputBytes": store["inputBytes"], "outputBytes": store["outputBytes"]}
+        usage = {
+            "modelCalls": store["iterations"], "toolCalls": store["toolCalls"],
+            "elapsedMs": elapsed, "inputBytes": store["inputBytes"], "outputBytes": store["outputBytes"],
+            **{field: store[field] for field in (
+                "totalInputBytes", "promptComponents", "retries", "modelId", "providerId",
+                "hostId", "hostBuild", *PROVIDER_USAGE_FIELDS,
+            )},
+        }
+        if store["schemaVersion"] == 5:
+            usage["requestAccounting"] = store["requestAccounting"]
     output = native.receive_receipt(
         root, envelope["request"], receipt, store["callId"],
         _guard=receipt_guard, _batch=batch, _usage=usage,
@@ -641,5 +972,7 @@ def receive(project_root, envelope, result):
         if store["runtimeDigest"] != state.digest(envelope):
             _issue("BINDING", "runtime changed after receipt")
         store["status"] = "reported"
+        if store["schemaVersion"] == 5:
+            _finish(store)
         manager._write(root, _store_path(root), store)
     return output
