@@ -162,6 +162,21 @@ attributed, unaccepted note for the worker's specialist role. Context is not
 approval, acceptance evidence or an instruction override. Keep notes concise;
 never store secrets, transcripts or raw task output in them.
 
+Operator context updates, including otherwise idempotent updates, fail with
+`E_EXECUTION_CONTEXT_ACTIVE` while an attempt is running or blocked from a
+running state. The same manager writer lock serializes attempt start and
+context mutation, so the snapshot cannot change between a runtime step check
+and model dispatch or during subsequent model/tool work. Unconfirmed native
+attempts keep context frozen even after a local stop or an operator's terminal
+declaration; those declarations do not prove remote termination.
+
+A validated native receipt ends the active invocation, not the independent
+acceptance process. Context may then be updated while its result awaits
+review. A version-2 result's specialist note is committed atomically with that
+receipt under the manager lock. Terminal manual attempts also release the
+freeze. The next attempt must prepare and validate the latest context revision
+and digest; an envelope prepared before a successful update is stale.
+
 ## Storage, failure and recovery boundary
 
 Regular Git metadata uses `.git/sdlc/executions/<execution-id>.json`.
@@ -175,8 +190,11 @@ holds immutable revision history, consent snapshots, events, receipts and
 independent approval/acceptance records. Version 4 adds the digest-checked
 context object; versions 1 through 3 remain readable. A context update or
 version-2 task result upgrades the record through a validated manager
-transaction. No stored projection has authority. Reads validate the full
-history and rebuild state.
+transaction. Detailed bounded-batch accounting is a separately versioned
+controller event (legacy version 4 or lifecycle-aware version 5); it can be
+read inside record versions 3 and 4
+without changing the meanings of prior events. No stored projection has
+authority. Reads validate the full history and rebuild state.
 Atomic replacement is physical storage; manager operations cannot edit earlier
 logical entries. Receipt re-delivery with matching identity/content is a
 no-write idempotent operation; conflicting content fails.
@@ -251,7 +269,11 @@ not authorize PR handoff, risk acceptance, release or deployment.
 
 Retention is manual. No automatic export, pruning, analytics, optimization,
 telemetry or policy adoption is performed. Records contain structured metadata
-only: no raw command output, code, prompts or transcripts. Titles, paths,
+only: no raw command output, code, prompts or transcripts. Local runtime
+accounting separately retains bounded aggregate counters and prompt-component
+byte totals, never prompt text, transcripts, source code or command output.
+Persistent telemetry remains independently governed by its existing consent
+and privacy controls. Titles, paths,
 commands, revisions and summaries can nevertheless be sensitive. Do not put
 secrets, customer data or private content into any metadata field, and do not
 publish local records inadvertently. Validation is not a secret detector.

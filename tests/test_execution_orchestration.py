@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -23,6 +24,16 @@ ATTEMPT_LIMITS = {
     "maxIterations": 4, "maxToolCalls": 8, "maxInputBytes": 32768,
     "maxOutputBytes": 32768, "maxWallMs": 30000,
 }
+PROMPT_COMPONENTS = (
+    "executionProtocol", "taskBrief", "selectedRole", "sharedContext", "specialistContext",
+    "requirements", "securityConstraints", "permittedTools", "history",
+)
+
+
+def prompt_component_bytes(prompt):
+    sizes = {name: 0 for name in PROMPT_COMPONENTS}
+    sizes["executionProtocol"] = len(prompt.encode("utf-8"))
+    return sizes
 
 
 def batch(value, *, tasks=None):
@@ -97,6 +108,16 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         with self.assertRaises(ContractIssue) as caught:
             callback()
         self.assertEqual(code, caught.exception.code)
+
+    def complete_runtime_request(self, envelope, prompt, response):
+        prepared = self.runtime.step(
+            self.root, envelope, prompt, prompt_component_bytes(prompt),
+        )
+        self.runtime.dispatch(self.root, envelope, prepared["requestId"], "dispatched")
+        self.runtime.settle(
+            self.root, envelope, prepared["requestId"],
+            len(response.encode("utf-8")), "completed",
+        )
 
     def test_preview_is_disabled_read_only_and_spend_cap_fails_before_dispatch(self):
         request = batch(self.plan)
@@ -173,8 +194,7 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         self.assert_issue(lambda: self.manager.record_task(
             self.root, "feature-one", "implement", "progress", attempt["attemptId"], "Extra progress"
         ), "E_ORCHESTRATION_CAPACITY")
-        self.runtime.step(self.root, envelope, "synthetic prompt")
-        self.runtime.observe(self.root, envelope, "synthetic response")
+        self.complete_runtime_request(envelope, "synthetic prompt", "synthetic response")
         failed = result(self.plan)
         failed["status"] = "failed"
         failed["verification"][0].update(result="failed", command=None, revision=None, summary="failed")
@@ -184,6 +204,109 @@ class ExecutionOrchestrationTests(unittest.TestCase):
             self.root, "feature-one", "implement", "reject", attempt["attemptId"], "Independent rejection"
         )
         self.assertEqual(256, len(self.manager.inspect_execution(self.root, "feature-one")["events"]))
+
+    def test_interrupted_batch_attempt_has_exact_unknown_accounting_without_receipt(self):
+        self.activate()
+        current = self.manager.inspect_execution(self.root, "feature-one")
+        self.manager.update_context(
+            self.root, "feature-one", "shared", None, "Approved context",
+            current["planDigest"], current["context"]["revision"],
+        )
+        import execution_profiles
+        import execution_state
+        execution_profiles.install_profiles(self.root, dry_run=False)
+        request = batch(self.plan)
+        request["tasks"][0]["attempts"] = request["tasks"][0]["attempts"][:1]
+        preview = self.api.preview_batch(self.root, request)
+        self.api.approve_batch(self.root, request, preview["batchDigest"])
+        attempt = request["tasks"][0]["attempts"][0]
+        envelope = self.runtime.prepare_batch(
+            self.root, request, preview["batchDigest"], "implement", attempt["attemptId"],
+            attempt["brief"], "developer",
+            {"id": attempt["modelId"], "vendor": "synthetic", "family": "test", "version": "1"},
+            attempt["limits"],
+        )
+        self.runtime.start(
+            self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
+        )
+        prepared = self.runtime.step(
+            self.root, envelope, "synthetic prompt", prompt_component_bytes("synthetic prompt"),
+        )
+        self.runtime.dispatch(self.root, envelope, prepared["requestId"], "dispatched")
+        store = self.runtime.inspect(self.root)
+        store["startedNs"] = 0
+        self.manager._write(self.root, self.runtime._store_path(self.root), store)
+        self.runtime.stop(self.root, envelope)
+
+        inspected = self.manager.inspect_execution(self.root, "feature-one")
+        unknown = [event for event in inspected["events"]
+                   if event["type"] == "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN"]
+        self.assertEqual(1, len(unknown))
+        event = unknown[0]
+        self.assertEqual(5, event["schemaVersion"])
+        schema = json.loads((SCRIPTS.parent / "contracts" / "execution-event-v5.schema.json").read_text(
+            encoding="utf-8"))
+        self.assertEqual(schema["properties"]["schemaVersion"]["const"], event["schemaVersion"])
+        record_schema = json.loads((SCRIPTS.parent / "contracts" /
+            f"execution-record-v{inspected['record']['schemaVersion']}.schema.json").read_text(
+                encoding="utf-8"))
+        event_schemas = record_schema["properties"]["revisions"]["items"]["properties"]["events"]["items"]["oneOf"]
+        self.assertIn(
+            {"$ref": f"urn:sdlc:execution-event:{event['schemaVersion']}"},
+            event_schemas,
+        )
+        self.assertEqual("attempt-one", event["attemptId"])
+        self.assertEqual("review-batch", event["payload"]["batchId"])
+        self.assertEqual(preview["batchDigest"], event["payload"]["batchDigest"])
+        self.assertEqual(1, event["payload"]["modelCalls"])
+        self.assertEqual(1, event["payload"]["requestAccounting"]["dispatched"])
+        self.assertGreater(event["payload"]["elapsedMs"], attempt["limits"]["maxWallMs"])
+        self.assertNotIn("resultId", event["payload"])
+        self.assertEqual({}, inspected["record"]["revisions"][-1]["receipts"])
+        self.assertEqual("unknown-barrier", self.api.next_attempt(
+            self.root, request, preview["batchDigest"],
+        )["status"])
+
+    def test_unknown_accounting_survives_pause_and_records_observed_output_overshoot(self):
+        self.activate()
+        import execution_profiles
+        import execution_state
+        execution_profiles.install_profiles(self.root, dry_run=False)
+        request = batch(self.plan)
+        preview = self.api.preview_batch(self.root, request)
+        self.api.approve_batch(self.root, request, preview["batchDigest"])
+        attempt = request["tasks"][0]["attempts"][0]
+        envelope = self.runtime.prepare_batch(
+            self.root, request, preview["batchDigest"], "implement", attempt["attemptId"],
+            attempt["brief"], "developer",
+            {"id": attempt["modelId"], "vendor": "synthetic", "family": "test", "version": "1"},
+            attempt["limits"],
+        )
+        self.runtime.start(
+            self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
+        )
+        prepared = self.runtime.step(
+            self.root, envelope, "prompt", prompt_component_bytes("prompt"),
+        )
+        self.controls.set_pause(self.root, True, "Stop further work")
+        self.controls.configure_controls(self.root, batch_controls_policy())
+        self.assertEqual({}, self.controls.inspect_controls(self.root)["store"]["batchApprovals"])
+        self.runtime.dispatch(self.root, envelope, prepared["requestId"], "dispatched")
+        observed = attempt["limits"]["maxOutputBytes"] + 7
+        self.runtime.settle(self.root, envelope, prepared["requestId"], observed, "unknown")
+        self.runtime.stop(self.root, envelope)
+        inspected = self.manager.inspect_execution(self.root, "feature-one")
+        events = [event for event in inspected["events"]
+                  if event["type"] == "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN"]
+        self.assertEqual(1, len(events))
+        self.assertEqual(preview["batchDigest"], events[0]["payload"]["batchDigest"])
+        self.assertEqual(observed, events[0]["payload"]["outputBytes"])
+        self.assertNotIn("resultId", events[0]["payload"])
+        self.assertEqual({}, inspected["record"]["revisions"][-1]["receipts"])
+        self.assert_issue(
+            lambda: self.runtime.step(self.root, envelope, "prompt", prompt_component_bytes("prompt")),
+            "E_RUNTIME_CONTROLS",
+        )
 
     def test_pending_retry_reserves_capacity_until_real_second_start(self):
         other = task("other")
@@ -210,8 +333,7 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         self.runtime.start(
             self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
         )
-        self.runtime.step(self.root, envelope, "synthetic prompt")
-        self.runtime.observe(self.root, envelope, "synthetic response")
+        self.complete_runtime_request(envelope, "synthetic prompt", "synthetic response")
         failed = result(self.plan)
         failed["status"] = "failed"
         failed["verification"][0].update(result="failed", command=None, revision=None, summary="failed")
@@ -225,8 +347,7 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         self.runtime.start(
             self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
         )
-        self.runtime.step(self.root, envelope, "synthetic retry prompt")
-        self.runtime.observe(self.root, envelope, "synthetic retry response")
+        self.complete_runtime_request(envelope, "synthetic retry prompt", "synthetic retry response")
         failed["attemptId"] = "attempt-two"
         self.runtime.receive(self.root, envelope, failed)
         self.manager.record_task(
@@ -273,7 +394,11 @@ class ExecutionOrchestrationTests(unittest.TestCase):
             "urn:sdlc:execution-controls-policy:3",
             "urn:sdlc:execution-controls-record:3",
             "urn:sdlc:execution-event:2",
+            "urn:sdlc:execution-event:4",
+            "urn:sdlc:execution-event:5",
+            "urn:sdlc:execution-record:3",
             "urn:sdlc:execution-record:2",
+            "urn:sdlc:execution-record:4",
         }
         self.assertTrue(expected <= set(schemas))
         for name in expected:
@@ -299,8 +424,7 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         self.runtime.start(
             self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
         )
-        self.runtime.step(self.root, envelope, "synthetic prompt")
-        self.runtime.observe(self.root, envelope, "synthetic response")
+        self.complete_runtime_request(envelope, "synthetic prompt", "synthetic response")
         reported = result(self.plan)
         reported["attemptId"] = attempt["attemptId"]
         reported["findings"] = ["RAW_WORKER_TEXT_MUST_NOT_BE_PERSISTED"]
@@ -329,8 +453,10 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         self.runtime.start(
             self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
         )
-        self.runtime.step(self.root, envelope, "RAW_MODEL_PROMPT_MUST_NOT_PERSIST")
-        self.runtime.observe(self.root, envelope, "RAW_PROVIDER_TRANSCRIPT_MUST_NOT_PERSIST")
+        raw_prompt = "RAW_MODEL_PROMPT_MUST_NOT_PERSIST"
+        self.complete_runtime_request(
+            envelope, raw_prompt, "RAW_PROVIDER_TRANSCRIPT_MUST_NOT_PERSIST",
+        )
         failed = result(self.plan)
         failed["attemptId"] = first["attemptId"]
         failed["status"] = "failed"
@@ -359,6 +485,62 @@ class ExecutionOrchestrationTests(unittest.TestCase):
         after = self.manager.inspect_execution(self.root, "feature-one")
         self.assertEqual("ready", after["state"]["tasks"]["implement"]["status"])
         self.assertEqual("attempt-two", after["state"]["tasks"]["implement"]["pendingAttemptId"])
+        accounting = [
+            event for event in after["events"]
+            if event["type"] == "BATCH_ATTEMPT_ACCOUNTED"
+        ]
+        self.assertEqual([5], [event["schemaVersion"] for event in accounting])
+        first_usage = accounting[0]["payload"]
+        self.assertEqual(1, first_usage["modelCalls"])
+        self.assertEqual(0, first_usage["toolCalls"])
+        self.assertEqual(0, first_usage["retries"])
+        self.assertEqual(len(raw_prompt.encode("utf-8")), first_usage["totalInputBytes"])
+        self.assertEqual(first_usage["totalInputBytes"], sum(first_usage["promptComponents"].values()))
+        self.assertEqual("model-one", first_usage["modelId"])
+        self.assertEqual("synthetic", first_usage["providerId"])
+        for field in (
+            "providerInputTokens", "providerOutputTokens", "cachedInputTokens",
+            "billableInputTokens", "billableOutputTokens", "authoritativeCost",
+        ):
+            self.assertIsNone(first_usage[field])
+
+        retry = self.api.next_attempt(self.root, request, preview["batchDigest"])
+        second = request["tasks"][0]["attempts"][1]
+        retry_envelope = self.runtime.prepare_batch(
+            self.root, request, preview["batchDigest"], "implement", second["attemptId"],
+            second["brief"], "developer",
+            {"id": second["modelId"], "vendor": "synthetic", "family": "test", "version": "1"},
+            second["limits"],
+        )
+        self.runtime.start(
+            self.root, retry_envelope, execution_state.digest(retry_envelope),
+            execution_state.digest(retry_envelope["request"]),
+        )
+        self.complete_runtime_request(retry_envelope, "retry prompt", "retry response")
+        completed = result(self.plan)
+        completed["attemptId"] = retry["attemptId"]
+        completed["status"] = "failed"
+        completed["verification"][0].update(
+            result="failed", command=None, revision=None, summary="failed",
+        )
+        self.runtime.receive(self.root, retry_envelope, completed)
+        retried = self.manager.inspect_execution(self.root, "feature-one")
+        retry_usage = [
+            event["payload"] for event in retried["events"]
+            if event["type"] == "BATCH_ATTEMPT_ACCOUNTED"
+        ]
+        self.assertEqual([0, 1], [event["retries"] for event in retry_usage])
+        self.assertEqual(["model-one", "model-two"], [event["modelId"] for event in retry_usage])
+        cumulative_prompt_components = {
+            component: sum(item["promptComponents"][component] for item in retry_usage)
+            for component in PROMPT_COMPONENTS
+        }
+        self.assertEqual(2, sum(item["modelCalls"] for item in retry_usage))
+        self.assertEqual(1, sum(item["retries"] for item in retry_usage))
+        self.assertEqual(
+            sum(item["totalInputBytes"] for item in retry_usage),
+            sum(cumulative_prompt_components.values()),
+        )
 
     def test_batch_approval_binds_exact_digest_and_current_policy(self):
         self.activate()
@@ -499,8 +681,7 @@ class ExecutionOrchestrationTests(unittest.TestCase):
             self.runtime.start(
                 self.root, envelope, execution_state.digest(envelope), execution_state.digest(envelope["request"])
             )
-            self.runtime.step(self.root, envelope, "synthetic prompt")
-            self.runtime.observe(self.root, envelope, "synthetic response")
+            self.complete_runtime_request(envelope, "synthetic prompt", "synthetic response")
             reported = result(self.plan)
             reported.update(taskId=task_id, attemptId=attempt["attemptId"], artifacts=[item_path
                 for item_path in next(entry for entry in self.plan["tasks"] if entry["id"] == task_id)["ownership"]])

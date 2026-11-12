@@ -82,6 +82,96 @@ IDs). Provider billing, actual spend, and remote termination remain
 unobservable; the batch supports no monetary cap. A non-null `maxSpendMinor`
 is refused before dispatch.
 
+## Deterministic prompts and local accounting
+
+The bounded request supplies the selected role identity, profile-digest-bound
+instructions, shared-context revision/digest, and applicable
+specialist-context digest/content. The worker cannot select or reconstruct a
+different role or context. Missing, stale, invalid or mismatched bindings are
+rejected rather than replaced with generic instructions.
+
+The manager freezes operator context mutation from attempt start through
+confirmed completion, including the gap between step validation and adapter
+invocation. A local stop does not release unconfirmed native work. After a
+validated receipt, context can change without accepting the task, and the next
+attempt must bind the latest revision and digest.
+
+The driver builds a fixed-order prompt from named components: execution
+protocol, task brief, selected role, shared context, specialist context,
+requirements, security constraints, permitted tools, and necessary history.
+The runtime has no safe structured signal to declare a distinct prior tool
+result irrelevant, so it conservatively retains distinct results and evidence
+from the bounded run. Validated edits are referenced by path and digest instead
+of repeating source contents. Consecutive read/search observations that are
+identical under deterministic serialization are represented once with their
+occurrence count; changed or nonconsecutive observations remain distinct.
+Required content is never silently truncated or semantically compressed.
+Prompts over the supported limit fail visibly before a model request.
+
+This conservative retention policy does not prove that every distinct result
+remains necessary. The approved foundation PRD's stronger FR-2 / AC-2
+relevance claim remains partially satisfied. The
+[implementation plan](../../docs/plans/token-efficiency-foundation.md#history-acceptance-decision)
+records a proposed amendment requiring explicit maintainer approval; the
+implementation does not silently waive that criterion.
+
+The ignored local runtime record stores aggregate measurements, not prompt
+text, transcripts, source code or command output. Prompt-component and total
+input bytes are UTF-8 bytes of the exact model-facing prompt, counted on every
+call and accumulated across the bounded execution. Existing input bytes also
+include tool arguments and remain the execution-limit counter. Output bytes
+include model response text and tool-result content. Model calls, dispatched
+tool operations, manager-approved retries, elapsed attempt time, and
+model/provider/host identifiers are recorded as available. Batch accounting
+events preserve these aggregates per attempt. Summing events for the exact
+approved batch ID and digest derives cumulative batch totals, including prompt
+components, total input bytes, retries, and elapsed attempt durations; no
+separate aggregate event is persisted. Batch limits are checked cumulatively
+across all attempts. New local accounting stores use schema version 5 for all
+bounded runs, with request lifecycle aggregates and terminal timing. Existing
+version-1 through version-4 stores remain readable without migration.
+Supported legacy operations update counters and status in the existing store
+version; reading does not migrate it. A newly admitted attempt writes version 5
+only after the previous runtime is reported. Active or unknown stores block
+restart.
+Versions 1 and 2 cannot accept prompt-component accounting; versions 3 and 4
+retain their original reservation-based counters rather than being silently
+reinterpreted as lifecycle observations.
+
+Request preparation (`step`) checks the full prompt budget and records a
+bounded numeric reservation, not a confirmed call or transmitted-byte charge.
+The driver invokes the adapter before confirming dispatch through the bridge.
+Stream completion and interruption are separate settlements; cancellation
+before invocation abandons the reservation without adding a model call.
+Observed partial response text is counted as UTF-8 bytes of the concatenated
+prefix, never persisted as text. Unknown outcomes remain unknown and block
+redispatch. A process crash between adapter invocation and durable accounting
+cannot establish remote transmission; unresolved preparation is explicitly
+classified as unknown, not invented as confirmed dispatch.
+
+`modelCalls` counts durably recorded adapter invocations, including a
+synchronous throw; `requestAccounting.dispatched` counts normal adapter-return
+confirmations, not remote delivery. Stream completion means only that the
+stream ended. Even completed streams may contain invalid protocol and leave
+the task unknown. Delivered overflow bytes are recorded on unknown/interrupted
+outcomes rather than clamped; exceeding the output budget still stops work
+before any further tool or receipt. See the
+[complete lifecycle definitions](../../docs/EXECUTION-ORCHESTRATION.md#prompt-construction-and-accounting).
+
+Single-run terminal timing is persisted on reported completion or local stop.
+A local stop records elapsed attempt time without claiming remote termination.
+Batch version-5 events distinguish receipt-backed accounting from
+unknown-attempt aggregates and preserve exact batch and attempt bindings.
+Unknown aggregates are not complete successful-execution totals. No raw
+prompt, transcript or tool output is retained.
+
+Transmitted bytes are not provider-processed or billable tokens. The current
+host path does not expose authoritative input/output, cached or billable token
+usage, or pricing, so those fields and authoritative cost remain `null`.
+There is no byte-to-token estimate. Local accounting is separate from
+persistent telemetry, which remains governed by existing consent and privacy
+controls.
+
 ## Supported tools and authority
 
 - Read and literal line search: only exact brief ownership/guidance paths.

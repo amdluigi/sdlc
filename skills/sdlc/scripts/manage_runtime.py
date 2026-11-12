@@ -20,7 +20,7 @@ def main(argv=None):
     parser.add_argument("operation", choices=("prepare", "prepare_execute", "preview_batch", "preview_batch_json",
                                             "approve_batch",
                                             "next_attempt", "prepare_batch", "start", "check", "step",
-                                            "observe", "tool", "receive", "stop"))
+                                            "dispatch", "abandon", "settle", "observe", "tool", "receive", "stop"))
     parser.add_argument("--project-root", required=True)
     args = parser.parse_args(argv)
     try:
@@ -40,7 +40,10 @@ def main(argv=None):
             "next_attempt": ("batch", "batchDigest"),
             "prepare_batch": ("batch", "batchDigest", "taskId", "attemptId", "brief", "role", "model", "limits"),
             "start": ("envelope", "approvedRuntimeDigest", "approvedRequestDigest"),
-            "check": ("envelope",), "step": ("envelope", "prompt"),
+            "check": ("envelope",), "step": ("envelope", "prompt", "componentBytes"),
+            "dispatch": ("envelope", "requestId", "outcome"),
+            "abandon": ("envelope", "requestId"),
+            "settle": ("envelope", "requestId", "outputBytes", "outcome"),
             "observe": ("envelope", "response"), "tool": ("envelope", "name", "arguments"),
             "receive": ("envelope", "result"), "stop": ("envelope",),
         }

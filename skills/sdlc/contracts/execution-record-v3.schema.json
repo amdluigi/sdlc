@@ -47,7 +47,9 @@
               "oneOf": [
                 {"$ref": "urn:sdlc:execution-event:1"},
                 {"$ref": "urn:sdlc:execution-event:2"},
-                {"$ref": "urn:sdlc:execution-event:3"}
+                {"$ref": "urn:sdlc:execution-event:3"},
+                {"$ref": "urn:sdlc:execution-event:4"},
+                {"$ref": "urn:sdlc:execution-event:5"}
               ]
             }
           },

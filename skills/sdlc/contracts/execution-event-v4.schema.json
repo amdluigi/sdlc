@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sdlc:execution-event:4",
+  "title": "Versioned bounded-execution accounting event, version 4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "eventId", "binding", "sequence", "occurredAt", "recordedAt",
+    "actor", "type", "taskId", "attemptId", "payload"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 4},
+    "eventId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "binding": {"$ref": "urn:sdlc:execution-plan:1#/$defs/binding"},
+    "sequence": {"$ref": "urn:sdlc:execution-plan:1#/$defs/positiveInteger"},
+    "occurredAt": {"$ref": "urn:sdlc:execution-event:1#/properties/occurredAt"},
+    "recordedAt": {"$ref": "urn:sdlc:execution-event:1#/properties/recordedAt"},
+    "actor": {
+      "type": "object", "additionalProperties": false, "required": ["role", "id"],
+      "properties": {"role": {"const": "manager"}, "id": {"const": "local-orchestrator"}}
+    },
+    "type": {"const": "BATCH_ATTEMPT_ACCOUNTED"},
+    "taskId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "attemptId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+    "payload": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "batchId", "batchDigest", "resultId", "briefDigest", "modelCalls", "toolCalls",
+        "elapsedMs", "inputBytes", "outputBytes", "totalInputBytes", "promptComponents",
+        "retries", "modelId", "providerId", "hostId", "hostBuild", "providerInputTokens",
+        "providerOutputTokens", "cachedInputTokens", "billableInputTokens",
+        "billableOutputTokens", "authoritativeCost"
+      ],
+      "properties": {
+        "batchId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "batchDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        "resultId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "briefDigest": {"$ref": "urn:sdlc:execution-plan:1#/$defs/digest"},
+        "modelCalls": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "toolCalls": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "elapsedMs": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "inputBytes": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "outputBytes": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "totalInputBytes": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+        "promptComponents": {
+          "type": "object", "additionalProperties": false,
+          "required": [
+            "executionProtocol", "taskBrief", "selectedRole", "sharedContext",
+            "specialistContext", "requirements", "securityConstraints", "permittedTools", "history"
+          ],
+          "properties": {
+            "executionProtocol": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "taskBrief": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "selectedRole": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "sharedContext": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "specialistContext": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "requirements": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "securityConstraints": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "permittedTools": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"},
+            "history": {"$ref": "urn:sdlc:execution-plan:1#/$defs/nonnegativeInteger"}
+          }
+        },
+        "retries": {
+          "type": "integer", "minimum": 0, "maximum": 1
+        },
+        "modelId": {
+          "type": "string", "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}(?![\\s\\S])"
+        },
+        "providerId": {"type": "string", "minLength": 1, "maxLength": 128},
+        "hostId": {"$ref": "urn:sdlc:execution-plan:1#/$defs/id"},
+        "hostBuild": {"type": "string", "minLength": 1, "maxLength": 128},
+        "providerInputTokens": {"type": ["integer", "null"], "minimum": 0},
+        "providerOutputTokens": {"type": ["integer", "null"], "minimum": 0},
+        "cachedInputTokens": {"type": ["integer", "null"], "minimum": 0},
+        "billableInputTokens": {"type": ["integer", "null"], "minimum": 0},
+        "billableOutputTokens": {"type": ["integer", "null"], "minimum": 0},
+        "authoritativeCost": {"const": null}
+      }
+    }
+  }
+}

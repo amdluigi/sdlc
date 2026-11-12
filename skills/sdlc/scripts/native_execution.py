@@ -321,7 +321,7 @@ def receive_receipt(project_root, request, receipt, result_id, *, _guard=None, _
         if validated["schemaVersion"] == 2:
             if record["schemaVersion"] < 4:
                 record["context"] = state.empty_context()
-            record["schemaVersion"] = 4
+            record["schemaVersion"] = max(record["schemaVersion"], 4)
             if validated["contextUpdate"] is not None:
                 manager._set_context(record, "agent", request["role"], validated["contextUpdate"],
                                      "worker", revision["plan"]["revision"])

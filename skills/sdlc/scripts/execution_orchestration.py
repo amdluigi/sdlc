@@ -334,7 +334,7 @@ def next_attempt(project_root, value, approved_digest):
                     continue
                 return {**semantic_fields(), "status": "not-retryable", "taskId": task_id, "dispatch": False}
             accounted = any(
-                isinstance(event, dict) and event.get("schemaVersion") == 2
+                isinstance(event, dict) and event.get("schemaVersion") in (2, 4, 5)
                 and event["type"] == "BATCH_ATTEMPT_ACCOUNTED"
                 and event["payload"]["batchId"] == batch["batchId"]
                 and event["payload"]["batchDigest"] == approved_digest
@@ -404,6 +404,23 @@ def check_batch_attempt(project_root, batch, approved_digest, task_id, attempt_i
     )
     if attempt is None or attempt["modelId"] != model_id or attempt["limits"] != limits:
         raise ContractIssue("E_ORCHESTRATION_BINDING", "/", "runtime choice differs from the exact batch attempt")
+    accounted_events = [
+        event for event in current["events"]
+        if isinstance(event, dict) and event.get("schemaVersion") in (2, 4, 5)
+        and event["type"] in ("BATCH_ATTEMPT_ACCOUNTED", "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN")
+        and event["payload"]["batchId"] == batch["batchId"]
+        and event["payload"]["batchDigest"] == approved_digest
+    ]
+    totals = {
+        field: sum(event["payload"][field] for event in accounted_events)
+        for field in ("modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes")
+    }
+    batch_limits = {
+        "modelCalls": "maxCalls", "toolCalls": "maxToolCalls", "elapsedMs": "maxWallMs",
+        "inputBytes": "maxInputBytes", "outputBytes": "maxOutputBytes",
+    }
+    if any(totals[field] > approval["limits"][limit] for field, limit in batch_limits.items()):
+        raise ContractIssue("E_ORCHESTRATION_LIMIT", "/batch", "recorded batch usage exhausted its approved bound")
     projected = current["state"]["tasks"][task_id]
     ready_id = projected.get("pendingAttemptId")
     active = in_flight and projected["status"] == "running" and projected.get("attemptId") == attempt_id
@@ -434,21 +451,71 @@ def record_accounting_locked(root, record, revision, batch_id, batch_digest_valu
     contracts._digest(batch_digest_value, "/batchDigest")
     for value, pointer in ((task_id, "/taskId"), (attempt_id, "/attemptId"), (result_id, "/resultId")):
         contracts._id(value, pointer)
-    usage = contracts._object(usage, "/usage", (
-        "modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes",
-    ))
-    for field in usage:
+    base_fields = (
+        "modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes", "totalInputBytes",
+        "promptComponents", "retries", "modelId", "providerId", "hostId", "hostBuild",
+        "providerInputTokens", "providerOutputTokens", "cachedInputTokens",
+        "billableInputTokens", "billableOutputTokens", "authoritativeCost",
+    )
+    lifecycle = isinstance(usage, dict) and "requestAccounting" in usage
+    usage = contracts._object(
+        usage, "/usage", base_fields + (("requestAccounting",) if lifecycle else ())
+    )
+    for field in ("modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes",
+                  "totalInputBytes", "retries"):
         contracts._number(usage[field], "/usage/" + field, 0)
+    if usage["totalInputBytes"] > usage["inputBytes"]:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/totalInputBytes",
+                            "model-facing input bytes exceed bounded input bytes")
+    if usage["retries"] > 1:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/retries",
+                            "retry count exceeds the approved attempt bound")
+    components = contracts._object(
+        usage["promptComponents"], "/usage/promptComponents", contracts.PROMPT_COMPONENT_FIELDS,
+    )
+    for component in contracts.PROMPT_COMPONENT_FIELDS:
+        contracts._number(components[component], "/usage/promptComponents/" + component, 0)
+    if sum(components.values()) != usage["totalInputBytes"]:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/promptComponents",
+                            "component totals differ from model-facing input bytes")
+    contracts._text(usage["modelId"], "/usage/modelId", 128)
+    contracts._text(usage["providerId"], "/usage/providerId", 128)
+    contracts._id(usage["hostId"], "/usage/hostId")
+    contracts._text(usage["hostBuild"], "/usage/hostBuild", 128)
+    for field in ("providerInputTokens", "providerOutputTokens", "cachedInputTokens",
+                  "billableInputTokens", "billableOutputTokens"):
+        if usage[field] is not None:
+            contracts._number(usage[field], "/usage/" + field, 0)
+    if usage["authoritativeCost"] is not None:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/authoritativeCost",
+                            "authoritative provider pricing is unavailable")
+    if lifecycle:
+        counts = contracts._object(usage["requestAccounting"], "/usage/requestAccounting", (
+            "prepared", "dispatched", "completed", "interrupted", "unknown",
+        ))
+        for field in ("prepared", "dispatched", "completed", "interrupted", "unknown"):
+            contracts._number(counts[field], "/usage/requestAccounting/" + field, 0)
+        if (
+            counts["prepared"] < counts["dispatched"]
+            or counts["prepared"] < counts["completed"] + counts["interrupted"] + counts["unknown"]
+            or counts["dispatched"] < counts["completed"] + counts["interrupted"]
+            or counts["interrupted"] or counts["unknown"]
+        ):
+            raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/requestAccounting",
+                                "completed accounting has unresolved request lifecycle states")
     store = controls._active(root)
     approval = store["batchApprovals"].get(batch_id)
     if approval is None or approval["batchDigest"] != batch_digest_value:
         raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/", "attempt accounting is not bound to approved batch")
-    attempt = next(
-        (candidate for candidate in approval["attempts"]
-         if candidate["taskId"] == task_id and candidate["attemptId"] == attempt_id), None
-    )
-    if attempt is None:
+    task_attempts = [candidate for candidate in approval["attempts"] if candidate["taskId"] == task_id]
+    attempt_index = next((index for index, candidate in enumerate(task_attempts)
+                          if candidate["attemptId"] == attempt_id), None)
+    if attempt_index is None:
         raise ContractIssue("E_ORCHESTRATION_BINDING", "/", "attempt is absent from the approved batch")
+    attempt = task_attempts[attempt_index]
+    if usage["modelId"] != attempt["modelId"] or usage["retries"] != int(attempt_index > 0):
+        raise ContractIssue("E_ORCHESTRATION_BINDING", "/usage",
+                            "accounting model or retry count differs from the approved attempt")
     receipt = revision["receipts"].get(result_id)
     if receipt is None or receipt.get("briefDigest") != attempt["briefDigest"]:
         raise ContractIssue("E_ORCHESTRATION_RECEIPT", "/resultId",
@@ -461,14 +528,15 @@ def record_accounting_locked(root, record, revision, batch_id, batch_digest_valu
     if any(usage[field] > limits[limit] for field, limit in mapping.items()):
         raise ContractIssue("E_ORCHESTRATION_LIMIT", "/usage", "observed attempt exceeded its approved bound")
     existing = [event for event in revision["events"] if isinstance(event, dict)
-                and event.get("schemaVersion") == 2
-                and event["type"] == "BATCH_ATTEMPT_ACCOUNTED"
+                and event.get("schemaVersion") in (2, 4, 5)
+                and event["type"] in ("BATCH_ATTEMPT_ACCOUNTED", "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN")
                 and event["payload"]["batchId"] == batch_id]
     existing = [event for event in existing if event["payload"]["batchDigest"] == batch_digest_value]
     if any(event["attemptId"] == attempt_id for event in existing):
         raise ContractIssue("E_ORCHESTRATION_DUPLICATE", "/attemptId",
                             "attempt accounting already exists")
-    totals = {field: usage[field] for field in usage}
+    resource_fields = ("modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes")
+    totals = {field: usage[field] for field in resource_fields}
     for event in existing:
         for field in totals:
             totals[field] += event["payload"][field]
@@ -485,8 +553,125 @@ def record_accounting_locked(root, record, revision, batch_id, batch_digest_valu
     ):
         raise ContractIssue("E_ORCHESTRATION_RECEIPT", "/resultId",
                             "accounting requires the matching reported manager receipt")
+    record_version = record["schemaVersion"]
     manager._append_controller(record, revision, "BATCH_ATTEMPT_ACCOUNTED", task_id, attempt_id, {
         "batchId": batch_id, "batchDigest": batch_digest_value, "resultId": result_id,
         "briefDigest": attempt["briefDigest"], **usage,
-    })
+    }, version=5 if lifecycle else 4)
+    if lifecycle:
+        record["schemaVersion"] = max(record_version, 3)
     return {"batchId": batch_id, "attemptId": attempt_id, "usage": usage}
+
+
+def record_unknown_accounting_locked(root, record, revision, batch, batch_digest_value,
+                                     task_id, attempt_id, usage):
+    batch = validate_batch_contract(batch)
+    batch_id = batch["batchId"]
+    contracts._digest(batch_digest_value, "/batchDigest")
+    task_id, attempt_id = contracts._id(task_id, "/taskId"), contracts._id(attempt_id, "/attemptId")
+    fields = (
+        "modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes", "totalInputBytes",
+        "promptComponents", "retries", "modelId", "providerId", "hostId", "hostBuild",
+        "providerInputTokens", "providerOutputTokens", "cachedInputTokens", "billableInputTokens",
+        "billableOutputTokens", "authoritativeCost", "requestAccounting",
+    )
+    usage = contracts._object(usage, "/usage", fields)
+    for field in ("modelCalls", "toolCalls", "elapsedMs", "inputBytes", "outputBytes",
+                  "totalInputBytes", "retries"):
+        contracts._number(usage[field], "/usage/" + field, 0)
+    if usage["totalInputBytes"] > usage["inputBytes"]:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/totalInputBytes",
+                            "model-facing input bytes exceed bounded input bytes")
+    if usage["retries"] > 1:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/retries",
+                            "retry count exceeds the attempt bound")
+    components = contracts._object(
+        usage["promptComponents"], "/usage/promptComponents", contracts.PROMPT_COMPONENT_FIELDS,
+    )
+    for component in contracts.PROMPT_COMPONENT_FIELDS:
+        contracts._number(components[component], "/usage/promptComponents/" + component, 0)
+    if sum(components.values()) != usage["totalInputBytes"]:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/promptComponents",
+                            "component totals differ from model-facing input bytes")
+    counts = contracts._object(usage["requestAccounting"], "/usage/requestAccounting", (
+        "prepared", "dispatched", "completed", "interrupted", "unknown",
+    ))
+    for field in ("prepared", "dispatched", "completed", "interrupted", "unknown"):
+        contracts._number(counts[field], "/usage/requestAccounting/" + field, 0)
+    if (
+        counts["prepared"] < counts["dispatched"]
+        or counts["prepared"] < counts["completed"] + counts["interrupted"] + counts["unknown"]
+        or counts["dispatched"] < counts["completed"] + counts["interrupted"]
+    ):
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/requestAccounting",
+                            "request lifecycle totals are inconsistent")
+    contracts._text(usage["modelId"], "/usage/modelId", 128)
+    contracts._text(usage["providerId"], "/usage/providerId", 128)
+    contracts._id(usage["hostId"], "/usage/hostId")
+    contracts._text(usage["hostBuild"], "/usage/hostBuild", 128)
+    for field in ("providerInputTokens", "providerOutputTokens", "cachedInputTokens",
+                  "billableInputTokens", "billableOutputTokens"):
+        if usage[field] is not None:
+            raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/" + field,
+                                "provider usage is unavailable from the current host")
+    if usage["authoritativeCost"] is not None:
+        raise ContractIssue("E_ORCHESTRATION_ACCOUNTING", "/usage/authoritativeCost",
+                            "authoritative provider pricing is unavailable")
+
+    import native_execution
+    expected_marker = {"batchId": batch_id, "batchDigest": batch_digest_value,
+                       "modelId": usage["modelId"]}
+    # The caller binds the full envelope to its durable runtime digest. The start
+    # marker survives revoked approval and authorizes observation only, never work.
+    if native_execution._batch_markers(revision["events"], task_id, attempt_id) != [expected_marker]:
+        raise ContractIssue("E_ORCHESTRATION_APPROVAL", "/batchDigest",
+                            "unknown accounting lacks the exact original batch start binding")
+    batch_item = next((item for item in batch["tasks"] if item["taskId"] == task_id), None)
+    attempt_index = None if batch_item is None else next(
+        (index for index, candidate in enumerate(batch_item["attempts"])
+         if candidate["attemptId"] == attempt_id), None
+    )
+    attempt = None if attempt_index is None else batch_item["attempts"][attempt_index]
+    if attempt is None or usage["modelId"] != attempt["modelId"] or (
+        usage["retries"] != int(attempt_index > 0)
+    ):
+        raise ContractIssue("E_ORCHESTRATION_BINDING", "/usage",
+                            "unknown accounting differs from its approved model attempt")
+    if any(usage[field] > attempt["limits"][limit] for field, limit in {
+        "modelCalls": "maxIterations", "toolCalls": "maxToolCalls",
+        "inputBytes": "maxInputBytes",
+    }.items()):
+        raise ContractIssue("E_ORCHESTRATION_LIMIT", "/usage",
+                            "unknown attempt exceeded an approved call or input bound")
+    attempt_key = (batch_id, batch_digest_value, task_id, attempt_id)
+    existing = [event for event in revision["events"] if isinstance(event, dict)
+                and event.get("schemaVersion") in (2, 4, 5)
+                and event["type"] in ("BATCH_ATTEMPT_ACCOUNTED", "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN")
+                and (event["payload"]["batchId"], event["payload"]["batchDigest"],
+                     event["taskId"], event["attemptId"]) == attempt_key]
+    if existing:
+        expected = {
+            "batchId": batch_id, "batchDigest": batch_digest_value,
+            "briefDigest": state.digest(attempt["brief"]), **usage,
+        }
+        if len(existing) == 1 and existing[0]["type"] == "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN" and (
+            existing[0]["payload"] == expected
+        ):
+            return {"batchId": batch_id, "attemptId": attempt_id, "idempotent": True}
+        raise ContractIssue("E_ORCHESTRATION_DUPLICATE", "/attemptId",
+                            "attempt already has conflicting batch accounting")
+
+    projected = manager._projection(revision, allow_controller=True)["tasks"][task_id]
+    if projected["status"] != "running" or projected["attemptId"] != attempt_id:
+        raise ContractIssue("E_ORCHESTRATION_RECEIPT", "/attemptId",
+                            "unknown accounting requires the exact still-running attempt")
+    batch_attempt = batch_item["attempts"][attempt_index]
+    record_version = record["schemaVersion"]
+    manager._append_controller(record, revision, "BATCH_ATTEMPT_ACCOUNTING_UNKNOWN", task_id, attempt_id, {
+        "batchId": batch_id, "batchDigest": batch_digest_value,
+        "briefDigest": state.digest(batch_attempt["brief"]),
+        **usage,
+    }, version=5)
+    record["schemaVersion"] = max(record_version, 3)
+    manager._persist(root, record)
+    return {"batchId": batch_id, "attemptId": attempt_id, "idempotent": False}
