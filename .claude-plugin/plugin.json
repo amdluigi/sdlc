@@ -1,6 +1,6 @@
 {
   "name": "amdluigi-sdlc",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A modular SDLC bundle that reuses verified lifecycle evidence and fills only missing work for scoped, tested, reviewed changes.",
   "author": {
     "name": "amdluigi",

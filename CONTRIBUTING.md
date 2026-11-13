@@ -12,6 +12,44 @@ The public `sdlc` repository is the authoritative code repository.
 6. Address public CI and review findings.
 7. Merge after the required checks pass.
 
+## Version every content commit
+
+Every new content-changing commit, including documentation and follow-up
+fixes, must advance the bundle's stable `major.minor.patch` version. This
+policy starts with the commit that introduces `scripts/version.py`; it does
+not rewrite historical commits. Before staging each commit, run:
+
+```powershell
+python -B scripts\version.py bump
+```
+
+The default is a patch bump. Use `bump --part minor` for a backward-compatible
+capability. Major changes require a separate compatibility decision and
+coordinated metadata/consumer changes; the helper does not automate those.
+The helper synchronizes the plugin, marketplace, core skill and qualification
+manifest, and refreshes the bundle hashes. It does not stage, commit, tag,
+publish, modify Git hooks, update installed copies or grant release readiness.
+Review and stage all generated metadata with the change. After committing,
+verify the resulting commit:
+
+```powershell
+python -B scripts\version.py check --base HEAD^ --head HEAD
+```
+
+CI checks every commit in the push or PR range, not just its final version.
+An identical-tree merge or empty commit can retain the tested version but
+cannot decrease it. A merge with new conflict-resolution content requires a
+version newer than every parent. Bring an outdated branch up to date before
+merging, and resolve competing version bumps explicitly.
+
+The bundle version identifies the complete installable suite. Individual
+implementation skills, standalone skills and optional VS Code packages keep
+their own component versions, bumped when their behavior changes. JSON
+`schemaVersion` values change only when their data contracts change.
+Version bumps do not imply publication, host requalification or measured
+efficiency. Reinstall copied skills and start a fresh chat to consume them;
+existing sessions may retain previously loaded instructions.
+
 Do not include private correspondence, raw transcripts, local machine paths,
 credentials, or proprietary evaluation data. Contributions must be
 reviewable from the public repository alone.
@@ -64,7 +102,8 @@ rule, architecture decision, correction, or domain term.
 6. Add positive, negative, counterexample, and pressure evaluations.
 7. Add deterministic unit coverage for script behavior.
 8. Update README and architecture documentation when public behavior changes.
-9. Bump the skill and plugin version for meaningful behavior changes.
+9. Bump the changed component version and use the per-commit bundle version
+   helper above.
 10. Run the complete validation sequence.
 
 ## Adding a Core Module

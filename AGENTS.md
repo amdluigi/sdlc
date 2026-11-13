@@ -84,8 +84,12 @@ scripts/
    into `skills/sdlc-*/SKILL.md` and heavy detail into module-owned
    references. Configuration logic remains in the orchestrator because
    modules can be disabled.
-4. Bump `metadata.version` in the frontmatter when you make a meaningful
-   change to a skill's behavior.
+4. Bump a changed implementation skill's `metadata.version` for meaningful
+   behavior changes. Before every content-changing commit, run
+   `python -B scripts/version.py bump` (or `bump --part minor` for a
+   backward-compatible capability) and stage all synchronized bundle
+   metadata. CI checks every commit, not just the final PR version. See
+   [version policy](CONTRIBUTING.md#version-every-content-commit).
 5. Validate the frontmatter against the spec (name/description constraints)
    before committing - see [specification.md](https://agentskills.io/specification.md).
 6. The `skills` array in [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
