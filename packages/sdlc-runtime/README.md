@@ -7,6 +7,13 @@ model automatically. No dependencies, SDK, network client or global settings
 are added. Start with the independently usable
 [manual tryout](../../docs/EXECUTION-TRYOUT.md).
 
+**SDLC: Run Two Isolated Batches** explicitly groups exactly two independent
+local project batches, each with its own current exact consent and serial
+controller. It never runs concurrent workers in the same project. See
+[isolation, cancellation and acceptance](../../docs/PARALLEL-BATCHES.md)
+before using it. Existing single-worker and single-batch commands are
+unchanged.
+
 ## Run from the public source checkout
 
 Requirements: VS Code 1.95 or newer with a native chat model available,
