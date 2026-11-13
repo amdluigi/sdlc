@@ -5,7 +5,7 @@ license: MIT
 metadata:
   category: process
   architecture: modular
-  version: "1.0.0"
+  version: "1.1.0"
   sdlc-requires: "project-memory,project-standards,change-contract,prd,debugging,incident-response,release-launch,planning,accessibility-browser,performance-concurrency,observability,api-compatibility,data-migration,dependency-supply-chain,tdd,implementation,testing,security-auth,operational-readiness,review,pr-handoff,continuous-improvement"
 ---
 

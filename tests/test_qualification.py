@@ -110,6 +110,16 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(files, self.manifest["skill"]["files"])
         self.assertEqual(digest, self.manifest["skill"]["bundleSha256"])
 
+    def test_release_version_can_advance_without_changing_schema_version(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["release"] = manifest["skill"]["version"] = "1.1.0"
+        self.assertEqual(1, qualify.validate_manifest(manifest, ROOT)["schemaVersion"])
+        for invalid in ["01.1.0", "1.1", "1.1.0+build", "v1.1.0", True]:
+            with self.subTest(invalid=invalid):
+                manifest["release"] = manifest["skill"]["version"] = invalid
+                with self.assertRaises(ValueError):
+                    qualify.validate_manifest(manifest, ROOT)
+
     def test_execution_contracts_are_in_exact_copy_and_link_inventory(self):
         self.assertEqual(qualify.BUNDLE_FILE_COUNT, len(self.manifest["skill"]["files"]))
         self.assertIn("scripts/execution_contracts.py", self.manifest["skill"]["helperScripts"])

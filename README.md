@@ -31,6 +31,11 @@ that discipline without the gates the control plane enforces.
 
 ## Start here
 
+The bundle version is synchronized across the plugin, marketplace, core skill
+and qualification manifest. Every new content-changing commit advances it;
+see the [version policy](CONTRIBUTING.md#version-every-content-commit).
+Merging a new version does not update previously installed copies.
+
 Install SDLC in the project where your agent works:
 
 ```bash

@@ -18,6 +18,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Per-commit bundle versions
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          VERSION_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          VERSION_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          base="$VERSION_BASE"
+          if [ -z "$base" ] || [[ "$base" =~ ^0+$ ]]; then
+            base="$(git merge-base origin/main "$VERSION_HEAD")"
+          fi
+          python -B scripts/version.py check --base "$base" --head "$VERSION_HEAD"
       - name: Unit tests
         env:
           PYTHONDONTWRITEBYTECODE: "1"
