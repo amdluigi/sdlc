@@ -101,13 +101,63 @@ and are not peak-memory or production-throughput measurements. Fresh
 independent read-only review found no significant code issues. Repository,
 PRD, plan, installed manifest and diff checks also passed.
 
-Native rendered-interface qualification is blocked, not passed. On
-2026-11-12, the matching VS Code Insiders executable refused separate
-development-host startup because `vscodeinsiders-updating` remained held.
-The retained startup attempt exited 1 after the editor's own 31-second wait.
-No keyboard, focus, viewport or accessibility-tree result was obtained.
-Do not bypass the shared updater, stop other editor instances, substitute a
-different IDE build or treat Node API fixtures as rendered-interface proof.
-Keep this change unmerged until the current-build native interaction checks
-can run. This environment limitation does not explain or resolve the separate
-historical Windows cancellation investigation.
+Native rendered-interface qualification was initially blocked on
+2026-11-12 and the first retry on 2026-11-13: the shared
+`vscodeinsiders-updating` mutex prevented development-host startup after the
+editor's own approximately 31-second wait. No shared updater or user editor
+was stopped and no lock was bypassed.
+
+After the maintainer completed the update, current-build VS Code Insiders
+1.147.0-insider (build prefix `54ab79431a`, Electron 43.8.6) started a
+separate development host on 2026-11-13. Fresh disposable projects, an isolated
+profile and disabled non-test extensions prevented interference with normal
+editor use. Only external model discovery/response and batch file selection
+were synthetic; production commands, native QuickPick/custom dialogs,
+progress notifications, Python managers and execution records were real.
+
+The following actual rendered checks passed:
+
+- The named multi-select exposed both project paths, checkbox states and
+  keyboard arrow/space/Enter selection. Escape restored editor focus and
+  dispatched zero requests.
+- The group dialog exposed its roots and independence/remote-stop warnings.
+  Escape rejected it without requests. Both exact batch dialogs displayed
+  their own project, current digests, model IDs, limits and billing caveats.
+  Declining the second dispatched neither worker.
+- Native custom-dialog mode was tested at 800 by 600 and approximately
+  1440 by 900. Screenshots and DOM geometry showed contained dialogs,
+  wrapping paths/digests, vertical scrolling for long consent text and
+  visible action buttons. Keyboard focus, Cancel, Escape and restoration
+  were exercised with reduced motion enabled.
+- Scoped automated DOM checks passed for dialog role, existing accessible
+  label targets, named actions and viewport containment. Accessible snapshots
+  exposed selection, consent, progress/cancel and completion/error states.
+  This is scoped integration evidence, not a whole-editor accessibility audit.
+- Both exact approvals produced two synthetic adapter calls, maximum overlap
+  two and zero real-provider calls. Each actual manager retained one start
+  and one received result, with no completion/validation acceptance.
+- A separate fresh-project trial cancelled one rendered progress control.
+  Both managers retained `unknown`, one observed iteration and no
+  `TASK_CANCELLED`, completion or validation event. The error notification
+  warned against redispatch; reopening the selector verified busy-latch
+  release after settlement.
+
+Trial elapsed times of 17.986 seconds for completion and 24.408 seconds for
+cancellation include interactive consent and are not performance benchmarks.
+The host's Windows OS-dialog rendering could not be inspected with the
+available browser tool, so the supported custom-dialog mode was selected only
+in the disposable profile. OS-dialog-specific behavior and a physical screen
+reader were not qualified; no host API or production setting was changed.
+An earlier reused-fixture trial was excluded from dispatch evidence because
+its tasks were already reported. A cancellation-host restart also encountered
+a transient occupied debug port; a verified unused port resolved it.
+
+The original native-startup blocker is resolved for the tested current build
+and custom-dialog configuration. This evidence does not explain or resolve
+the separate historical Windows cancellation investigation, qualify remote
+termination or billing, or establish native custom-profile/pin execution.
+
+After these checks, the complete unchanged runtime suite passed again:
+68 tests, zero skips or failures, 95.447 seconds on Windows. Runtime syntax,
+plan, repository, manifest and diff checks also passed. Test-owned hosts and
+debug endpoints were closed; no user editor or updater was terminated.
